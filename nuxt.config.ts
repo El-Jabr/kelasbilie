@@ -14,7 +14,7 @@ export default defineNuxtConfig({
   },
 
   app: {
-    baseURL: '/'
+    baseURL: '/manage/'
   },
 
   css: ['~/assets/css/main.css'],
