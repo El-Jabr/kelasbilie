@@ -1,0 +1,211 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum Semester {
+  GANJIL
+  GENAP
+}
+
+enum GradeCategory {
+  PH
+  STS
+  SAS
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  password     String
+  fullname     String
+  role         Role
+  moodleUserId Int?     @unique
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  student Student?
+  teacher Teacher?
+}
+
+model Student {
+  id              String           @id @default(uuid())
+  userId          String           @unique
+  user            User             @relation(fields: [userId], references: [id])
+  nis             String           @unique
+  classes         StudentClass[]
+  gradeComponents GradeComponent[]
+  gradeSummaries  GradeSummary[]
+
+  enrollments Enrollment[]
+}
+
+model Teacher {
+  id        String               @id @default(uuid())
+  userId    String               @unique
+  user      User                 @relation(fields: [userId], references: [id])
+  nip       String               @unique
+  teachings TeachingAssignment[]
+  homerooms HomeroomAssignment[]
+}
+
+model AcademicYear {
+  id       String  @id @default(uuid())
+  name     String  @unique
+  isActive Boolean @default(false)
+  isLocked Boolean @default(false)
+  // contoh:
+  // 2025/2026
+
+  studentClasses      StudentClass[]
+  teachingAssignments TeachingAssignment[]
+
+  homeroomAssignments HomeroomAssignment[]
+}
+
+model Classroom {
+  id        String               @id @default(uuid())
+  name      String
+  level     Int
+  students  StudentClass[]
+  teachings TeachingAssignment[]
+  homerooms HomeroomAssignment[]
+}
+
+model Subject {
+  id        String               @id @default(uuid())
+  code      String               @unique
+  name      String
+  teachings TeachingAssignment[]
+}
+
+model StudentClass {
+  id             String       @id @default(cuid())
+  studentId      String
+  classroomId    String
+  academicYearId String
+  student        Student      @relation(fields: [studentId], references: [id])
+  classroom      Classroom    @relation(fields: [classroomId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  @@unique([studentId, academicYearId])
+}
+
+model TeachingAssignment {
+  id              String           @id @default(cuid())
+  teacherId       String
+  subjectId       String
+  classroomId     String
+  academicYearId  String
+  moodleCourseId  Int              @unique
+  teacher         Teacher          @relation(fields: [teacherId], references: [id])
+  subject         Subject          @relation(fields: [subjectId], references: [id])
+  classroom       Classroom        @relation(fields: [classroomId], references: [id])
+  academicYear    AcademicYear     @relation(fields: [academicYearId], references: [id])
+  gradeComponents GradeComponent[]
+  gradeSummaries  GradeSummary[]
+
+  @@unique([teacherId, subjectId, classroomId, academicYearId])
+}
+
+model HomeroomAssignment {
+  id             String       @id @default(uuid())
+  teacherId      String
+  classroomId    String
+  academicYearId String
+  teacher        Teacher      @relation(fields: [teacherId], references: [id])
+  classroom      Classroom    @relation(fields: [classroomId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  @@unique([classroomId, academicYearId])
+  @@unique([teacherId, academicYearId])
+}
+
+model GradeComponent {
+  id                String             @id @default(cuid())
+  studentId         String
+  teachingId        String
+  semester          Semester
+  title             String
+  category          GradeCategory
+  score             Float
+  maxScore          Float?
+  weight            Float?
+  moodleGradeItemId Int?
+  lastSync          DateTime?
+  student           Student            @relation(fields: [studentId], references: [id])
+  teaching          TeachingAssignment @relation(fields: [teachingId], references: [id])
+}
+
+model GradeSummary {
+  id           String             @id @default(cuid())
+  studentId    String
+  teachingId   String
+  semester     Semester
+  category     GradeCategory
+  score        Float
+  calculatedAt DateTime           @default(now())
+  student      Student            @relation(fields: [studentId], references: [id])
+  teaching     TeachingAssignment @relation(fields: [teachingId], references: [id])
+
+  @@unique([studentId, teachingId, semester, category])
+}
+
+model Enrollment {
+  id        String  @id @default(uuid())
+  studentId String
+  courseId  String
+  student   Student @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, courseId])
+}
+
+model CourseMoodle {
+  
+}
+model SchoolSetting {
+  id          String   @id @default(uuid())
+  schoolName  String
+  moodleUrl   String
+  moodleToken String
+  logo        String?
+  updatedAt   DateTime @updatedAt
+}
+
+model SyncLog {
+  id       String   @id @default(uuid())
+  resource String
+  status   String
+  message  String?
+  syncedAt DateTime @default(now())
+}
+
+model Setting {
+  id Int @id @default(1)
+
+  moodleUrl   String @db.Text
+  moodleToken String @db.Text
+
+  syncEnabled  Boolean @default(true)
+  syncInterval Int     @default(30) // menit
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

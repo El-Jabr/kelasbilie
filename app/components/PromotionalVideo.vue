@@ -1,0 +1,21 @@
+<template>
+  <div class="relative">
+    <UPageCard
+      variant="subtle"
+      class="rounded-2xl"
+    >
+      <video
+        class="rounded-xl"
+        data-v-baf90ddd=""
+        preload="none"
+        poster="https://video.bilter.my.id/poster-profil-smp-bilie.png"
+        :controls="true"
+      ><source
+        data-v-baf90ddd=""
+        src="https://video.bilter.my.id/profil-smp-bilie.mp4"
+        type="video/mp4"
+      >
+      </video>
+    </UPageCard>
+  </div>
+</template>
