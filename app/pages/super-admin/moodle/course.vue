@@ -12,7 +12,7 @@ const UButton = resolveComponent('UButton')
 const loading = ref(false)
 
 const courseSections = {
-  headline: 'Course Moodle',
+  headline: 'test push git',
   title: 'Course Moodle',
   description: 'Kursus yang tersedia di Moodle Sekolah'
 }

@@ -177,9 +177,6 @@ model Enrollment {
   @@unique([studentId, courseId])
 }
 
-model CourseMoodle {
-  
-}
 model SchoolSetting {
   id          String   @id @default(uuid())
   schoolName  String

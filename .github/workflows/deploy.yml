@@ -1,0 +1,28 @@
+name: Deploy KelasBilie
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Deploy on server
+        run: |
+          export NVM_DIR="$HOME/.nvm"
+          source "$NVM_DIR/nvm.sh"
+          
+          cd /var/www/kelasbilie
+
+          git pull origin main
+
+          npm ci
+
+          npx prisma generate
+
+          npm run build
+
+          pm2 restart kelasbilie

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LazyModalLogout, NuxtImg } from '#components'
+import { LazyModalLogout } from '#components'
 import type { NavigationMenuItem } from '@nuxt/ui'
 
 const route = useRoute()
@@ -170,11 +170,11 @@ async function logout() {
   <UHeader>
     <template #left>
       <NuxtLink to="/">
-        <NuxtImg
+        <img
           src="/logo.png"
           alt="Kelas Bilie"
           class="w-auto h-16 shrink-0"
-        />
+        >
       </NuxtLink>
     </template>
 
