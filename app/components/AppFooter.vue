@@ -11,13 +11,13 @@
     <template #top>
       <UContainer>
         <div class="space-y-1 text-sm text-muted flex flex-col gap-0.5">
-          <NuxtImg
+          <img
             src="/logo.png"
             width="225"
             height="75"
             alt="SMP BILIE Logo"
             class="-ml-3"
-          />
+          >
           <p class="text-lg font-semibold">
             SMP Bilingual Terpadu 2 (BILIE)
           </p>
