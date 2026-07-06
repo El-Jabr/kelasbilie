@@ -35,7 +35,7 @@ sections:
       - name: Dashboard Monitoring
         description: Pantau aktivitas pembelajaran, progres siswa, dan statistik sekolah secara real-time.
         icon: i-lucide-chart-column
-    image: /image-section-1.png
+    image: https://images.bilter.my.id/image-section-1.png
   - title: Dibangun untuk Sekolah Modern
     description: Mendukung digitalisasi sekolah mulai dari administrasi hingga proses belajar mengajar.
     orientation: horizontal
@@ -50,7 +50,7 @@ sections:
       - name: Responsif
         description: Dapat digunakan melalui desktop maupun perangkat mobile.
         icon: i-lucide-smartphone
-    image: /image-section-2.jpg
+    image: https://images.bilter.my.id/image-section-2.jpg
 features:
   title: Semua yang Dibutuhkan Sekolah
   description: Kelas Bilie menyediakan fitur lengkap untuk mendukung administrasi dan pembelajaran digital.
