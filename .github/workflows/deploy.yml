@@ -14,7 +14,7 @@ jobs:
         run: |
           export NVM_DIR="$HOME/.nvm"
           source "$NVM_DIR/nvm.sh"
-          
+
           cd /var/www/kelasbilie
 
           git pull origin main
@@ -23,6 +23,6 @@ jobs:
 
           npx prisma generate
 
-          npm run build
+          NODE_OPTIONS="--max-old-space-size=6144" npm run build
 
           pm2 restart kelasbilie
