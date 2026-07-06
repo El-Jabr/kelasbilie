@@ -53,7 +53,7 @@ type Schema = z.output<typeof schema>
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
   try {
-    const res = await $fetch('/api/auth/login', {
+    const res = await $fetch('api/auth/login', {
       method: 'POST',
       body: payload.data,
       credentials: 'include' // 🔥 WAJIB agar cookie tersimpan
