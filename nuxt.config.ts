@@ -13,6 +13,10 @@ export default defineNuxtConfig({
     enabled: true
   },
 
+  app: {
+    baseURL: '/manage/'
+  },
+
   css: ['~/assets/css/main.css'],
 
   content: {
