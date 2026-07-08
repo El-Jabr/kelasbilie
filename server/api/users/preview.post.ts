@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const file = files.find((f) => f.name === 'file')
+  const file = files.find(f => f.name === 'file')
 
   if (!file) {
     throw createError({
@@ -42,6 +42,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const excelRows = XLSX.utils.sheet_to_json<any>(sheet, {
     defval: ''
   })
@@ -87,7 +88,6 @@ export default defineEventHandler(async (event) => {
   let invalid = 0
 
   for (let i = 0; i < excelRows.length; i++) {
-
     const row = excelRows[i]
 
     const username = String(row.username).trim()
@@ -99,51 +99,51 @@ export default defineEventHandler(async (event) => {
     const errors: string[] = []
 
     if (!username)
-      errors.push("Username wajib diisi")
+      errors.push('Username wajib diisi')
 
     if (!fullname)
-      errors.push("Fullname wajib diisi")
+      errors.push('Fullname wajib diisi')
 
     if (!password)
-      errors.push("Password wajib diisi")
+      errors.push('Password wajib diisi')
 
     if (password && password.length < 6)
-      errors.push("Password minimal 6 karakter")
+      errors.push('Password minimal 6 karakter')
 
     if (!role)
-      errors.push("Role wajib diisi")
+      errors.push('Role wajib diisi')
 
     if (role && !VALID_ROLES.includes(role))
-      errors.push("Role tidak valid")
+      errors.push('Role tidak valid')
 
     if (email) {
-      const emailRegex =
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      const emailRegex
+        = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
       if (!emailRegex.test(email))
-        errors.push("Format email tidak valid")
+        errors.push('Format email tidak valid')
     }
 
     if (usernameSet.has(username))
-      errors.push("Username duplikat pada file")
+      errors.push('Username duplikat pada file')
 
     if (email && emailSet.has(email))
-      errors.push("Email duplikat pada file")
+      errors.push('Email duplikat pada file')
 
     if (dbUsername.has(username))
-      errors.push("Username sudah ada")
+      errors.push('Username sudah ada')
 
     if (email && dbEmail.has(email))
-      errors.push("Email sudah ada")
+      errors.push('Email sudah ada')
 
     usernameSet.add(username)
 
     if (email)
       emailSet.add(email)
 
-    const status = errors.length === 0 ? "valid" : "invalid"
+    const status = errors.length === 0 ? 'valid' : 'invalid'
 
-    if (status === "valid")
+    if (status === 'valid')
       valid++
     else
       invalid++
