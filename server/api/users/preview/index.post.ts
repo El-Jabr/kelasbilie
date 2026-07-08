@@ -1,7 +1,7 @@
-import * as XLSX from 'xlsx'
-import { prisma } from '../../utils/db'
+import { parse } from 'csv-parse/sync'
+import { prisma } from '../../../utils/db'
 
-const VALID_ROLES = ['ADMIN', 'STUDENT', 'TEACHER']
+const VALID_ROLES = ['ADMIN', 'STUDENT', 'TEACHER'] as const
 
 export default defineEventHandler(async (event) => {
   const files = await readMultipartFormData(event)
@@ -22,40 +22,30 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const workbook = XLSX.read(file.data)
-
-  const sheetName = workbook.SheetNames[0]
-
-  if (!sheetName) {
+  if (!file.filename?.toLowerCase().endsWith('.csv')) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Sheet tidak ditemukan'
+      statusMessage: 'File harus berformat CSV'
     })
   }
-
-  const sheet = workbook.Sheets[sheetName]
-
-  if (!sheet) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Sheet tidak ditemukan'
-    })
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const excelRows = XLSX.utils.sheet_to_json<any>(sheet, {
-    defval: ''
+  // Parse CSV
+  const excelRows = parse(file.data.toString('utf8'), {
+    columns: true,
+    skip_empty_lines: true,
+    trim: true
   })
 
   const usernameSet = new Set<string>()
   const emailSet = new Set<string>()
 
   const usernames = excelRows
-    .map(r => String(r.username || '').trim())
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((r: any) => String(r.username ?? '').trim())
     .filter(Boolean)
 
   const emails = excelRows
-    .map(r => String(r.email || '').trim())
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((r: any) => String(r.email ?? '').trim())
     .filter(Boolean)
 
   const existingUsers = await prisma.user.findMany({
@@ -88,13 +78,14 @@ export default defineEventHandler(async (event) => {
   let invalid = 0
 
   for (let i = 0; i < excelRows.length; i++) {
-    const row = excelRows[i]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const row: any = excelRows[i]
 
-    const username = String(row.username).trim()
-    const fullname = String(row.fullname).trim()
-    const email = String(row.email).trim()
-    const password = String(row.password)
-    const role = String(row.role).trim().toUpperCase()
+    const username = String(row.username ?? '').trim()
+    const fullname = String(row.fullname ?? '').trim()
+    const email = String(row.email ?? '').trim()
+    const password = String(row.password ?? '')
+    const role = String(row.role ?? '').trim().toUpperCase()
 
     const errors: string[] = []
 
@@ -107,18 +98,17 @@ export default defineEventHandler(async (event) => {
     if (!password)
       errors.push('Password wajib diisi')
 
-    if (password && password.length < 6)
+    if (password.length < 6)
       errors.push('Password minimal 6 karakter')
 
     if (!role)
       errors.push('Role wajib diisi')
 
-    if (role && !VALID_ROLES.includes(role))
+    if (!VALID_ROLES.includes(role as typeof VALID_ROLES[number]))
       errors.push('Role tidak valid')
 
     if (email) {
-      const emailRegex
-        = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
       if (!emailRegex.test(email))
         errors.push('Format email tidak valid')
@@ -155,7 +145,7 @@ export default defineEventHandler(async (event) => {
       email,
       password,
       role,
-      status,
+      valid,
       errors
     })
   }

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import { prisma } from '../../utils/db'
+import { prisma } from '../../../utils/db'
 
 type UserRole = 'ADMIN' | 'STUDENT' | 'TEACHER'
 
