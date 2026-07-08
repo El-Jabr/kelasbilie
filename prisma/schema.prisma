@@ -32,7 +32,8 @@ enum GradeCategory {
 
 model User {
   id           String   @id @default(uuid())
-  email        String   @unique
+  email        String?
+  username     String   @unique
   password     String
   fullname     String
   role         Role
