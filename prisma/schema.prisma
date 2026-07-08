@@ -30,9 +30,17 @@ enum GradeCategory {
   SAS
 }
 
+enum Resource {
+  USER
+  COURSE
+  GRADE
+  CATEGORY
+}
+
 model User {
   id           String   @id @default(uuid())
-  email        String   @unique
+  email        String?  @unique
+  username     String   @unique
   password     String
   fullname     String
   role         Role
@@ -109,17 +117,21 @@ model StudentClass {
 }
 
 model TeachingAssignment {
-  id              String           @id @default(cuid())
-  teacherId       String
-  subjectId       String
-  classroomId     String
-  academicYearId  String
-  moodleCourseId  Int              @unique
-  teacher         Teacher          @relation(fields: [teacherId], references: [id])
-  subject         Subject          @relation(fields: [subjectId], references: [id])
-  classroom       Classroom        @relation(fields: [classroomId], references: [id])
-  academicYear    AcademicYear     @relation(fields: [academicYearId], references: [id])
-  gradeComponents GradeComponent[]
+  id String @id @default(cuid())
+
+  teacherId      String
+  subjectId      String
+  classroomId    String
+  academicYearId String
+  courseId       Int    @unique
+
+  teacher      Teacher      @relation(fields: [teacherId], references: [id])
+  subject      Subject      @relation(fields: [subjectId], references: [id])
+  classroom    Classroom    @relation(fields: [classroomId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  course Course @relation(fields: [courseId], references: [id])
+
   gradeSummaries  GradeSummary[]
 
   @@unique([teacherId, subjectId, classroomId, academicYearId])
@@ -138,24 +150,61 @@ model HomeroomAssignment {
   @@unique([teacherId, academicYearId])
 }
 
+model Course {
+  id Int @id // courseId = Moodle courseId
+
+  fullname   String
+  shortname  String
+  categoryId Int
+  visible    Boolean
+  createdAt  DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  lastSync DateTime?
+  category CourseCategory @relation(fields: [categoryId], references: [id])
+
+  teaching   TeachingAssignment?
+  gradeItems GradeItem[]
+
+  enrollments Enrollment[]
+}
+
+model CourseCategory {
+  id       Int      @id // courseCategoryId = Mooodle courseCategoryId
+  name     String
+  parentId Int?
+  depth    Int
+  courses  Course[]
+}
+
+model GradeItem {
+  id              Int              @id
+  courseId        Int
+  name            String
+  itemType        String?
+  category        GradeCategory?
+  course          Course           @relation(fields: [courseId], references: [id])
+  gradeComponents GradeComponent[]
+}
+
 model GradeComponent {
-  id                String             @id @default(cuid())
-  studentId         String
-  teachingId        String
-  semester          Semester
-  title             String
-  category          GradeCategory
-  score             Float
-  maxScore          Float?
-  weight            Float?
-  moodleGradeItemId Int?
-  lastSync          DateTime?
-  student           Student            @relation(fields: [studentId], references: [id])
-  teaching          TeachingAssignment @relation(fields: [teachingId], references: [id])
+  id String @id @default(uuid())
+
+  studentId   String
+  gradeItemId Int
+
+  score    Float
+  lastSync DateTime?
+
+  student              Student             @relation(fields: [studentId], references: [id])
+  gradeItem            GradeItem           @relation(fields: [gradeItemId], references: [id])
+
+  @@unique([studentId, gradeItemId])
 }
 
 model GradeSummary {
-  id           String             @id @default(cuid())
+  id           String             @id @default(uuid())
   studentId    String
   teachingId   String
   semester     Semester
@@ -165,44 +214,38 @@ model GradeSummary {
   student      Student            @relation(fields: [studentId], references: [id])
   teaching     TeachingAssignment @relation(fields: [teachingId], references: [id])
 
+  updatedAt DateTime @updatedAt
+
   @@unique([studentId, teachingId, semester, category])
 }
 
 model Enrollment {
   id        String  @id @default(uuid())
   studentId String
-  courseId  String
+  courseId  Int
   student   Student @relation(fields: [studentId], references: [id])
+  course    Course  @relation(fields: [courseId], references: [id])
 
   @@unique([studentId, courseId])
 }
 
 model SchoolSetting {
-  id          String   @id @default(uuid())
-  schoolName  String
-  moodleUrl   String
-  moodleToken String
-  logo        String?
-  updatedAt   DateTime @updatedAt
-}
-
-model SyncLog {
-  id       String   @id @default(uuid())
-  resource String
-  status   String
-  message  String?
-  syncedAt DateTime @default(now())
-}
-
-model Setting {
-  id Int @id @default(1)
-
-  moodleUrl   String @db.Text
-  moodleToken String @db.Text
+  id          String  @id @default(uuid())
+  schoolName  String?
+  moodleUrl   String?
+  moodleToken String? @db.Text
 
   syncEnabled  Boolean @default(true)
   syncInterval Int     @default(30) // menit
 
-  createdAt DateTime @default(now())
+  logo      String?
   updatedAt DateTime @updatedAt
+}
+
+model SyncLog {
+  id       String   @id @default(uuid())
+  resource Resource
+  status   String
+  message  String?
+  syncedAt DateTime @default(now())
 }

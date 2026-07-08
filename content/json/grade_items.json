@@ -1,0 +1,175 @@
+{
+    "gradeItems": [
+        {
+            "id": "132",
+            "itemname": "UJIAN KEPESANTRENAN",
+            "category": "SAT 8"
+        },
+        {
+            "id": "133",
+            "itemname": "UJIAN BAHASA",
+            "category": "SAT 8"
+        },
+        {
+            "id": "134",
+            "itemname": "BAHASA INDONESIA 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "135",
+            "itemname": "PENDIDIKAN AGAMA ISLAM 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "136",
+            "itemname": "MATEMATIKA 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "137",
+            "itemname": "PENDIDIKAN PANCASILA 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "138",
+            "itemname": "IPA 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "139",
+            "itemname": "BAHASA JAWA 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "140",
+            "itemname": "BAHASA INGGRIS 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "141",
+            "itemname": "PJOK 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "142",
+            "itemname": "IPS 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "143",
+            "itemname": "BAHASA ARAB 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "148",
+            "itemname": "HADIST 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "149",
+            "itemname": "FIQIH 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "369",
+            "itemname": "BTQ",
+            "category": "SAT 8"
+        },
+        {
+            "id": "370",
+            "itemname": "KEAHLIAN SAINS",
+            "category": "SAT 8"
+        },
+        {
+            "id": "371",
+            "itemname": "KEAHLIAN BAHASA",
+            "category": "SAT 8"
+        },
+        {
+            "id": "372",
+            "itemname": "KEAHLIAN SENI",
+            "category": "SAT 8"
+        },
+        {
+            "id": "373",
+            "itemname": "REMIDIAL PENDIDIKAN AGAMA ISLAM 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "374",
+            "itemname": "REMIDIAL PENDIDIKAN PANCASILA 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "375",
+            "itemname": "REMIDIAL BAHASA INDONESIA 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "376",
+            "itemname": "REMIDIAL BAHASA JAWA 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "377",
+            "itemname": "REMIDIAL IPA 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "378",
+            "itemname": "REMIDIAL IPS 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "379",
+            "itemname": "REMIDIAL BAHASA ARAB 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "380",
+            "itemname": "REMIDIAL BAHASA INGGRIS 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "381",
+            "itemname": "REMIDIQL HADIST 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "382",
+            "itemname": "REMIDIAL PJOK 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "397",
+            "itemname": "REMIDIAL FIQIH 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "398",
+            "itemname": "REMIDIAL MATEMATIKA 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "399",
+            "itemname": "REMIDIAL BTQ 8",
+            "category": "SAT 8"
+        },
+        {
+            "id": "400",
+            "itemname": "REMIDIAL KEAHLIAN SAINS",
+            "category": "SAT 8"
+        },
+        {
+            "id": "401",
+            "itemname": "REMIDIAL KEAHLIAN SENI",
+            "category": "SAT 8"
+        },
+        {
+            "id": "406",
+            "itemname": "REMIDIAL KEAHLIAN BAHASA",
+            "category": "SAT 8"
+        }
+    ],
+    "warnings": []
+}

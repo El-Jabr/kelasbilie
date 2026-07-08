@@ -2,7 +2,7 @@ import { prisma } from '../../utils/db'
 
 export default defineEventHandler(async () => {
   try {
-    const setting = await prisma.setting.findFirst({
+    const setting = await prisma.schoolSetting.findFirst({
     })
     return setting
   } catch (error) {

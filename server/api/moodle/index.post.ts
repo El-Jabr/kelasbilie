@@ -2,15 +2,16 @@ import { prisma } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
   try {
-    const body = await readBody<{ url: string, token: string, syncEnabled: boolean, syncInterval: number }>(event)
+    const body = await readBody<{ schoolName: string, url: string, token: string, syncEnabled: boolean, syncInterval: number }>(event)
     if (!body.url) {
       throw createError({
         statusCode: 400,
         statusMessage: 'Url is required'
       })
     }
-    const setting = await prisma.setting.create({
+    const setting = await prisma.schoolSetting.create({
       data: {
+        schoolName: body.schoolName,
         moodleUrl: body.url,
         moodleToken: body.token,
         syncEnabled: body.syncEnabled,
