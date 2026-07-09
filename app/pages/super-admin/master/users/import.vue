@@ -1,5 +1,4 @@
 <script setup lang="ts">
-
 const {
   preview,
   loadingImport,
@@ -23,15 +22,24 @@ async function handleImport() {
 
 <template>
   <UContainer class="py-6 space-y-6">
-    <!-- Header -->
-    <div>
-      <h1 class="text-2xl font-bold">
-        Import Users
-      </h1>
+    <div class="flex flex-col-reverse gap-4 md:flex-row md:items-start md:justify-between">
+      <div class="max-w-4xl">
+        <h1 class="text-2xl font-bold">
+          Import Users
+        </h1>
+        <p class="text-muted">
+          Import data user menggunakan file Excel atau CSV.
+        </p>
+      </div>
 
-      <p class="text-muted">
-        Import data user menggunakan file Excel atau CSV.
-      </p>
+      <UButton
+        icon="i-lucide-chevron-left"
+        to="/super-admin/master/users"
+        color="neutral"
+        variant="subtle"
+        size="xl"
+        class="self-start md:self-auto rounded-full"
+      />
     </div>
 
     <!-- Upload -->

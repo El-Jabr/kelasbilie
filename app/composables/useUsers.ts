@@ -1,4 +1,3 @@
-
 export interface UserItem {
   id: string
   username: string
@@ -36,8 +35,8 @@ export function useUsers() {
 
   // Filter
   const search = useState('users:search', () => '')
-  const role = useState<string>('users:role', () => '')
-  const active = useState<string>('users:active', () => '')
+  const role = useState<string>('users:role', () => 'ALL')
+  const active = useState<string>('users:active', () => 'true')
 
   // Sorting
   const sort = useState('users:sort', () => 'createdAt')
@@ -47,13 +46,13 @@ export function useUsers() {
   const selected = useState<UserItem[]>('users:selected', () => [])
 
   const selectedUser = useState<UserItem | null>(
-  'users:selected-user',
-  () => null
+    'users:selected-user',
+    () => null
   )
 
   const roleDialogOpen = useState(
-  'users:role-dialog',
-  () => false
+    'users:role-dialog',
+    () => false
   )
 
   async function fetchUsers(page = pagination.value.page) {
@@ -80,8 +79,8 @@ export function useUsers() {
   }
 
   async function refresh() {
-  pagination.value.page = 1
-  await fetchUsers(1)
+    pagination.value.page = 1
+    await fetchUsers(1)
   }
 
   async function changePage(page: number) {
@@ -105,26 +104,26 @@ export function useUsers() {
   }
 
   async function resetFilter() {
-  search.value = ''
-  role.value = ''
-  active.value = ''
-  sort.value = 'createdAt'
-  order.value = 'desc'
+    search.value = ''
+    role.value = ''
+    active.value = ''
+    sort.value = 'createdAt'
+    order.value = 'desc'
 
-  await fetchUsers(1)
+    await fetchUsers(1)
   }
 
   function openRoleDialog(user: UserItem) {
     selectedUser.value = user
     roleDialogOpen.value = true
-    }
+  }
 
-    function closeRoleDialog() {
-      roleDialogOpen.value = false
-      selectedUser.value = null
-    }
+  function closeRoleDialog() {
+    roleDialogOpen.value = false
+    selectedUser.value = null
+  }
 
-    async function updateRole(role: 'ADMIN' | 'TEACHER' | 'STUDENT') {
+  async function updateRole(role: 'ADMIN' | 'TEACHER' | 'STUDENT') {
     if (!selectedUser.value) {
       return
     }
@@ -154,8 +153,7 @@ export function useUsers() {
         description: 'Role user berhasil diperbarui.',
         color: 'success'
       })
-    }
-    finally {
+    } finally {
       loading.value = false
     }
   }
@@ -179,7 +177,7 @@ export function useUsers() {
     selected,
     selectedUser,
     roleDialogOpen,
-  
+
     // methods
     fetchUsers,
     refresh,

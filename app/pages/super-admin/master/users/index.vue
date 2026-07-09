@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useUsers } from '~/composables/useUsers'
 
 useSeoMeta({
   title: 'Users'
@@ -26,13 +27,12 @@ await fetchUsers()
       description="Kelola seluruh pengguna aplikasi."
     /> -->
 
-    <UsersToolbar />
+    <UsersToolbarUserToolbar />
 
-    <UsersTable />
+    <UsersTableUserTable />
 
-    <UsersPagination />
+    <UsersTableUserPagination />
 
-    <UsersRoleDialog />
-
+    <UsersDialogsUserRoleDialog />
   </UContainer>
 </template>

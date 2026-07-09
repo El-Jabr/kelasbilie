@@ -18,7 +18,10 @@ export default defineEventHandler(async (event) => {
         syncInterval: body.syncInterval
       }
     })
-    return setting
+    return {
+      success: true,
+      data: setting
+    }
   } catch (error) {
     console.error('Error saving url moodle:', error)
     throw createError({

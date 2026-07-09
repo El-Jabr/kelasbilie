@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useUsers } from '~/composables/useUsers'
+
 const {
   users,
   loading,
@@ -49,15 +51,15 @@ const columns = [
       class="flex-1"
     >
       <template #role-cell="{ row }">
-        <BadgesRoleBadge :role="row.original.role" />
+        <UsersBadgesUserRoleBadge :role="row.original.role" />
       </template>
 
       <template #status-cell="{ row }">
-        <BadgesStatusBadge :active="row.original.isActive" />
+        <UsersBadgesUserStatusBadge :active="row.original.isActive" />
       </template>
 
       <template #moodle-cell="{ row }">
-        <BadgesMoodleBadge :moodle-user-id="row.original.moodleUserId" />
+        <UsersBadgesUserMoodleBadge :moodle-user-id="row.original.moodleUserId" />
       </template>
       <template #createdAt-cell="{ row }">
         {{ new Date(row.original.createdAt).toLocaleDateString('id-ID') }}
@@ -79,7 +81,7 @@ const columns = [
             variant="ghost"
           />
         </UDropdownMenu>
-      </template>   
+      </template>
     </UTable>
   </UCard>
 </template>

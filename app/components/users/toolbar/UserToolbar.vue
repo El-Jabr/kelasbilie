@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useUsers } from '~/composables/useUsers'
+
 const {
   search,
   role,
@@ -11,7 +13,7 @@ const {
 const roleOptions = [
   {
     label: 'Semua Role',
-    value: ''
+    value: 'ALL'
   },
   {
     label: 'Admin',
@@ -56,13 +58,11 @@ watch([role, active], () => {
 <template>
   <UCard>
     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
       <div class="flex flex-1 flex-col gap-3 md:flex-row">
-
         <UInput
           v-model="search"
           icon="i-lucide-search"
-          placeholder="Cari username, nama atau email..."
+          placeholder="Cari..."
           class="flex-1"
         />
 
@@ -81,11 +81,9 @@ watch([role, active], () => {
           label-key="label"
           class="w-full md:w-52"
         />
-
       </div>
 
       <div class="flex flex-wrap gap-2">
-
         <UButton
           color="neutral"
           variant="soft"
@@ -121,9 +119,7 @@ watch([role, active], () => {
         >
           Tambah User
         </UButton>
-
       </div>
-
     </div>
   </UCard>
 </template>

@@ -43,7 +43,9 @@ function close() {
           <div class="grid grid-cols-3 gap-4">
             <UCard>
               <div class="text-center">
-                <p class="text-sm text-muted">Total</p>
+                <p class="text-sm text-muted">
+                  Total
+                </p>
                 <p class="text-3xl font-bold">
                   {{ importResult.summary.total }}
                 </p>
@@ -52,7 +54,9 @@ function close() {
 
             <UCard>
               <div class="text-center">
-                <p class="text-sm text-muted">Berhasil</p>
+                <p class="text-sm text-muted">
+                  Berhasil
+                </p>
                 <p class="text-3xl font-bold text-success">
                   {{ importResult.summary.success }}
                 </p>
@@ -61,7 +65,9 @@ function close() {
 
             <UCard>
               <div class="text-center">
-                <p class="text-sm text-muted">Gagal</p>
+                <p class="text-sm text-muted">
+                  Gagal
+                </p>
                 <p class="text-3xl font-bold text-error">
                   {{ importResult.summary.failed }}
                 </p>

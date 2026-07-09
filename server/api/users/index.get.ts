@@ -30,6 +30,7 @@ export default defineEventHandler(async (event) => {
     ? 'asc'
     : 'desc'
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {}
 
   if (search) {
@@ -55,7 +56,7 @@ export default defineEventHandler(async (event) => {
     ]
   }
 
-  if (role) {
+  if (role && role !== 'ALL') {
     where.role = role
   }
 

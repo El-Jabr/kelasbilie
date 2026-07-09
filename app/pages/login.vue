@@ -73,7 +73,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 
     // redirect
     const userState = useState('user')
-    userState.value = res.user
+    userState.value = res.data
 
     console.log('User state after login:', userState.value)
     await navigateTo('/')

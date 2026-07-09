@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     success: true,
-    user: {
+    data: {
       id: user.id,
       email: user.email,
       role: user.role,
