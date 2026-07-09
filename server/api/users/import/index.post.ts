@@ -31,11 +31,9 @@ export default defineEventHandler(async (event): Promise<{
   summary: ImportSummary
   result: ImportResultRow[]
 }> => {
-  const body = (await readBody(event)) as ImportBody
+  const body = await readBody<ImportBody>(event)
 
-  const rows = body.rows
-
-  if (!rows || rows.length === 0) {
+  if (!body.rows?.length) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Tidak ada data yang akan diimport'
@@ -43,66 +41,128 @@ export default defineEventHandler(async (event): Promise<{
   }
 
   const result: ImportResultRow[] = []
+  const usersToCreate = []
 
-  await prisma.$transaction(async (tx) => {
-    for (const row of rows) {
-      try {
-        const username = row.username.trim()
-        const email = row.email?.trim() || null
+  // Ambil seluruh username & email yang akan dicek
+  const usernames = body.rows.map(r => r.username.trim())
+  const emails = body.rows
+    .map(r => r.email?.trim())
+    .filter(Boolean) as string[]
 
-        const exists = await tx.user.findFirst({
-          where: {
-            OR: [
-              { username },
-              ...(email ? [{ email }] : [])
-            ]
+  // Cek user yang sudah ada hanya sekali
+  const existingUsers = await prisma.user.findMany({
+    where: {
+      OR: [
+        {
+          username: {
+            in: usernames
           }
-        })
-
-        if (exists) {
-          result.push({
-            username,
-            status: 'failed',
-            message: 'Username atau email sudah digunakan'
-          })
-          continue
+        },
+        {
+          email: {
+            in: emails
+          }
         }
-
-        const users = await Promise.all(
-          rows.map(async row => ({
-            username: row.username.trim(),
-            fullname: row.fullname.trim(),
-            email: row.email?.trim() || null,
-            password: await bcrypt.hash(row.password, 10),
-            role: row.role,
-            isActive: true
-          }))
-        )
-
-        await prisma.user.createMany({
-          data: users,
-          skipDuplicates: true
-        })
-
-        result.push({
-          username,
-          status: 'success'
-        })
-      } catch (error) {
-        result.push({
-          username: row.username,
-          status: 'failed',
-          message: error as Error['message']
-        })
-      }
+      ]
+    },
+    select: {
+      username: true,
+      email: true
     }
   })
 
+  const existingUsername = new Set(
+    existingUsers.map(u => u.username)
+  )
+
+  const existingEmail = new Set(
+    existingUsers
+      .map(u => u.email)
+      .filter(Boolean)
+  )
+
+  // Untuk mencegah duplikat di dalam file import
+  const importedUsername = new Set<string>()
+  const importedEmail = new Set<string>()
+
+  for (const row of body.rows) {
+    const username = row.username.trim()
+    const fullname = row.fullname.trim()
+    const email = row.email?.trim() || null
+
+    if (existingUsername.has(username)) {
+      result.push({
+        username,
+        status: 'failed',
+        message: 'Username sudah digunakan'
+      })
+      continue
+    }
+
+    if (email && existingEmail.has(email)) {
+      result.push({
+        username,
+        status: 'failed',
+        message: 'Email sudah digunakan'
+      })
+      continue
+    }
+
+    if (importedUsername.has(username)) {
+      result.push({
+        username,
+        status: 'failed',
+        message: 'Username duplikat di file import'
+      })
+      continue
+    }
+
+    if (email && importedEmail.has(email)) {
+      result.push({
+        username,
+        status: 'failed',
+        message: 'Email duplikat di file import'
+      })
+      continue
+    }
+
+    importedUsername.add(username)
+
+    if (email) {
+      importedEmail.add(email)
+    }
+
+    usersToCreate.push({
+      username,
+      fullname,
+      email,
+      password: await bcrypt.hash(row.password, 10),
+      role: row.role,
+      isActive: true
+    })
+
+    result.push({
+      username,
+      status: 'success'
+    })
+  }
+
+  let created = 0
+
+  if (usersToCreate.length) {
+    const response = await prisma.user.createMany({
+      data: usersToCreate,
+      skipDuplicates: true
+    })
+
+    created = response.count
+  }
+
   return {
     summary: {
-      total: rows.length,
-      success: result.filter(r => r.status === 'success').length,
-      failed: result.filter(r => r.status === 'failed').length
+      total: body.rows.length,
+      success: created,
+      failed: body.rows.length - created
     },
     result
   }

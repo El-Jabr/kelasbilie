@@ -18,6 +18,7 @@ function onFileChange(event: Event) {
   if (!target.files?.length)
     return
   file.value = target.files[0] ?? null
+  target.value = ''
 }
 
 const dragOver = ref(false)

@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import UserImportSummary from '~/components/users/UserImportSummary.vue'
-import UserImportTable from '~/components/users/UserImportTable.vue'
-import UserImportToolbar from '~/components/users/UserImportToolbar.vue'
-import UserImportUploader from '~/components/users/UserImportUploader.vue'
 
 const {
   preview,
@@ -20,6 +16,7 @@ async function handleImport() {
 
   if (importResult.value) {
     showResult.value = true
+    console.log('import-result', importResult.value)
   }
 }
 </script>
@@ -38,16 +35,16 @@ async function handleImport() {
     </div>
 
     <!-- Upload -->
-    <UserImportUploader />
+    <UsersImportUploader />
 
     <!-- Summary -->
-    <UserImportSummary v-if="preview" />
+    <UsersImportSummary v-if="preview" />
 
     <!-- Toolbar -->
-    <UserImportToolbar v-if="preview" />
+    <UsersImportToolbar v-if="preview" />
 
     <!-- Table -->
-    <UserImportTable v-if="preview" />
+    <UsersImportTable v-if="preview" />
 
     <!-- Sticky Footer -->
     <div
@@ -86,7 +83,7 @@ async function handleImport() {
 
     <!-- Result -->
 
-    <UserImportResultDialog
+    <UsersImportResultDialog
       v-model="showResult"
     />
   </UContainer>

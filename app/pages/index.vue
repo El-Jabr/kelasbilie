@@ -13,7 +13,7 @@ useSeoMeta({
   ogTitle: title,
   description,
   ogDescription: description,
-  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/saas-light.png'
+  ogImage: 'https://images.bilter.my.id/kelasbilie.png'
 })
 </script>
 

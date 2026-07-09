@@ -43,7 +43,7 @@ export function useUserImport() {
   // const file = ref<File | null>(null)
   const file = useState<File | null>('user-file', () => null)
   const preview = useState<PreviewResponse | null>('user-import-preview', () => null)
-  const importResult = ref<ImportResponse | null>(null)
+  const importResult = useState<ImportResponse | null>('user-import-result', () => null)
   const loadingPreview = useState<boolean>('user-loading-preview', () => false)
   const loadingImport = ref(false)
   const search = useState<string>('user-search', () => '')
