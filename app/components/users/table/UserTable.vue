@@ -3,8 +3,7 @@ import { useUsers } from '~/composables/useUsers'
 
 const {
   users,
-  loading,
-  openRoleDialog
+  loading
 } = useUsers()
 
 const columns = [
@@ -66,21 +65,7 @@ const columns = [
       </template>
 
       <template #action-cell="{ row }">
-        <UDropdownMenu
-          :items="[
-            {
-              label: 'Ubah Role',
-              icon: 'i-lucide-shield',
-              onSelect: () => openRoleDialog(row.original)
-            }
-          ]"
-        >
-          <UButton
-            icon="i-lucide-ellipsis"
-            color="neutral"
-            variant="ghost"
-          />
-        </UDropdownMenu>
+        <UsersTableUserActions :user="row.original" />
       </template>
     </UTable>
   </UCard>

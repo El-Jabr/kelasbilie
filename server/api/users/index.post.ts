@@ -8,6 +8,7 @@ interface user {
   email?: string
   password: string
   role: UserRole
+  isActive: boolean
 }
 
 export default defineEventHandler(async (event) => {
@@ -27,10 +28,22 @@ export default defineEventHandler(async (event) => {
         fullname: body.fullname,
         email: body.email || '',
         password: password,
-        role: body.role
+        role: body.role,
+        isActive: body.isActive
+      },
+      select: {
+        username: true,
+        fullname: true,
+        email: true,
+        role: true,
+        isActive: true
       }
     })
-    return user
+    return {
+      success: true,
+      message: 'Role berhasil diperbarui.',
+      data: user
+    }
   } catch (error) {
     console.error('Error creating user:', error)
     throw createError({

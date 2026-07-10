@@ -123,41 +123,6 @@ export function useUsers() {
     selectedUser.value = null
   }
 
-  async function updateRole(role: 'ADMIN' | 'TEACHER' | 'STUDENT') {
-    if (!selectedUser.value) {
-      return
-    }
-
-    loading.value = true
-
-    try {
-      await $fetch(`/api/users/${selectedUser.value.id}/role`, {
-        method: 'PATCH',
-        body: {
-          role
-        }
-      })
-
-      const user = users.value.find(
-        u => u.id === selectedUser.value?.id
-      )
-
-      if (user) {
-        user.role = role
-      }
-
-      closeRoleDialog()
-
-      useToast().add({
-        title: 'Berhasil',
-        description: 'Role user berhasil diperbarui.',
-        color: 'success'
-      })
-    } finally {
-      loading.value = false
-    }
-  }
-
   return {
     // data
     users,
@@ -186,7 +151,6 @@ export function useUsers() {
     changeSort,
     resetFilter,
     openRoleDialog,
-    closeRoleDialog,
-    updateRole
+    closeRoleDialog
   }
 }

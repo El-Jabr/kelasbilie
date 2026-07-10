@@ -17,5 +17,5 @@ export interface BlogPost extends ParsedContent {
 export interface User {
   id: string
   email: string
-  role: 'ADMIN' | 'STUDENT' | 'TEACHER' | 'SUPERADMIN'
+  role: 'ADMIN' | 'STUDENT' | 'TEACHER'
 }

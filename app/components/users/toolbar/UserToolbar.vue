@@ -10,6 +10,10 @@ const {
   resetFilter
 } = useUsers()
 
+const {
+  openCreateDialog
+} = useUserDialogs()
+
 const roleOptions = [
   {
     label: 'Semua Role',
@@ -115,7 +119,7 @@ watch([role, active], () => {
           color="primary"
           variant="outline"
           icon="i-lucide-plus"
-          disabled
+          @click="openCreateDialog"
         >
           Tambah User
         </UButton>
