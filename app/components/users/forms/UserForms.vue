@@ -10,6 +10,10 @@ export interface UserFormModel {
   isActive: boolean
 }
 
+const {
+  selectedUser
+} = useUsers()
+
 const { mode } = defineProps<{
   mode: 'create' | 'edit'
 }>()
@@ -18,20 +22,6 @@ const model = defineModel<UserFormModel>({
   required: true
 })
 
-const roleOptions = [
-  {
-    label: 'Admin',
-    value: 'ADMIN'
-  },
-  {
-    label: 'Teacher',
-    value: 'TEACHER'
-  },
-  {
-    label: 'Student',
-    value: 'STUDENT'
-  }
-]
 </script>
 
 <template>
@@ -86,20 +76,16 @@ const roleOptions = [
       label="Role"
       required
     >
-      <USelect
-        v-model="model.role"
-        :items="roleOptions"
-        class="w-full"
-      />
+      <UsersBadgesUserRoleBadge :role="selectedUser?.role ?? model.role" />
     </UFormField>
 
-    <UFormField
+    <!-- <UFormField
       v-if="mode === 'edit'"
       label="Status"
     >
       <USwitch
         v-model="model.isActive"
       />
-    </UFormField>
+    </UFormField> -->
   </div>
 </template>

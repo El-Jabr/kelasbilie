@@ -52,7 +52,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
         : 'success',
 
       onSelect: () => {
-        // STEP berikutnya
+        openStatusDialog(user)
       }
     }
   ]

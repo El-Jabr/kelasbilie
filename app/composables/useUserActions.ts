@@ -1,4 +1,4 @@
-import type { UserFormModel } from '~/components/users/forms/Useforms.vue'
+import type { UserFormModel } from "~/components/users/forms/UserForms.vue"
 
 type Role = 'ADMIN' | 'TEACHER' | 'STUDENT'
 
@@ -92,8 +92,49 @@ export function useUserActions() {
     }
   }
   async function updateStatus(
-    active: boolean
+    isActive: boolean
   ) {
+    if (!selectedUser.value) {
+    return
+  }
+
+  updatingStatus.value = true
+
+  try {
+    await $fetch(
+      `/api/users/${selectedUser.value.id}/status`,
+      {
+        method: 'PATCH',
+        body: {
+          isActive
+        }
+      }
+    )
+
+    toast.add({
+      title: 'Berhasil',
+      description: isActive
+        ? 'User berhasil diaktifkan.'
+        : 'User berhasil dinonaktifkan.',
+      color: 'success'
+    })
+
+    closeStatusDialog()
+
+    await refresh()
+  }
+  catch (error: any) {
+    toast.add({
+      title: 'Gagal',
+      description:
+        error.statusMessage ??
+        'Terjadi kesalahan.',
+      color: 'error'
+    })
+  }
+  finally {
+    updatingStatus.value = false
+  }
 
   }
 

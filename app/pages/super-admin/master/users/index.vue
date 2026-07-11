@@ -33,5 +33,6 @@ await fetchUsers()
     <UsersDialogsUserRoleDialog />
     <UsersDialogsUserCreateDialog />
     <UsersDialogsUserEditDialog />
+    <UsersDialogsUserStatusDialog />
   </UContainer>
 </template>
