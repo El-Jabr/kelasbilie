@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { UserFormModel } from '../forms/Useforms.vue'
+import type { UserFormModel } from '../forms/UserForms.vue'
 
 const {
   selectedUser,
@@ -57,7 +57,7 @@ async function save() {
           </h2>
         </template>
 
-        <UserForm
+        <UsersFormsUserForms
           v-model="form"
           mode="edit"
         />

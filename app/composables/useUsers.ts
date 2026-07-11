@@ -50,10 +50,6 @@ export function useUsers() {
     () => null
   )
 
-  const roleDialogOpen = useState(
-    'users:role-dialog',
-    () => false
-  )
 
   async function fetchUsers(page = pagination.value.page) {
     loading.value = true
@@ -113,16 +109,6 @@ export function useUsers() {
     await fetchUsers(1)
   }
 
-  function openRoleDialog(user: UserItem) {
-    selectedUser.value = user
-    roleDialogOpen.value = true
-  }
-
-  function closeRoleDialog() {
-    roleDialogOpen.value = false
-    selectedUser.value = null
-  }
-
   return {
     // data
     users,
@@ -141,7 +127,6 @@ export function useUsers() {
     // selection
     selected,
     selectedUser,
-    roleDialogOpen,
 
     // methods
     fetchUsers,
@@ -150,7 +135,5 @@ export function useUsers() {
     changeLimit,
     changeSort,
     resetFilter,
-    openRoleDialog,
-    closeRoleDialog
   }
 }

@@ -46,7 +46,7 @@ const fields = [{
 
 const schema = z.object({
   email: z.email('Invalid email'),
-  password: z.string().min(8, 'Must be at least 8 characters')
+  password: z.string().min(6, 'Must be at least 6 characters')
 })
 
 type Schema = z.output<typeof schema>
@@ -77,10 +77,10 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 
     console.log('User state after login:', userState.value)
     await navigateTo('/')
-  } catch (err) {
+  } catch (error: any) {
     toast.add({
       title: 'Login gagal',
-      description: (err as Error).message || 'Email atau password salah',
+      description: error.message || 'Email atau password salah',
       color: 'error'
     })
   }

@@ -28,11 +28,10 @@ await fetchUsers()
     /> -->
 
     <UsersToolbarUserToolbar />
-
     <UsersTableUserTable />
-
     <UsersTableUserPagination />
-
     <UsersDialogsUserRoleDialog />
+    <UsersDialogsUserCreateDialog />
+    <UsersDialogsUserEditDialog />
   </UContainer>
 </template>

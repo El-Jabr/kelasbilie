@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { UserFormModel } from '../forms/Useforms.vue'
+import type { UserFormModel } from '../forms/UserForms.vue'
+
 
 const {
   createDialogOpen,
@@ -50,7 +51,7 @@ async function save() {
           </h2>
         </template>
 
-        <UserForm
+        <UsersFormsUserForms
           v-model="form"
           mode="create"
         />
