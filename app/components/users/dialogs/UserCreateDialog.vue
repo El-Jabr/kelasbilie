@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import type { UserFormModel } from '../forms/UserForms.vue'
-
+import {
+  userSchema,
+  type UserSchema
+} from '~~/shared/schemas/user'
 
 const {
   createDialogOpen,
@@ -12,7 +14,7 @@ const {
   createUser
 } = useUserActions()
 
-const form = reactive<UserFormModel>({
+const form = reactive<UserSchema>({
   username: '',
   fullname: '',
   email: '',
@@ -51,10 +53,16 @@ async function save() {
           </h2>
         </template>
 
-        <UsersFormsUserForms
-          v-model="form"
-          mode="create"
-        />
+        <UForm
+          :schema="userSchema"
+          :state="form"
+          @submit="save"
+        >
+          <UsersFormsUserForms
+            v-model="form"
+            mode="create"
+          />
+        </UForm>
 
         <template #footer>
           <div class="flex justify-end gap-2">

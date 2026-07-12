@@ -1,14 +1,7 @@
 <script setup lang="ts">
-type Role = 'ADMIN' | 'TEACHER' | 'STUDENT'
-
-export interface UserFormModel {
-  username: string
-  fullname: string
-  email: string
-  password: string
-  role: Role
-  isActive: boolean
-}
+import type {
+  UserSchema
+} from '~~/shared/schemas/user'
 
 const {
   selectedUser
@@ -18,10 +11,9 @@ const { mode } = defineProps<{
   mode: 'create' | 'edit'
 }>()
 
-const model = defineModel<UserFormModel>({
+const model = defineModel<UserSchema>({
   required: true
 })
-
 </script>
 
 <template>
@@ -74,7 +66,6 @@ const model = defineModel<UserFormModel>({
 
     <UFormField
       label="Role"
-      required
     >
       <UsersBadgesUserRoleBadge :role="selectedUser?.role ?? model.role" />
     </UFormField>

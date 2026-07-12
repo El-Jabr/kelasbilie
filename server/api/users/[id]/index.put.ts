@@ -1,16 +1,8 @@
 import bcrypt from 'bcryptjs'
 import { prisma } from '../../../utils/db'
 import type { Prisma } from '~~/prisma/generated/client'
-
-type Role = 'ADMIN' | 'TEACHER' | 'STUDENT'
-interface Body {
-  username: string
-  fullname: string
-  email?: string
-  password?: string
-  role: Role
-  isActive: boolean
-}
+import type { UserSchema } from '~~/shared/schemas/user'
+import { userSchema } from '~~/shared/schemas/user'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -22,7 +14,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = await readBody<Body>(event)
+  const body
+    = await readValidatedBody(
+      event,
+      userSchema.parse
+    )
+
+  await readBody<UserSchema>(event)
 
   // Validasi sederhana
   if (!body.username?.trim()) {

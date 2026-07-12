@@ -1,4 +1,6 @@
-import type { UserFormModel } from "~/components/users/forms/UserForms.vue"
+import type {
+  UserSchema
+} from '~~/shared/schemas/user'
 
 type Role = 'ADMIN' | 'TEACHER' | 'STUDENT'
 
@@ -25,9 +27,13 @@ export function useUserActions() {
   const updating = useState('users:updating', () => false)
 
   const updatingStatus = useState('users:updating-status', () => false)
+  const updatingBulkStatus = useState(
+    'users:bulk-status',
+    () => false
+  )
 
   async function createUser(
-    data: UserFormModel
+    data: UserSchema
   ) {
     creating.value = true
     try {
@@ -57,7 +63,7 @@ export function useUserActions() {
     }
   }
   async function updateUser(
-    data: UserFormModel
+    data: UserSchema
   ) {
     if (!selectedUser.value) {
       return
@@ -95,47 +101,45 @@ export function useUserActions() {
     isActive: boolean
   ) {
     if (!selectedUser.value) {
-    return
-  }
+      return
+    }
 
-  updatingStatus.value = true
+    updatingStatus.value = true
 
-  try {
-    await $fetch(
-      `/api/users/${selectedUser.value.id}/status`,
-      {
-        method: 'PATCH',
-        body: {
-          isActive
+    try {
+      await $fetch(
+        `/api/users/${selectedUser.value.id}/status`,
+        {
+          method: 'PATCH',
+          body: {
+            isActive
+          }
         }
-      }
-    )
+      )
 
-    toast.add({
-      title: 'Berhasil',
-      description: isActive
-        ? 'User berhasil diaktifkan.'
-        : 'User berhasil dinonaktifkan.',
-      color: 'success'
-    })
+      toast.add({
+        title: 'Berhasil',
+        description: isActive
+          ? 'User berhasil diaktifkan.'
+          : 'User berhasil dinonaktifkan.',
+        color: 'success'
+      })
 
-    closeStatusDialog()
+      closeStatusDialog()
 
-    await refresh()
-  }
-  catch (error: any) {
-    toast.add({
-      title: 'Gagal',
-      description:
-        error.statusMessage ??
-        'Terjadi kesalahan.',
-      color: 'error'
-    })
-  }
-  finally {
-    updatingStatus.value = false
-  }
-
+      await refresh()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      toast.add({
+        title: 'Gagal',
+        description:
+        error.statusMessage
+        ?? 'Terjadi kesalahan.',
+        color: 'error'
+      })
+    } finally {
+      updatingStatus.value = false
+    }
   }
 
   async function updateRole(role: Role) {
@@ -177,15 +181,62 @@ export function useUserActions() {
     }
   }
 
+  async function bulkUpdateStatus(
+    ids: string[],
+    isActive: boolean
+  ) {
+    if (ids.length === 0) {
+      return
+    }
+
+    updatingBulkStatus.value = true
+
+    try {
+      const response = await $fetch<{
+        success: boolean
+        message: string
+        updated: number
+      }>('/api/users/bulk/status', {
+        method: 'PATCH',
+        body: {
+          ids,
+          isActive
+        }
+      })
+
+      toast.add({
+        title: 'Berhasil',
+        description:
+        response.message,
+        color: 'success'
+      })
+
+      await refresh()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      toast.add({
+        title: 'Gagal',
+        description:
+        error.statusMessage
+        ?? 'Terjadi kesalahan.',
+        color: 'error'
+      })
+    } finally {
+      updatingBulkStatus.value = false
+    }
+  }
+
   return {
     creating,
     updating,
     updatingRole,
     updatingStatus,
+    updatingBulkStatus,
 
     createUser,
     updateUser,
     updateRole,
-    updateStatus
+    updateStatus,
+    bulkUpdateStatus
   }
 }

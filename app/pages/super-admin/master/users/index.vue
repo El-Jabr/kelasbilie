@@ -1,13 +1,50 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useUsers } from '~/composables/useUsers'
 
 useSeoMeta({
   title: 'Users'
 })
 
+const bulkDialogOpen = ref(false)
+const bulkAction = ref<'activate' | 'deactivate'>()
+const selectedUsers = ref<UserItem[]>([])
+
+watch(selectedUsers, (value) => {
+  console.log('selected-user', value)
+})
+const userTable = useTemplateRef('userTable')
+
+const { bulkUpdateStatus } = useUserActions()
+
 const { fetchUsers } = useUsers()
 
 await fetchUsers()
+
+function bulkActivate() {
+  bulkAction.value = 'activate'
+  bulkDialogOpen.value = true
+}
+
+function bulkDeactivate() {
+  bulkAction.value = 'deactivate'
+  bulkDialogOpen.value = true
+}
+
+async function confirmBulkStatus() {
+  await bulkUpdateStatus(
+    selectedUsers.value.map(user => user.id),
+    bulkAction.value === 'activate'
+  )
+
+  bulkDialogOpen.value = false
+
+  userTable.value?.clearSelection()
+}
+
+function clearSelection() {
+  userTable.value?.clearSelection()
+}
 </script>
 
 <template>
@@ -28,11 +65,26 @@ await fetchUsers()
     /> -->
 
     <UsersToolbarUserToolbar />
-    <UsersTableUserTable />
+    <UsersToolbarUserBulkToolbar
+      :users="selectedUsers"
+      @activate="bulkActivate"
+      @deactivate="bulkDeactivate"
+      @clear="clearSelection"
+    />
+    <UsersTableUserTable
+      ref="userTable"
+      @selection-change="selectedUsers = $event"
+    />
     <UsersTableUserPagination />
     <UsersDialogsUserRoleDialog />
     <UsersDialogsUserCreateDialog />
     <UsersDialogsUserEditDialog />
     <UsersDialogsUserStatusDialog />
+    <UsersDialogsUserBulkStatusDialog
+      v-model:open="bulkDialogOpen"
+      :users="selectedUsers"
+      :action="bulkAction"
+      @confirm="confirmBulkStatus"
+    />
   </UContainer>
 </template>

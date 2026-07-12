@@ -1,19 +1,16 @@
 import bcrypt from 'bcryptjs'
 import { prisma } from '../../utils/db'
-
-type UserRole = 'ADMIN' | 'STUDENT' | 'TEACHER'
-interface user {
-  username: string
-  fullname: string
-  email?: string
-  password: string
-  role: UserRole
-  isActive: boolean
-}
+import type { UserSchema } from '~~/shared/schemas/user'
+import { userSchema } from '~~/shared/schemas/user'
 
 export default defineEventHandler(async (event) => {
   try {
-    const body = await readBody<user>(event)
+    const body
+      = await readValidatedBody(
+        event,
+        userSchema.parse
+      )
+    await readBody<UserSchema>(event)
     if (!body.email) {
       throw createError({
         statusCode: 400,

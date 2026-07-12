@@ -1,16 +1,11 @@
 import { prisma } from '../../../utils/db'
+import type { UserSchema } from '~~/shared/schemas/user'
 
 const VALID_ROLES = [
   'ADMIN',
   'TEACHER',
   'STUDENT'
 ] as const
-
-type UserRole = typeof VALID_ROLES[number]
-
-interface Body {
-  role: UserRole
-}
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -22,7 +17,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = await readBody<Body>(event)
+  const body = await readBody<UserSchema>(event)
 
   if (!VALID_ROLES.includes(body.role)) {
     throw createError({

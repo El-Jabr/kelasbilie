@@ -9,8 +9,8 @@ const { user } = defineProps<{
 const {
   openRoleDialog,
   openEditDialog,
-  openStatusDialog,
-  openResetPasswordDialog
+  openStatusDialog
+  // openResetPasswordDialog
 } = useUserDialogs()
 
 const items = computed<DropdownMenuItem[][]>(() => [

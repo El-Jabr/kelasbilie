@@ -1,8 +1,5 @@
 import { prisma } from '../../../utils/db'
-
-interface Body {
-  isActive: boolean
-}
+import type { UserSchema } from '~~/shared/schemas/user'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -14,7 +11,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = await readBody<Body>(event)
+  const body = await readBody<UserSchema>(event)
 
   const user = await prisma.user.findUnique({
     where: {
