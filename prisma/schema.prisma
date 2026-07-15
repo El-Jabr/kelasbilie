@@ -19,11 +19,6 @@ enum Role {
   STUDENT
 }
 
-enum Semester {
-  GANJIL
-  GENAP
-}
-
 enum GradeCategory {
   PH
   STS
@@ -35,6 +30,11 @@ enum Resource {
   COURSE
   GRADE
   CATEGORY
+}
+
+enum SemesterType {
+  GANJIL
+  GENAP
 }
 
 model User {
@@ -75,17 +75,41 @@ model Teacher {
 }
 
 model AcademicYear {
-  id       String  @id @default(uuid())
-  name     String  @unique
+  id String @id @default(uuid())
+
+  name String @unique
+
   isActive Boolean @default(false)
   isLocked Boolean @default(false)
-  // contoh:
-  // 2025/2026
+
+  semesters Semester[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Semester {
+  id String @id @default(uuid())
+
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  type SemesterType
+
+  isActive Boolean @default(false)
+  isLocked Boolean @default(false)
 
   studentClasses      StudentClass[]
   teachingAssignments TeachingAssignment[]
-
   homeroomAssignments HomeroomAssignment[]
+  gradeSummaries GradeSummary[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([academicYearId, type])
+  @@index([academicYearId])
+  @@index([isActive])
 }
 
 model Classroom {
@@ -105,49 +129,49 @@ model Subject {
 }
 
 model StudentClass {
-  id             String       @id @default(cuid())
-  studentId      String
-  classroomId    String
-  academicYearId String
-  student        Student      @relation(fields: [studentId], references: [id])
-  classroom      Classroom    @relation(fields: [classroomId], references: [id])
-  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  id          String    @id @default(cuid())
+  studentId   String
+  classroomId String
+  semesterId  String
+  student     Student   @relation(fields: [studentId], references: [id])
+  classroom   Classroom @relation(fields: [classroomId], references: [id])
+  semester    Semester  @relation(fields: [semesterId], references: [id])
 
-  @@unique([studentId, academicYearId])
+  @@unique([studentId, semesterId])
 }
 
 model TeachingAssignment {
   id String @id @default(cuid())
 
-  teacherId      String
-  subjectId      String
-  classroomId    String
-  academicYearId String
-  courseId       Int    @unique
+  teacherId   String
+  subjectId   String
+  classroomId String
+  semesterId  String
+  courseId    Int    @unique
 
-  teacher      Teacher      @relation(fields: [teacherId], references: [id])
-  subject      Subject      @relation(fields: [subjectId], references: [id])
-  classroom    Classroom    @relation(fields: [classroomId], references: [id])
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  teacher   Teacher   @relation(fields: [teacherId], references: [id])
+  subject   Subject   @relation(fields: [subjectId], references: [id])
+  classroom Classroom @relation(fields: [classroomId], references: [id])
+  semester  Semester  @relation(fields: [semesterId], references: [id])
 
   course Course @relation(fields: [courseId], references: [id])
 
-  gradeSummaries  GradeSummary[]
+  gradeSummaries GradeSummary[]
 
-  @@unique([teacherId, subjectId, classroomId, academicYearId])
+  @@unique([teacherId, subjectId, classroomId, semesterId])
 }
 
 model HomeroomAssignment {
-  id             String       @id @default(uuid())
-  teacherId      String
-  classroomId    String
-  academicYearId String
-  teacher        Teacher      @relation(fields: [teacherId], references: [id])
-  classroom      Classroom    @relation(fields: [classroomId], references: [id])
-  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  id          String    @id @default(uuid())
+  teacherId   String
+  classroomId String
+  semesterId  String
+  teacher     Teacher   @relation(fields: [teacherId], references: [id])
+  classroom   Classroom @relation(fields: [classroomId], references: [id])
+  semester    Semester  @relation(fields: [semesterId], references: [id])
 
-  @@unique([classroomId, academicYearId])
-  @@unique([teacherId, academicYearId])
+  @@unique([classroomId, semesterId])
+  @@unique([teacherId, semesterId])
 }
 
 model Course {
@@ -197,8 +221,8 @@ model GradeComponent {
   score    Float
   lastSync DateTime?
 
-  student              Student             @relation(fields: [studentId], references: [id])
-  gradeItem            GradeItem           @relation(fields: [gradeItemId], references: [id])
+  student   Student   @relation(fields: [studentId], references: [id])
+  gradeItem GradeItem @relation(fields: [gradeItemId], references: [id])
 
   @@unique([studentId, gradeItemId])
 }
@@ -207,16 +231,17 @@ model GradeSummary {
   id           String             @id @default(uuid())
   studentId    String
   teachingId   String
-  semester     Semester
+  semesterId     String
   category     GradeCategory
   score        Float
   calculatedAt DateTime           @default(now())
   student      Student            @relation(fields: [studentId], references: [id])
   teaching     TeachingAssignment @relation(fields: [teachingId], references: [id])
+  semester Semester @relation(fields: [semesterId], references: [id])
 
   updatedAt DateTime @updatedAt
 
-  @@unique([studentId, teachingId, semester, category])
+  @@unique([studentId, teachingId, semesterId, category])
 }
 
 model Enrollment {

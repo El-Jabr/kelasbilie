@@ -75,11 +75,8 @@ export default defineEventHandler(async (event) => {
 
     prisma.user.findMany({
       where,
-
       skip: (page - 1) * limit,
-
       take: limit,
-
       orderBy: {
         [sort]: order
       },

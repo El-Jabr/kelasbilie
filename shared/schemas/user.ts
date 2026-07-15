@@ -2,6 +2,9 @@ import { z } from 'zod'
 
 export const userSchema = z.object({
 
+  id: z
+    .string(),
+
   username: z
     .string()
     .trim()
@@ -28,6 +31,14 @@ export const userSchema = z.object({
     'TEACHER',
     'STUDENT'
   ]),
+
+  moodleUserId: z
+    .number()
+    .int()
+    .nullable(),
+
+  createdAt: z
+    .string(),
 
   isActive: z.boolean()
 })

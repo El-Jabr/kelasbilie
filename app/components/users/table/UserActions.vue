@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { UserItem } from '~/composables/useUsers'
+import type { UserSchema } from '~~/shared/schemas/user'
 import type { DropdownMenuItem } from '@nuxt/ui'
 
 const { user } = defineProps<{
-  user: UserItem
+  user: UserSchema
 }>()
 
 const {

@@ -1,29 +1,25 @@
 <script setup lang="ts">
 import {
-  userSchema,
-  type UserSchema
-} from '~~/shared/schemas/user'
+  academicYearSchema,
+  type AcademicYearSchema
+} from '~~/shared/schemas/academic-year'
 
 const {
   createDialogOpen,
   closeCreateDialog
-} = useUserDialogs()
+} = useAcademicYearDialogs()
 
 const {
   creating,
-  createUser
-} = useUserActions()
+  createAcademicYear
+} = useAcademicYearActions()
 
-const form = reactive<UserSchema>({
+const form = reactive<AcademicYearSchema>({
+  name: '',
+  isActive: false,
+  isLocked: false,
   id: '',
-  username: '',
-  fullname: '',
-  email: '',
-  password: '',
-  role: 'STUDENT',
-  moodleUserId: null,
-  createdAt: '',
-  isActive: true
+  createdAt: ''
 })
 
 watch(createDialogOpen, (open) => {
@@ -32,20 +28,14 @@ watch(createDialogOpen, (open) => {
   }
 
   Object.assign(form, {
-    id: '',
-    username: '',
-    fullname: '',
-    email: '',
-    password: '',
-    role: 'STUDENT',
-    moodleUserId: null,
-    createdAt: '',
-    isActive: true
+    name: '',
+    isActive: false,
+    isLocked: false
   })
 })
 
 async function save() {
-  await createUser(form)
+  await createAcademicYear(form)
 }
 </script>
 
@@ -55,16 +45,16 @@ async function save() {
       <UCard>
         <template #header>
           <h2 class="text-lg font-semibold">
-            Tambah User
+            Tambah Tahun Ajaran
           </h2>
         </template>
 
         <UForm
-          :schema="userSchema"
+          :schema="academicYearSchema"
           :state="form"
           @submit="save"
         >
-          <UsersFormsUserForms
+          <AcademicYearsFormsAcademicYearForms
             v-model="form"
             mode="create"
           />

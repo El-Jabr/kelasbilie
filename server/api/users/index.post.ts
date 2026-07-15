@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs'
 import { prisma } from '../../utils/db'
-import type { UserSchema } from '~~/shared/schemas/user'
 import { userSchema } from '~~/shared/schemas/user'
 
 export default defineEventHandler(async (event) => {
@@ -10,13 +9,6 @@ export default defineEventHandler(async (event) => {
         event,
         userSchema.parse
       )
-    await readBody<UserSchema>(event)
-    if (!body.email) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Email is required'
-      })
-    }
 
     const password = await bcrypt.hash(body.password, 10)
     const user = await prisma.user.create({

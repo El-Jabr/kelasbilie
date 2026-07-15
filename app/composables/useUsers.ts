@@ -1,29 +1,9 @@
-export interface UserItem {
-  id: string
-  username: string
-  fullname: string
-  email: string | null
-  role: 'ADMIN' | 'TEACHER' | 'STUDENT'
-  moodleUserId: number | null
-  isActive: boolean
-  createdAt: string
-}
-
-interface PaginationMeta {
-  page: number
-  limit: number
-  total: number
-  pages: number
-}
-
-interface UserResponse {
-  data: UserItem[]
-  pagination: PaginationMeta
-}
+import type { UserSchema } from '~~/shared/schemas/user'
+import type { PaginationMeta, PaginatedResponse } from '~~/shared/types/api'
 
 export function useUsers() {
   // State
-  const users = useState<UserItem[]>('users:list', () => [])
+  const users = useState<UserSchema[]>('users:list', () => [])
   const pagination = useState<PaginationMeta>('users:pagination', () => ({
     page: 1,
     limit: 10,
@@ -36,26 +16,25 @@ export function useUsers() {
   // Filter
   const search = useState('users:search', () => '')
   const role = useState<string>('users:role', () => 'ALL')
-  const active = useState<string>('users:active', () => 'true')
+  const active = useState<string>('users:active', () => 'ALL')
 
   // Sorting
   const sort = useState('users:sort', () => 'createdAt')
   const order = useState<'asc' | 'desc'>('users:order', () => 'desc')
 
   // Selected rows (untuk fitur berikutnya)
-  const selected = useState<UserItem[]>('users:selected', () => [])
+  const selected = useState<UserSchema[]>('users:selected', () => [])
 
-  const selectedUser = useState<UserItem | null>(
+  const selectedUser = useState<UserSchema | null>(
     'users:selected-user',
     () => null
   )
-
 
   async function fetchUsers(page = pagination.value.page) {
     loading.value = true
 
     try {
-      const response = await $fetch<UserResponse>('/api/users', {
+      const response = await $fetch<PaginatedResponse<UserSchema>>('/api/users', {
         query: {
           page,
           limit: pagination.value.limit,
@@ -134,6 +113,6 @@ export function useUsers() {
     changePage,
     changeLimit,
     changeSort,
-    resetFilter,
+    resetFilter
   }
 }

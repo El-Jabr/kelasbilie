@@ -7,7 +7,7 @@ useSeoMeta({
 })
 
 const bulkDialogOpen = ref(false)
-const bulkAction = ref<'activate' | 'deactivate'>()
+const bulkAction = ref<'activate' | 'deactivate'>('activate')
 const selectedUsers = ref<UserItem[]>([])
 
 watch(selectedUsers, (value) => {

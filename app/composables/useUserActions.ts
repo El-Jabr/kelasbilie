@@ -193,9 +193,13 @@ export function useUserActions() {
 
     try {
       const response = await $fetch<{
-        success: boolean
+        status: boolean
         message: string
-        updated: number
+        data: {
+          total: number
+          updated: number
+          isActive: boolean
+        }
       }>('/api/users/bulk/status', {
         method: 'PATCH',
         body: {

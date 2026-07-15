@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import { UCheckbox } from '#components'
 import type { TableColumn } from '@nuxt/ui'
-import type { UserSchema } from '~~/shared/schemas/user'
+import type { AcademicYearSchema } from '~~/shared/schemas/academic-year'
 
 const {
-  users,
+  academicYears,
   loading
-} = useUsers()
+} = useAcademicYears()
 
-const rowSelection = ref ({})
+const emit = defineEmits<{
+  selectionChange: [AcademicYearSchema[]]
+}>()
+
+const rowSelection = ref({})
+
 const table = useTemplateRef('table')
-const selectedRows = computed<UserSchema[]>(() => {
+
+const selectedRows = computed<AcademicYearSchema[]>(() => {
   return (
     table.value?.tableApi
       ?.getSelectedRowModel()
@@ -21,37 +27,24 @@ const selectedRows = computed<UserSchema[]>(() => {
 })
 
 watch(selectedRows, (rows) => {
-  console.log('selectedRows', rows)
   emit('selectionChange', rows)
 })
 
-const columns: TableColumn<UserSchema>[] = [
+const columns: TableColumn<AcademicYearSchema>[] = [
   {
     id: 'select'
   },
   {
-    accessorKey: 'username',
-    header: 'Username'
-  },
-  {
-    accessorKey: 'fullname',
-    header: 'Nama'
-  },
-  {
-    accessorKey: 'email',
-    header: 'Email'
-  },
-  {
-    accessorKey: 'role',
-    header: 'Role'
-  },
-  {
-    accessorKey: 'moodle',
-    header: 'Moodle'
+    accessorKey: 'name',
+    header: 'Tahun Ajaran'
   },
   {
     accessorKey: 'isActive',
     header: 'Status'
+  },
+  {
+    accessorKey: 'isLocked',
+    header: 'Terkunci'
   },
   {
     accessorKey: 'createdAt',
@@ -61,10 +54,6 @@ const columns: TableColumn<UserSchema>[] = [
     id: 'action'
   }
 ]
-
-const emit = defineEmits<{
-  selectionChange: [UserSchema[]]
-}>()
 
 function clearSelection() {
   rowSelection.value = {}
@@ -80,10 +69,9 @@ defineExpose({
     <UTable
       ref="table"
       v-model:row-selection="rowSelection"
-      :data="users"
+      :data="academicYears"
       :columns="columns"
       :loading="loading"
-      class="flex-1"
     >
       <template #select-header="{ table }">
         <UCheckbox
@@ -98,23 +86,27 @@ defineExpose({
           @update:model-value="val => row.toggleSelected(val === 'indeterminate' ? false : val)"
         />
       </template>
-      <template #role-cell="{ row }">
-        <UsersBadgesUserRoleBadge :role="row.original.role" />
-      </template>
 
       <template #isActive-cell="{ row }">
-        <UsersBadgesUserStatusBadge :active="row.original.isActive" />
+        <AcademicYearsBadgesAcademicYearStatusBadge
+          :active="row.original.isActive"
+        />
       </template>
 
-      <template #moodle-cell="{ row }">
-        <UsersBadgesUserMoodleBadge :moodle-user-id="row.original.moodleUserId" />
+      <template #isLocked-cell="{ row }">
+        <AcademicYearsBadgesAcademicYearLockBadge
+          :locked="row.original.isLocked"
+        />
       </template>
+
       <template #createdAt-cell="{ row }">
         {{ new Date(row.original.createdAt).toLocaleDateString('id-ID') }}
       </template>
 
       <template #action-cell="{ row }">
-        <UsersTableUserActions :user="row.original" />
+        <AcademicYearsTableAcademicYearActions
+          :academic-year="row.original"
+        />
       </template>
     </UTable>
   </UCard>
