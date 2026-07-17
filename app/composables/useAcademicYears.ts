@@ -37,7 +37,7 @@ export function useAcademicYears() {
   // Sorting
   const sort = useState(
     'academic-years:sort',
-    () => 'startYear'
+    () => 'createdAt'
   )
 
   const order = useState<'asc' | 'desc'>(

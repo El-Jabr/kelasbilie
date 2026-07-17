@@ -33,8 +33,14 @@ const items = computed<NavigationMenuItem[]>(() => [
       {
         label: 'Tahun Ajaran',
         icon: 'i-lucide-calendar',
-        description: 'Manage academic years and semesters.',
+        description: 'Manage academic years.',
         to: '/super-admin/akademik/tahun-ajaran'
+      },
+      {
+        label: 'Semester',
+        icon: 'i-lucide-book',
+        description: 'Manage semesters',
+        to: '/super-admin/akademik/semester'
       },
       {
         label: 'Kelas',
