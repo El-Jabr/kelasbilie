@@ -95,6 +95,18 @@ const items = computed<NavigationMenuItem[]>(() => [
         to: '/super-admin/master/users'
       },
       {
+        label: 'Guru',
+        icon: 'i-lucide-graduation-cap',
+        description: 'Kelola data guru sekolah.',
+        to: '/super-admin/master/guru'
+      },
+      {
+        label: 'Siswa',
+        icon: 'i-lucide-school',
+        description: 'Kelola data siswa sekolah.',
+        to: '/super-admin/master/siswa'
+      },
+      {
         label: 'Role',
         icon: 'i-lucide-shield',
         description: 'Display role information and permissions.',

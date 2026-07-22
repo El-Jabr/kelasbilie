@@ -6,11 +6,23 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@nuxt/content',
     '@vueuse/nuxt',
-    'nuxt-og-image'
+    'nuxt-og-image',
+    '@pinia/nuxt'
   ],
 
   devtools: {
     enabled: true
+  },
+
+  vite: {
+    optimizeDeps: {
+      include: [
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+        'maska/vue',
+        'zod'
+      ]
+    }
   },
 
   app: {

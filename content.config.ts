@@ -42,9 +42,10 @@ export const collections = {
       })),
       sections: z.array(
         createBaseSchema().extend({
-          id: z.string().nonempty(),
+          id: z.string().optional(),
           orientation: orientationEnum.optional(),
           reverse: z.boolean().optional(),
+          image: z.string().optional(),
           features: z.array(createFeatureItemSchema())
         })
       ),

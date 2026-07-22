@@ -21,7 +21,11 @@ const form = reactive<SemesterSchema>({
   isLocked: false,
   id: '',
   createdAt: '',
-  updatedAt: ''
+  updatedAt: '',
+  academicYear: {
+    id: '',
+    name: ''
+  }
 })
 
 watch(createDialogOpen, (open) => {

@@ -1,7 +1,4 @@
 <script setup lang="ts">
-definePageMeta({
-  middleware: ['auth']
-})
 const { data: page } = await useAsyncData('index', () => queryCollection('index').first())
 
 const title = page.value?.seo?.title || page.value?.title

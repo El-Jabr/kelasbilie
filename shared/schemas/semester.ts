@@ -18,7 +18,12 @@ export const semesterSchema = z.object({
 
   createdAt: z.string().default(''),
 
-  updatedAt: z.string().default('')
+  updatedAt: z.string().default(''),
+
+  academicYear: z.object({
+    id: z.string().uuid(),
+    name: z.string()
+  })
 })
 
 export type SemesterSchema = z.infer<typeof semesterSchema>

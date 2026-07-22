@@ -17,8 +17,20 @@ export default defineEventHandler(async (event) => {
   if (!valid)
     throw createError({ statusCode: 401, message: 'Password salah' })
 
+  /**
+   * Buat JWT token yang berisi data dasar user.
+   * Data ini akan dipakai oleh /api/auth/me TANPA perlu query DB lagi.
+   *
+   * PENTING: Jangan masukkan data sensitif ke JWT (password, dll).
+   * JWT bisa di-decode oleh siapapun yang punya tokennya (walau tidak bisa dipalsukan).
+   */
   const token = jwt.sign(
-    { id: user.id, role: user.role },
+    {
+      id: user.id,
+      role: user.role,
+      fullname: user.fullname,
+      email: user.email ?? ''
+    },
     config.jwtSecret,
     { expiresIn: '1d' }
   )

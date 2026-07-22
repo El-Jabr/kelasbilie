@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { UCheckbox } from '#components'
 import type { TableColumn } from '@nuxt/ui'
-import type { SemesterTableSchema } from '~~/shared/schemas/semester'
+import type { SemesterSchema } from '~~/shared/schemas/semester'
 
 const {
   semesters,
@@ -9,14 +9,14 @@ const {
 } = useSemesters()
 
 const emit = defineEmits<{
-  selectionChange: [SemesterTableSchema[]]
+  selectionChange: [SemesterSchema[]]
 }>()
 
 const rowSelection = ref({})
 
 const table = useTemplateRef('table')
 
-const selectedRows = computed<SemesterTableSchema[]>(() => {
+const selectedRows = computed<SemesterSchema[]>(() => {
   return (
     table.value?.tableApi
       ?.getSelectedRowModel()
@@ -30,7 +30,7 @@ watch(selectedRows, (rows) => {
   emit('selectionChange', rows)
 })
 
-const columns: TableColumn<SemesterTableSchema>[] = [
+const columns: TableColumn<SemesterSchema>[] = [
   {
     id: 'select'
   },
