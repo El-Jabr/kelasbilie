@@ -15,7 +15,7 @@ const {
   updateUser
 } = useUserActions()
 
-const form = reactive<UserSchema>({
+const form = reactive<any>({
   username: '',
   fullname: '',
   email: '',

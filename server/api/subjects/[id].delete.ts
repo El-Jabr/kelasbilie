@@ -32,8 +32,8 @@ export default defineEventHandler(async (event) => {
 
     if (subject._count.teachings > 0) {
       throw createError({
-        statusCode: 409,
-        statusMessage: 'Mata pelajaran masih digunakan dan tidak dapat dihapus.'
+        statusCode: 400,
+        statusMessage: 'Mata pelajaran tidak bisa dihapus karena sedang digunakan dalam penugasan mengajar.'
       })
     }
 
@@ -45,8 +45,15 @@ export default defineEventHandler(async (event) => {
       success: true,
       message: 'Mata pelajaran berhasil dihapus.'
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting subject:', error)
+
+    if (error?.code === 'P2003') {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Mata pelajaran tidak bisa dihapus karena sedang digunakan dalam penugasan mengajar.'
+      })
+    }
 
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
@@ -54,7 +61,7 @@ export default defineEventHandler(async (event) => {
 
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to delete subject.'
+      statusMessage: 'Gagal menghapus mata pelajaran.'
     })
   }
 })

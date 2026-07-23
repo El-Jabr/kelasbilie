@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { useClasses } from '~/composables/useClasses'
 
+definePageMeta({
+  layout: 'admin'
+})
+
 useSeoMeta({
   title: 'Kelas'
 })

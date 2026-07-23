@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
         id: true,
         userId: true,
         nis: true,
-        user: { select: { id: true, username: true, fullname: true } }
+        user: { select: { id: true, username: true, fullname: true, email: true } }
       }
     })
   ])

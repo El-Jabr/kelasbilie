@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { useSubjects } from '~/composables/useSubjects'
 
+definePageMeta({
+  layout: 'admin'
+})
+
 useSeoMeta({
   title: 'Mata Pelajaran'
 })

@@ -6,7 +6,14 @@ export default defineEventHandler(async (event) => {
   const limit = Math.max(Number(query.limit ?? 10), 1)
   const search = String(query.search ?? '').trim()
 
+  const teacherId = query.teacherId ? String(query.teacherId) : undefined
+  const semesterId = query.semesterId ? String(query.semesterId) : undefined
+  const activeSemester = query.activeSemester === 'true'
+
   const where = {
+    ...(teacherId && { teacherId }),
+    ...(semesterId && { semesterId }),
+    ...(activeSemester && { semester: { isActive: true } }),
     ...(search && {
       OR: [
         { teacher: { user: { fullname: { contains: search, mode: 'insensitive' as const } } } },

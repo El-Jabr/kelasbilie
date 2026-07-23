@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
 
       select: {
         id: true,
+        isLocked: true,
         _count: {
           select: {
             studentClasses: true,
@@ -24,6 +25,13 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 404,
         statusMessage: 'Semester tidak ditemukan.'
+      })
+    }
+
+    if (semester.isLocked) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Data semester terkunci dan tidak bisa diubah/dihapus.'
       })
     }
 

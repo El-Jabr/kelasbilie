@@ -22,6 +22,13 @@ export default defineEventHandler(async (event) => {
         })
       }
 
+      if (exists.isLocked) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'Data semester terkunci dan tidak bisa diubah/dihapus.'
+        })
+      }
+
       if (body.isActive === true) {
         await tx.semester.updateMany({
           where: {

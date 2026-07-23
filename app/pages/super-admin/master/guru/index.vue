@@ -1,4 +1,8 @@
 <script setup lang="ts">
+definePageMeta({
+  layout: 'admin'
+})
+
 const { fetchTeachers } = useTeachers()
 await fetchTeachers()
 useSeoMeta({ title: 'Guru' })

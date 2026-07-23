@@ -31,8 +31,15 @@ export default defineEventHandler(async (event) => {
       message: 'Kelas berhasil ditambahkan.',
       data: classroom
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating class:', error)
+
+    if (error?.code === 'P2002') {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Nama dan level kelas sudah terdaftar.'
+      })
+    }
 
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
@@ -40,7 +47,7 @@ export default defineEventHandler(async (event) => {
 
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to create class.'
+      statusMessage: 'Gagal menambahkan kelas.'
     })
   }
 })

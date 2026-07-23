@@ -91,7 +91,16 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     })
 
     // Redirect ke halaman dashboard sesuai role
-    await navigateTo('/')
+    const role = res.data.role?.toUpperCase()
+    if (role === 'SUPER_ADMIN') {
+      await navigateTo('/super-admin')
+    } else if (role === 'ADMIN' || role === 'TEACHER') {
+      await navigateTo('/teacher')
+    } else if (role === 'STUDENT') {
+      await navigateTo('/student')
+    } else {
+      await navigateTo('/')
+    }
   }
   catch (error: any) {
     // Tampilkan pesan error dari server, atau fallback ke pesan default
@@ -113,12 +122,6 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     icon="i-lucide-lock"
     @submit="onSubmit"
   >
-    <template #description>
-      Don't have an account? <ULink
-        to="/signup"
-        class="text-primary font-medium"
-      >Sign up</ULink>.
-    </template>
 
     <template #password-hint>
       <ULink

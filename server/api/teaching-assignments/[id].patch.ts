@@ -8,6 +8,19 @@ export default defineEventHandler(async (event) => {
 
     const body = await readValidatedBody(event, updateTeachingAssignmentSchema.parse)
 
+    if (body.courseId) {
+      const courseExists = await prisma.course.findUnique({
+        where: { id: body.courseId },
+        select: { id: true }
+      })
+      if (!courseExists) {
+        throw createError({
+          statusCode: 404,
+          statusMessage: 'Moodle Course tidak ditemukan.'
+        })
+      }
+    }
+
     const teaching = await prisma.teachingAssignment.update({
       where: { id },
       data: {

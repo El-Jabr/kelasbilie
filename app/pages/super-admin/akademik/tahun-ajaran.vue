@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { useAcademicYears } from '~/composables/useAcademicYears'
 
+definePageMeta({
+  layout: 'admin'
+})
+
 useSeoMeta({
   title: 'Tahun Ajaran'
 })

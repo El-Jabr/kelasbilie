@@ -1,4 +1,5 @@
 import { prisma } from '../../utils/db'
+import { requireRole } from '../../utils/auth'
 
 const VALID_SORT = [
   'username',
@@ -11,6 +12,8 @@ const VALID_SORT = [
 type SortField = typeof VALID_SORT[number]
 
 export default defineEventHandler(async (event) => {
+  requireRole(event, ['SUPER_ADMIN'])
+
   const query = getQuery(event)
 
   const page = Math.max(Number(query.page ?? 1), 1)

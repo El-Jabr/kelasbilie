@@ -41,13 +41,20 @@ export default defineEventHandler(async (event) => {
       message: 'Kelas berhasil diperbarui.',
       data: classroom
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating class:', error)
 
-    if ((error as { code?: string })?.code === 'P2025') {
+    if (error?.code === 'P2025') {
       throw createError({
         statusCode: 404,
         statusMessage: 'Kelas tidak ditemukan.'
+      })
+    }
+
+    if (error?.code === 'P2002') {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Nama dan level kelas sudah terdaftar.'
       })
     }
 
@@ -57,7 +64,7 @@ export default defineEventHandler(async (event) => {
 
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to update class.'
+      statusMessage: 'Gagal memperbarui kelas.'
     })
   }
 })

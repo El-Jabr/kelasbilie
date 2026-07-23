@@ -231,6 +231,7 @@ model GradeComponent {
   gradeItemId Int
 
   score    Float
+  isManual Boolean   @default(false)
   lastSync DateTime?
 
   student   Student   @relation(fields: [studentId], references: [id])

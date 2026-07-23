@@ -20,8 +20,8 @@ export const useAuthStore = defineStore('auth', () => {
    * Berisi { id, email, role, fullname } dari JWT payload.
    * Null jika user belum login atau sudah logout.
    */
-  const user = ref<User | null>(null)
-
+  const user = ref<any | null>(null)
+ 
   /**
    * JWT token string (opsional, disimpan di HTTP-only Cookie oleh server).
    * Field ini jarang dipakai di frontend karena cookie sudah otomatis terkirim.
@@ -45,7 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
    *
    * @param data - Object user dari response API, atau null untuk menghapus
    */
-  function setUser(data: User | null) {
+  function setUser(data: any | null) {
     user.value = data
     console.debug('[AuthStore] setUser dipanggil:', data?.email ?? 'null')
   }

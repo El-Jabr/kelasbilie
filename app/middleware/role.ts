@@ -32,32 +32,20 @@ export default defineNuxtRouteMiddleware((to) => {
    * Diset via definePageMeta({ role: 'SUPER_ADMIN' }) di file .vue halaman tersebut.
    * Jika halaman tidak punya meta.role, berarti halaman tersebut tidak diproteksi role.
    */
-  const requiredRole = to.meta.role as string | undefined
+  const requiredRole = to.meta.role as string | string[] | undefined
 
   // Jika halaman tidak membutuhkan role tertentu, izinkan akses langsung
   if (!requiredRole) {
     return
   }
 
-  /**
-   * Bandingkan role user yang sedang login dengan role yang dibutuhkan halaman.
-   *
-   * authStore.user?.role → role user dari Pinia store (diisi saat login atau fetch /me)
-   * requiredRole → role yang diset di definePageMeta halaman tujuan
-   *
-   * Jika tidak cocok, redirect ke /login.
-   * Catatan: bisa diganti ke /403 jika ingin halaman "Akses Ditolak" yang lebih informatif.
-   */
-  if (authStore.user?.role !== requiredRole) {
-    console.debug(
-      `[RoleMiddleware] Akses ditolak: user role="${authStore.user?.role}" tapi halaman butuh role="${requiredRole}"`
-    )
+  const userRole = authStore.user?.role?.toUpperCase()
+  const allowedRoles = Array.isArray(requiredRole)
+    ? requiredRole.map(r => String(r).toUpperCase())
+    : [String(requiredRole).toUpperCase()]
+
+  if (!userRole || !allowedRoles.includes(userRole)) {
     return navigateTo('/login')
   }
-
-  // Role cocok, izinkan akses ke halaman
-  console.debug(
-    `[RoleMiddleware] Akses diizinkan: user role="${authStore.user?.role}" ke "${to.path}"`
-  )
 })
 

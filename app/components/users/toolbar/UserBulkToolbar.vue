@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { users } = defineProps<{
-  users: UserItem[]
+  users: any[]
 }>()
 
 const emit = defineEmits<{
