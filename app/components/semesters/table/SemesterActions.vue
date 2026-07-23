@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
-import type { SemesterTableSchema } from '~~/shared/schemas/semester'
+import type { SemesterSchema } from '~~/shared/schemas/semester'
 
 const {
   semester
 } = defineProps<{
-  semester: SemesterTableSchema
+  semester: SemesterSchema
 }>()
 
 const {

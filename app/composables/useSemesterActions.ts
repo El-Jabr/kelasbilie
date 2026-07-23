@@ -53,6 +53,7 @@ export function useSemesterActions() {
       closeCreateDialog()
 
       await refresh()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.add({
         title: 'Gagal',
@@ -91,6 +92,7 @@ export function useSemesterActions() {
       closeEditDialog()
 
       await refresh()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.add({
         title: 'Gagal',
@@ -133,6 +135,7 @@ export function useSemesterActions() {
       closeStatusDialog()
 
       await refresh()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.add({
         title: 'Gagal',
@@ -168,6 +171,7 @@ export function useSemesterActions() {
       closeDeleteDialog()
 
       await refresh()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.add({
         title: 'Gagal',

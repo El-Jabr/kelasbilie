@@ -1,4 +1,8 @@
 <script setup lang="ts">
+definePageMeta({
+  layout: 'admin'
+})
+
 const {
   preview,
   loadingImport,
@@ -91,8 +95,8 @@ async function handleImport() {
 
     <!-- Result -->
 
-    <UsersImportResultDialog
+    <!-- <UsersImportResultDialog
       v-model="showResult"
-    />
+    /> -->
   </UContainer>
 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   open: boolean
-  users: UserItem[]
+  users: any[]
   action: 'activate' | 'deactivate'
 }>()
 

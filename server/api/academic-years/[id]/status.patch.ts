@@ -19,7 +19,8 @@ export default defineEventHandler(async (event) => {
     select: {
       id: true,
       name: true,
-      isActive: true
+      isActive: true,
+      isLocked: true
     }
   })
 
@@ -27,6 +28,13 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 404,
       statusMessage: 'Tahun ajaran tidak ditemukan.'
+    })
+  }
+
+  if (academicYear.isLocked) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Data tahun ajaran terkunci dan tidak bisa diubah/dihapus.'
     })
   }
 

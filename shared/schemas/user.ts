@@ -45,3 +45,11 @@ export const userSchema = z.object({
 
 export type UserSchema
   = z.infer<typeof userSchema>
+
+export const updateUserSchema = userSchema.partial().omit({
+  id: true,
+  createdAt: true
+})
+
+export type UpdateUserSchema = z.infer<typeof updateUserSchema>
+

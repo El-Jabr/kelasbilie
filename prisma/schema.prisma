@@ -116,6 +116,12 @@ model Classroom {
   id        String               @id @default(uuid())
   name      String
   level     Int
+  room      String
+  building  String
+  floor     Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   students  StudentClass[]
   teachings TeachingAssignment[]
   homerooms HomeroomAssignment[]
@@ -125,6 +131,9 @@ model Subject {
   id        String               @id @default(uuid())
   code      String               @unique
   name      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   teachings TeachingAssignment[]
 }
 
@@ -133,6 +142,9 @@ model StudentClass {
   studentId   String
   classroomId String
   semesterId  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   student     Student   @relation(fields: [studentId], references: [id])
   classroom   Classroom @relation(fields: [classroomId], references: [id])
   semester    Semester  @relation(fields: [semesterId], references: [id])
@@ -219,6 +231,7 @@ model GradeComponent {
   gradeItemId Int
 
   score    Float
+  isManual Boolean   @default(false)
   lastSync DateTime?
 
   student   Student   @relation(fields: [studentId], references: [id])

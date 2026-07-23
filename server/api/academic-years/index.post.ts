@@ -8,9 +8,15 @@ export default defineEventHandler(async (event) => {
       academicYearSchema.parse
     )
 
+    if (body.isActive) {
+      await prisma.academicYear.updateMany({
+        data: { isActive: false }
+      })
+    }
+
     const academicYear = await prisma.academicYear.create({
       data: {
-        name: body.name,
+        name: body.name.trim(),
         isActive: body.isActive,
         isLocked: body.isLocked
       },
@@ -29,12 +35,23 @@ export default defineEventHandler(async (event) => {
       message: 'Tahun ajaran berhasil ditambahkan.',
       data: academicYear
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating academic year:', error)
+
+    if (error?.code === 'P2002') {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Nama tahun ajaran sudah ada.'
+      })
+    }
+
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error
+    }
 
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to create academic year.'
+      statusMessage: 'Gagal menambahkan tahun ajaran.'
     })
   }
 })

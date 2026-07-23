@@ -10,6 +10,24 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const item = await prisma.academicYear.findUnique({
+    where: { id }
+  })
+
+  if (!item) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Tahun ajaran tidak ditemukan.'
+    })
+  }
+
+  if (item.isLocked) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Data tahun ajaran terkunci dan tidak bisa diubah/dihapus.'
+    })
+  }
+
   try {
     const deleted = await prisma.academicYear.delete({
       where: {

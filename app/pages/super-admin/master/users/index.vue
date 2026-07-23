@@ -2,17 +2,18 @@
 import { ref } from 'vue'
 import { useUsers } from '~/composables/useUsers'
 
+definePageMeta({
+  layout: 'admin'
+})
+
 useSeoMeta({
   title: 'Users'
 })
 
 const bulkDialogOpen = ref(false)
 const bulkAction = ref<'activate' | 'deactivate'>('activate')
-const selectedUsers = ref<UserItem[]>([])
+const selectedUsers = ref<any[]>([])
 
-watch(selectedUsers, (value) => {
-  console.log('selected-user', value)
-})
 const userTable = useTemplateRef('userTable')
 
 const { bulkUpdateStatus } = useUserActions()
@@ -33,7 +34,7 @@ function bulkDeactivate() {
 
 async function confirmBulkStatus() {
   await bulkUpdateStatus(
-    selectedUsers.value.map(user => user.id),
+    selectedUsers.value.map((user: any) => user.id),
     bulkAction.value === 'activate'
   )
 

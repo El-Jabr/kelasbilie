@@ -31,6 +31,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  if (currentAcademicYear.isLocked) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Data tahun ajaran terkunci dan tidak bisa diubah/dihapus.'
+    })
+  }
+
   // Nama sudah digunakan?
   const nameExists = await prisma.academicYear.findFirst({
     where: {
@@ -43,8 +50,17 @@ export default defineEventHandler(async (event) => {
 
   if (nameExists) {
     throw createError({
-      statusCode: 400,
-      statusMessage: 'Tahun ajaran sudah digunakan.'
+      statusCode: 409,
+      statusMessage: 'Nama tahun ajaran sudah terdaftar.'
+    })
+  }
+
+  if (body.isActive) {
+    await prisma.academicYear.updateMany({
+      where: {
+        NOT: { id }
+      },
+      data: { isActive: false }
     })
   }
 

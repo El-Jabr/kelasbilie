@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { useSemesters } from '~/composables/useSemesters'
 
+definePageMeta({
+  layout: 'admin'
+})
+
 useSeoMeta({
   title: 'Semester'
 })

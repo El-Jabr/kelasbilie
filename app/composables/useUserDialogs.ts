@@ -1,7 +1,7 @@
 import type { UserSchema } from '~~/shared/schemas/user'
 
 export function useUserDialogs() {
-  const selectedUser = useState<UserSchema | null>(
+  const selectedUser = useState<any | null>(
     'users:selected-user',
     () => null
   )
@@ -31,7 +31,7 @@ export function useUserDialogs() {
     () => false
   )
 
-  function openRoleDialog(user: UserSchema) {
+  function openRoleDialog(user: any) {
     selectedUser.value = user
     roleDialogOpen.value = true
   }
@@ -41,7 +41,7 @@ export function useUserDialogs() {
     selectedUser.value = null
   }
 
-  function openEditDialog(user: UserSchema) {
+  function openEditDialog(user: any) {
     selectedUser.value = user
     editDialogOpen.value = true
   }
@@ -60,7 +60,7 @@ export function useUserDialogs() {
     createDialogOpen.value = false
   }
 
-  function openStatusDialog(user: UserSchema) {
+  function openStatusDialog(user: any) {
     selectedUser.value = user
     statusDialogOpen.value = true
   }
@@ -70,7 +70,7 @@ export function useUserDialogs() {
     selectedUser.value = null
   }
 
-  function openResetPasswordDialog(user: UserSchema) {
+  function openResetPasswordDialog(user: any) {
     selectedUser.value = user
     resetPasswordDialogOpen.value = true
   }

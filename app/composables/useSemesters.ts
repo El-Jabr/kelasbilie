@@ -1,9 +1,9 @@
-import type { SemesterTableSchema } from '~~/shared/schemas/semester'
+import type { SemesterSchema } from '~~/shared/schemas/semester'
 import type { PaginatedResponse, PaginationMeta } from '~~/shared/types/api'
 
 export function useSemesters() {
   // State
-  const semesters = useState<SemesterTableSchema[]>(
+  const semesters = useState<SemesterSchema[]>(
     'semesters:list',
     () => []
   )
@@ -35,7 +35,7 @@ export function useSemesters() {
   )
 
   // Selection
-  const selectedSemester = useState<SemesterTableSchema | null>(
+  const selectedSemester = useState<SemesterSchema | null>(
     'semesters:selected',
     () => null
   )
@@ -44,7 +44,7 @@ export function useSemesters() {
     loading.value = true
 
     try {
-      const response = await $fetch<PaginatedResponse<SemesterTableSchema>>(
+      const response = await $fetch<PaginatedResponse<SemesterSchema>>(
         '/api/semesters',
         {
           query: {

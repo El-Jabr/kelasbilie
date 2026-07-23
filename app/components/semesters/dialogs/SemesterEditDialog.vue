@@ -22,7 +22,11 @@ const form = reactive<SemesterSchema>({
   isActive: false,
   isLocked: false,
   createdAt: '',
-  updatedAt: ''
+  updatedAt: '',
+  academicYear: {
+    id: '',
+    name: ''
+  }
 })
 
 watch(
