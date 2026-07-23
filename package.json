@@ -8,6 +8,7 @@
     "preview": "nuxt preview",
     "postinstall": "prisma generate && nuxt prepare",
     "db:test": "tsx scripts/test-database.ts",
+    "db:superadmin": "tsx scripts/create-super-admin.ts",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck"
   },
