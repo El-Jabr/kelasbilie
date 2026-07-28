@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { LazyModalLogout } from '#components'
-import type { NavigationMenuItem } from '@nuxt/ui'
 
-const route = useRoute()
-
-// Pinia Auth Store — satu-satunya sumber data user yang sedang login
 const authStore = useAuthStore()
 
 // Computed: data user untuk ditampilkan di header (nama & email)
@@ -17,7 +13,7 @@ const overlay = useOverlay()
 const modal = overlay.create(LazyModalLogout)
 const loading = ref(false)
 
-// Computed: link home berdasarkan role
+// Computed: link home / dashboard berdasarkan role
 const homeLink = computed(() => {
   if (!authStore.isAuthenticated || !authStore.user) return '/'
   const role = String(authStore.user.role).toUpperCase()
@@ -38,225 +34,6 @@ onMounted(async () => {
       // User is not authenticated
     }
   }
-})
-
-/**
- * Navigation Items dinamis berdasarkan status Auth & Role User.
- * Jika BELUM login (authStore.isAuthenticated === false) -> items dikembalikan KOSONG [].
- * Jika SUDAH login -> items disesuaikan berdasarkan role (SUPER_ADMIN/ADMIN, TEACHER, STUDENT).
- */
-const items = computed<NavigationMenuItem[]>(() => {
-  if (!authStore.isAuthenticated || !authStore.user) {
-    return [] // Sembunyikan semua menu jika pengguna belum login
-  }
-
-  const role = String(authStore.user.role).toUpperCase()
-
-  if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
-    const isSuperAdmin = role === 'SUPER_ADMIN'
-
-    const masterChildren = []
-    if (isSuperAdmin) {
-      masterChildren.push({
-        label: 'Users',
-        icon: 'i-lucide-users',
-        description: 'Kelola seluruh pengguna aplikasi.',
-        to: '/super-admin/master/users'
-      })
-    }
-    masterChildren.push(
-      {
-        label: 'Guru',
-        icon: 'i-lucide-graduation-cap',
-        description: 'Kelola data guru sekolah.',
-        to: '/super-admin/master/guru'
-      },
-      {
-        label: 'Siswa',
-        icon: 'i-lucide-school',
-        description: 'Kelola data siswa sekolah.',
-        to: '/super-admin/master/siswa'
-      }
-    )
-
-    const moodleChildren = [
-      {
-        label: 'Cek Nilai Per Kelas',
-        icon: 'i-lucide-award',
-        description: 'Cek nilai seluruh kelas & mapel.',
-        to: '/super-admin/moodle/nilai'
-      },
-      {
-        label: 'Course Moodle',
-        icon: 'i-lucide-book-search',
-        description: 'Daftar course terhubung ke Moodle.',
-        to: '/super-admin/moodle/course'
-      }
-    ]
-
-    if (isSuperAdmin) {
-      moodleChildren.push({
-        label: 'Sinkronisasi Moodle',
-        icon: 'i-lucide-cable',
-        description: 'Synchronize data dengan Moodle.',
-        to: '/super-admin/moodle/sinkronisasi'
-      })
-    }
-
-    const items: NavigationMenuItem[] = [
-      {
-        label: 'Dashboard',
-        icon: 'i-lucide-home',
-        to: '/super-admin',
-        active: route.path === '/super-admin'
-      },
-      {
-        label: 'Master Data',
-        icon: 'i-lucide-box',
-        to: isSuperAdmin ? '/super-admin/master/users' : '/super-admin/master/guru',
-        active: route.path.startsWith('/super-admin/master'),
-        children: masterChildren
-      },
-      {
-        label: 'Akademik',
-        icon: 'i-lucide-book',
-        to: '/super-admin/akademik/tahun-ajaran',
-        active: route.path.startsWith('/super-admin/akademik'),
-        children: [
-          {
-            label: 'Tahun Ajaran',
-            icon: 'i-lucide-calendar',
-            description: 'Kelola tahun ajaran sekolah.',
-            to: '/super-admin/akademik/tahun-ajaran'
-          },
-          {
-            label: 'Semester',
-            icon: 'i-lucide-clock',
-            description: 'Kelola semester aktif.',
-            to: '/super-admin/akademik/semester'
-          },
-          {
-            label: 'Kelas',
-            icon: 'i-lucide-layers',
-            description: 'Kelola data rombel kelas.',
-            to: '/super-admin/akademik/kelas'
-          },
-          {
-            label: 'Mata Pelajaran',
-            icon: 'i-lucide-book-open',
-            description: 'Kelola daftar mata pelajaran.',
-            to: '/super-admin/akademik/mata-pelajaran'
-          },
-          {
-            label: 'Penugasan Mengajar',
-            icon: 'i-lucide-file-spreadsheet',
-            description: 'Assign guru ke kelas & Moodle course.',
-            to: '/super-admin/akademik/teaching-assignments'
-          },
-          {
-            label: 'Wali Kelas',
-            icon: 'i-lucide-user-cog',
-            description: 'Penetapan wali kelas per rombel.',
-            to: '/super-admin/akademik/homerooms'
-          },
-          {
-            label: 'Pembagian Kelas Siswa',
-            icon: 'i-lucide-users-round',
-            description: 'Pendaftaran siswa ke dalam kelas.',
-            to: '/super-admin/akademik/pembagian-kelas'
-          }
-        ]
-      },
-      {
-        label: 'Nilai & Moodle',
-        icon: 'i-lucide-server',
-        to: '/super-admin/moodle/nilai',
-        active: route.path.startsWith('/super-admin/moodle'),
-        children: moodleChildren
-      },
-      {
-        label: 'Portal Mengajar (Guru)',
-        icon: 'i-lucide-graduation-cap',
-        to: '/teacher',
-        active: route.path.startsWith('/teacher')
-      }
-    ]
-
-    if (isSuperAdmin) {
-      items.push(
-        {
-          label: 'Monitoring',
-          icon: 'i-lucide-monitor',
-          to: '/super-admin/monitoring/activity-log',
-          active: route.path.startsWith('/super-admin/monitoring'),
-          children: [
-            {
-              label: 'Activity Log',
-              icon: 'i-lucide-activity',
-              description: 'Riwayat aktivitas sistem.',
-              to: '/super-admin/monitoring/activity-log'
-            }
-          ]
-        },
-        {
-          label: 'Settings',
-          icon: 'i-lucide-settings',
-          to: '/super-admin/settings',
-          active: route.path.startsWith('/super-admin/settings')
-        }
-      )
-    }
-
-    return items
-  }
-
-  if (role === 'TEACHER') {
-    return [
-      {
-        label: 'Dashboard',
-        icon: 'i-lucide-home',
-        to: '/teacher',
-        active: route.path === '/teacher'
-      },
-      {
-        label: 'Kelas Mengajar',
-        icon: 'i-lucide-book-open',
-        to: '/teacher/classes',
-        active: route.path.startsWith('/teacher/classes')
-      },
-      {
-        label: 'Profil Saya',
-        icon: 'i-lucide-user',
-        to: '/teacher/profile',
-        active: route.path === '/teacher/profile'
-      }
-    ]
-  }
-
-  if (role === 'STUDENT') {
-    return [
-      {
-        label: 'Dashboard',
-        icon: 'i-lucide-home',
-        to: '/student',
-        active: route.path === '/student'
-      },
-      {
-        label: 'Nilai Saya',
-        icon: 'i-lucide-award',
-        to: '/student/grades',
-        active: route.path.startsWith('/student/grades')
-      },
-      {
-        label: 'Profil Saya',
-        icon: 'i-lucide-user',
-        to: '/student/profile',
-        active: route.path === '/student/profile'
-      }
-    ]
-  }
-
-  return []
 })
 
 /**
@@ -298,12 +75,6 @@ async function logout() {
       </NuxtLink>
     </template>
 
-    <UNavigationMenu
-      v-if="authStore.isAuthenticated"
-      :items="items"
-      variant="link"
-    />
-
     <template #right>
       <UColorModeButton />
 
@@ -311,24 +82,26 @@ async function logout() {
         v-if="authStore.isAuthenticated"
         class="flex items-center gap-2 lg:gap-4"
       >
-        <UUser
-          :avatar="{
-            src: 'https://i.pravatar.cc/150?u=john-doe',
-            loading: 'lazy',
-            icon: 'i-lucide-image'
-          }"
-          class="lg:hidden"
+        <UButton
+          :to="homeLink"
+          label="Ke Dashboard"
+          icon="i-lucide-layout-dashboard"
+          color="primary"
+          variant="subtle"
+          size="sm"
         />
+
         <UUser
           :name="user?.name"
           :description="user?.email"
           :avatar="{
-            src: 'https://i.pravatar.cc/150?u=john-doe',
+            src: 'https://i.pravatar.cc/150?u=user',
             loading: 'lazy',
             icon: 'i-lucide-image'
           }"
           class="hidden lg:inline-flex"
         />
+
         <UTooltip text="Logout">
           <UButton
             class="cursor-pointer lg:hidden"
@@ -372,25 +145,17 @@ async function logout() {
     </template>
 
     <template #body>
-      <UNavigationMenu
+      <div
         v-if="authStore.isAuthenticated"
-        :items="items"
-        orientation="vertical"
-        class="-mx-2.5"
-      />
-
-      <USeparator class="my-6" />
-
-      <div v-if="!authStore.isAuthenticated">
+        class="space-y-3"
+      >
         <UButton
-          label="Sign in"
-          color="neutral"
-          variant="subtle"
-          to="/login"
+          :to="homeLink"
+          label="Ke Dashboard"
+          icon="i-lucide-layout-dashboard"
+          color="primary"
           block
         />
-      </div>
-      <div v-else>
         <UButton
           label="Logout"
           color="neutral"
@@ -398,6 +163,15 @@ async function logout() {
           block
           icon="i-lucide-log-out"
           @click="logout"
+        />
+      </div>
+      <div v-else>
+        <UButton
+          label="Sign in"
+          color="neutral"
+          variant="subtle"
+          to="/login"
+          block
         />
       </div>
     </template>
