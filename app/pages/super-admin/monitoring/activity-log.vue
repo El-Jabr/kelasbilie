@@ -7,9 +7,24 @@ useSeoMeta({
   title: 'Activity Log'
 })
 
-const { data, pending, refresh } = await useFetch('/api/moodle/logs?limit=50')
+const pending = ref(true)
+const logs = ref<any[]>([])
 
-const logs = computed(() => data.value?.data || [])
+async function refresh() {
+  pending.value = true
+  try {
+    const res: any = await $fetch('/api/moodle/logs?limit=50', { credentials: 'include' })
+    if (res?.data) logs.value = res.data
+  } catch (err) {
+    console.error('Failed to fetch activity logs:', err)
+  } finally {
+    pending.value = false
+  }
+}
+
+onMounted(() => {
+  refresh()
+})
 
 const search = ref('')
 const selectedStatus = ref('ALL')

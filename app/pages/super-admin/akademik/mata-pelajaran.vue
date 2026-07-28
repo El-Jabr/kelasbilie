@@ -11,7 +11,9 @@ useSeoMeta({
 
 const { fetchSubjects } = useSubjects()
 
-await fetchSubjects()
+onMounted(() => {
+  fetchSubjects()
+})
 </script>
 
 <template>

@@ -7,34 +7,60 @@ useSeoMeta({
   title: 'Dashboard Super Admin'
 })
 
-const { data: usersData, pending: pendingUsers } = await useFetch('/api/users')
-const { data: teachersData } = await useFetch('/api/teachers')
-const { data: studentsData } = await useFetch('/api/students')
-const { data: classesData } = await useFetch('/api/classes')
-const { data: yearsData } = await useFetch('/api/academic-years')
-const { data: semData } = await useFetch('/api/semesters')
-const { data: logsData } = await useFetch('/api/moodle/logs?limit=5')
+const pending = ref(true)
+const stats = ref({
+  totalUsers: 0,
+  totalTeachers: 0,
+  totalStudents: 0,
+  totalClasses: 0,
+  activeYear: null as any,
+  activeSemester: null as any,
+  recentLogs: [] as any[]
+})
 
-const totalUsers = computed(() => usersData.value?.data?.length || 0)
-const totalTeachers = computed(() => teachersData.value?.data?.length || 0)
-const totalStudents = computed(() => studentsData.value?.data?.length || 0)
-const totalClasses = computed(() => classesData.value?.data?.length || 0)
+async function loadDashboardStats() {
+  pending.value = true
+  try {
+    const res: any = await $fetch('/api/dashboard/stats', {
+      credentials: 'include'
+    })
+    if (res?.data) {
+      stats.value = res.data
+    }
+  } catch (err) {
+    console.error('Gagal memuat stats dashboard:', err)
+  } finally {
+    pending.value = false
+  }
+}
 
-const activeYear = computed(() => yearsData.value?.data?.find((y: any) => y.isActive))
-const activeSemester = computed(() => semData.value?.data?.find((s: any) => s.isActive))
-const recentLogs = computed(() => logsData.value?.data || [])
+onMounted(() => {
+  loadDashboardStats()
+})
 </script>
 
 <template>
   <div class="space-y-6">
     <!-- Top Header Title -->
-    <div>
-      <h1 class="text-2xl font-bold tracking-tight">
-        Dashboard Utama
-      </h1>
-      <p class="text-sm text-gray-500 dark:text-gray-400">
-        Selamat datang di Sistem Informasi Manajemen Akademik Kelasbilie.
-      </p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">
+          Dashboard Utama
+        </h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Selamat datang di Sistem Informasi Manajemen Akademik Kelasbilie.
+        </p>
+      </div>
+
+      <UButton
+        icon="i-lucide-refresh-cw"
+        color="neutral"
+        variant="ghost"
+        size="sm"
+        class="cursor-pointer"
+        :loading="pending"
+        @click="loadDashboardStats"
+      />
     </div>
 
     <!-- Stat Cards Grid -->
@@ -43,7 +69,10 @@ const recentLogs = computed(() => logsData.value?.data || [])
         <div class="flex items-center justify-between">
           <div>
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total User</p>
-            <p class="text-2xl font-bold mt-1">{{ totalUsers }}</p>
+            <p class="text-2xl font-bold mt-1">
+              <span v-if="pending" class="text-gray-300 animate-pulse">...</span>
+              <span v-else>{{ stats.totalUsers }}</span>
+            </p>
           </div>
           <div class="p-3 bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 rounded-xl">
             <UIcon name="i-lucide-users" class="w-6 h-6" />
@@ -55,7 +84,10 @@ const recentLogs = computed(() => logsData.value?.data || [])
         <div class="flex items-center justify-between">
           <div>
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Guru</p>
-            <p class="text-2xl font-bold mt-1">{{ totalTeachers }}</p>
+            <p class="text-2xl font-bold mt-1">
+              <span v-if="pending" class="text-gray-300 animate-pulse">...</span>
+              <span v-else>{{ stats.totalTeachers }}</span>
+            </p>
           </div>
           <div class="p-3 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-xl">
             <UIcon name="i-lucide-user-check" class="w-6 h-6" />
@@ -67,7 +99,10 @@ const recentLogs = computed(() => logsData.value?.data || [])
         <div class="flex items-center justify-between">
           <div>
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Siswa</p>
-            <p class="text-2xl font-bold mt-1">{{ totalStudents }}</p>
+            <p class="text-2xl font-bold mt-1">
+              <span v-if="pending" class="text-gray-300 animate-pulse">...</span>
+              <span v-else>{{ stats.totalStudents }}</span>
+            </p>
           </div>
           <div class="p-3 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 rounded-xl">
             <UIcon name="i-lucide-graduation-cap" class="w-6 h-6" />
@@ -79,7 +114,10 @@ const recentLogs = computed(() => logsData.value?.data || [])
         <div class="flex items-center justify-between">
           <div>
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Kelas</p>
-            <p class="text-2xl font-bold mt-1">{{ totalClasses }}</p>
+            <p class="text-2xl font-bold mt-1">
+              <span v-if="pending" class="text-gray-300 animate-pulse">...</span>
+              <span v-else>{{ stats.totalClasses }}</span>
+            </p>
           </div>
           <div class="p-3 bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 rounded-xl">
             <UIcon name="i-lucide-building-2" class="w-6 h-6" />
@@ -103,19 +141,19 @@ const recentLogs = computed(() => logsData.value?.data || [])
           <div>
             <span class="text-xs text-gray-400 block">Tahun Ajaran Aktif</span>
             <div class="flex items-center justify-between mt-1">
-              <span class="font-medium text-base">{{ activeYear?.name || 'Belum diatur' }}</span>
-              <UBadge v-if="activeYear" color="success" variant="subtle">Aktif</UBadge>
+              <span class="font-medium text-base">{{ stats.activeYear?.name || 'Belum diatur' }}</span>
+              <UBadge v-if="stats.activeYear" color="success" variant="subtle">Aktif</UBadge>
               <UBadge v-else color="neutral" variant="subtle">Nonaktif</UBadge>
             </div>
           </div>
 
-          <UDivider />
+          <USeparator />
 
           <div>
             <span class="text-xs text-gray-400 block">Semester Aktif</span>
             <div class="flex items-center justify-between mt-1">
-              <span class="font-medium text-base">{{ activeSemester?.type || 'Belum diatur' }}</span>
-              <UBadge v-if="activeSemester" color="success" variant="subtle">Aktif</UBadge>
+              <span class="font-medium text-base">{{ stats.activeSemester?.type || 'Belum diatur' }}</span>
+              <UBadge v-if="stats.activeSemester" color="success" variant="subtle">Aktif</UBadge>
               <UBadge v-else color="neutral" variant="subtle">Nonaktif</UBadge>
             </div>
           </div>
@@ -144,13 +182,17 @@ const recentLogs = computed(() => logsData.value?.data || [])
           </div>
         </template>
 
-        <div v-if="recentLogs.length === 0" class="py-8 text-center text-sm text-gray-400">
+        <div v-if="pending" class="py-8 text-center text-sm text-gray-400">
+          Memuat aktivitas sinkronisasi...
+        </div>
+
+        <div v-else-if="stats.recentLogs.length === 0" class="py-8 text-center text-sm text-gray-400">
           Belum ada riwayat sinkronisasi.
         </div>
 
         <div v-else class="divide-y divide-gray-100 dark:divide-gray-800">
           <div
-            v-for="log in recentLogs"
+            v-for="log in stats.recentLogs"
             :key="log.id"
             class="py-3 flex items-center justify-between text-sm"
           >

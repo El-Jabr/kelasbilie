@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
 
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to create subject.'
+      statusMessage: 'Gagal membuat mata pelajaran.'
     })
   }
 })

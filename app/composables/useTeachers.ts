@@ -13,6 +13,7 @@ export function useTeachers() {
     loading.value = true
     try {
       const response = await $fetch<PaginatedResponse<TeacherTableSchema>>('/api/teachers', {
+        credentials: 'include',
         query: { page, limit: pagination.value.limit, search: search.value || undefined }
       })
       teachers.value = response.data

@@ -60,7 +60,6 @@ export default defineEventHandler(async (event) => {
           id: true,
           fullname: true,
           shortname: true,
-          moodleCourseId: true,
           gradeItems: {
             select: {
               id: true,

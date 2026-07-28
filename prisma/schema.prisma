@@ -63,6 +63,8 @@ model Student {
   gradeSummaries  GradeSummary[]
 
   enrollments Enrollment[]
+  moodlePassword     String?
+  moodlePasswordMode String?
 }
 
 model Teacher {
@@ -230,9 +232,10 @@ model GradeComponent {
   studentId   String
   gradeItemId Int
 
-  score    Float
-  isManual Boolean   @default(false)
-  lastSync DateTime?
+  score       Float
+  moodleScore Float?
+  isManual    Boolean   @default(false)
+  lastSync    DateTime?
 
   student   Student   @relation(fields: [studentId], references: [id])
   gradeItem GradeItem @relation(fields: [gradeItemId], references: [id])

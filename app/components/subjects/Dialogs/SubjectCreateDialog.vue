@@ -16,20 +16,26 @@ const {
 
 const form = reactive<CreateSubjectSchema>({
   code: '',
-  name: ''
+  name: '',
+  classroomId: undefined
 })
 
 watch(createDialogOpen, (open) => {
   if (open) {
     Object.assign(form, {
       code: '',
-      name: ''
+      name: '',
+      classroomId: undefined
     })
   }
 })
 
 async function save() {
-  await createSubject(form)
+  await createSubject({
+    code: form.code.trim(),
+    name: form.name.trim(),
+    classroomId: form.classroomId || undefined
+  })
 }
 </script>
 
@@ -38,17 +44,23 @@ async function save() {
     <template #content>
       <UCard>
         <template #header>
-          <h2 class="text-lg font-semibold">
-            Tambah Mata Pelajaran
-          </h2>
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-semibold">Tambah Mata Pelajaran</h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Isi form di bawah untuk membuat mata pelajaran baru.</p>
+            </div>
+            <UButton color="neutral" variant="ghost" icon="i-lucide-x" class="-my-1" @click="closeCreateDialog" />
+          </div>
         </template>
 
         <UForm
+          v-if="createDialogOpen"
           :schema="createSubjectSchema"
           :state="form"
+          class="space-y-4"
           @submit="save"
         >
-          <SubjectsFormsSubjectForm v-model="form" />
+          <SubjectsFormsSubjectForm :model-value="form" @update:model-value="Object.assign(form, $event)" />
         </UForm>
 
         <template #footer>
@@ -56,12 +68,15 @@ async function save() {
             <UButton
               color="neutral"
               variant="soft"
+              class="cursor-pointer"
               @click="closeCreateDialog"
             >
               Batal
             </UButton>
 
             <UButton
+              color="primary"
+              class="cursor-pointer"
               :loading="creating"
               @click="save"
             >

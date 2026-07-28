@@ -19,17 +19,29 @@ const formState = reactive({
   syncInterval: 30
 })
 
-const { data: settingData, pending, refresh } = await useFetch('/api/settings')
+const pending = ref(true)
 
-watch(settingData, (val) => {
-  if (val?.data) {
-    formState.schoolName = val.data.schoolName || ''
-    formState.moodleUrl = val.data.moodleUrl || ''
-    formState.moodleToken = val.data.moodleToken || ''
-    formState.syncEnabled = val.data.syncEnabled ?? true
-    formState.syncInterval = val.data.syncInterval ?? 30
+async function refresh() {
+  pending.value = true
+  try {
+    const res: any = await $fetch('/api/settings', { credentials: 'include' })
+    if (res?.data) {
+      formState.schoolName = res.data.schoolName || ''
+      formState.moodleUrl = res.data.moodleUrl || ''
+      formState.moodleToken = res.data.moodleToken || ''
+      formState.syncEnabled = res.data.syncEnabled ?? true
+      formState.syncInterval = res.data.syncInterval ?? 30
+    }
+  } catch (err) {
+    console.error('Failed to fetch settings:', err)
+  } finally {
+    pending.value = false
   }
-}, { immediate: true })
+}
+
+onMounted(() => {
+  refresh()
+})
 
 async function handleSave() {
   isSaving.value = true

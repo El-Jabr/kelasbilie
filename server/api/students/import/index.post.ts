@@ -8,6 +8,7 @@ interface StudentImportRow {
   email?: string
   nis: string
   password?: string
+  moodleUserId?: number | string
 }
 
 function generateRandomPassword() {
@@ -41,6 +42,8 @@ export default defineEventHandler(async (event) => {
     const nis = row.nis?.trim()
     const email = row.email?.trim() || `${username}@student.kelasbilie.sch.id`
     const rawPassword = row.password?.trim() || generateRandomPassword()
+    const moodleUserIdRaw = row.moodleUserId ? Number(row.moodleUserId) : null
+    const moodleUserId = moodleUserIdRaw && !isNaN(moodleUserIdRaw) ? moodleUserIdRaw : null
 
     if (!fullname || !username || !nis) {
       result.push({
@@ -54,7 +57,7 @@ export default defineEventHandler(async (event) => {
 
     try {
       await prisma.$transaction(async (tx) => {
-        // Cek user terdaftar berdasarkan username
+        // Cek user terdaftar berdasarkan username atau email
         let user = await tx.user.findFirst({
           where: {
             OR: [
@@ -72,6 +75,7 @@ export default defineEventHandler(async (event) => {
               username,
               email,
               password: hashedPassword,
+              moodleUserId,
               role: 'STUDENT',
               isActive: true
             }

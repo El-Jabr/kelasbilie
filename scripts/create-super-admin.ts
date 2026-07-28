@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import bcrypt from 'bcryptjs'
-import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient, Role } from '../prisma/generated/client'
 
 const pool = new pg.Pool({
@@ -9,10 +9,7 @@ const pool = new pg.Pool({
 })
 
 const adapter = new PrismaPg(pool)
-
-const prisma = new PrismaClient({
-  adapter
-})
+const prisma = new PrismaClient({ adapter })
 
 async function main() {
   const hashedPassword = await bcrypt.hash('admin123', 10)

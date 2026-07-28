@@ -1,9 +1,16 @@
 <script setup lang="ts">
-const props = defineProps<{
-  open: boolean
-  users: any[]
-  action: 'activate' | 'deactivate'
-}>()
+const props = withDefaults(
+  defineProps<{
+    open?: boolean
+    users?: any[]
+    action?: 'activate' | 'deactivate'
+  }>(),
+  {
+    open: false,
+    users: () => [],
+    action: 'activate'
+  }
+)
 
 const emit = defineEmits<{
   'update:open': [boolean]
@@ -12,10 +19,10 @@ const emit = defineEmits<{
 
 const isActivate = computed(() => props.action === 'activate')
 
-const previewUsers = computed(() => props.users.slice(0, 5))
+const previewUsers = computed(() => (props.users || []).slice(0, 5))
 
 const remainCount = computed(() =>
-  Math.max(props.users.length - 5, 0)
+  Math.max((props.users || []).length - 5, 0)
 )
 </script>
 

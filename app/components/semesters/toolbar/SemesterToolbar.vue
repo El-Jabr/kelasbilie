@@ -33,7 +33,7 @@ const statusOptions = [
 const academicYearOptions = computed(() => [
   {
     label: 'Semua Tahun Ajaran',
-    value: ''
+    value: 'ALL'
   },
   ...academicYears.value.map(item => ({
     label: item.name,

@@ -26,7 +26,7 @@ export function useSemesters() {
   // Filter
   const academicYearId = useState(
     'semesters:academic-year',
-    () => ''
+    () => 'ALL'
   )
 
   const active = useState<string>(
@@ -50,7 +50,7 @@ export function useSemesters() {
           query: {
             page,
             limit: pagination.value.limit,
-            academicYearId: academicYearId.value || undefined,
+            academicYearId: academicYearId.value === 'ALL' ? undefined : academicYearId.value,
             active: active.value === 'ALL'
               ? undefined
               : active.value

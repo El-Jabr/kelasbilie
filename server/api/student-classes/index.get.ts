@@ -5,6 +5,7 @@ export default defineEventHandler(async (event) => {
 
   const page = Math.max(Number(query.page ?? 1), 1)
   const limit = Math.max(Number(query.limit ?? 10), 1)
+  const search = String(query.search ?? '').trim()
   const semesterId = String(query.semesterId ?? '').trim()
   const classroomId = String(query.classroomId ?? '').trim()
 
@@ -13,6 +14,15 @@ export default defineEventHandler(async (event) => {
 
   if (semesterId) where.semesterId = semesterId
   if (classroomId) where.classroomId = classroomId
+  if (search) {
+    where.student = {
+      OR: [
+        { nis: { contains: search, mode: 'insensitive' } },
+        { user: { fullname: { contains: search, mode: 'insensitive' } } },
+        { user: { username: { contains: search, mode: 'insensitive' } } }
+      ]
+    }
+  }
 
   const [total, studentClasses] = await prisma.$transaction([
     prisma.studentClass.count({ where }),

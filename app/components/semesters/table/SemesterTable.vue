@@ -110,7 +110,9 @@ defineExpose({
       </template>
 
       <template #createdAt-cell="{ row }">
-        {{ new Date(row.original.createdAt).toLocaleDateString('id-ID') }}
+        <span class="text-xs text-gray-600 dark:text-gray-400 font-mono">
+          {{ new Date(row.original.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
+        </span>
       </template>
 
       <template #action-cell="{ row }">

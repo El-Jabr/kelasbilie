@@ -50,10 +50,14 @@ export default defineEventHandler(async (event) => {
       orderBy: {
         [sort]: order
       },
-      select: {
-        id: true,
-        code: true,
-        name: true
+      include: {
+        teachings: {
+          include: {
+            classroom: true,
+            course: true,
+            semester: true
+          }
+        }
       }
     })
   ])

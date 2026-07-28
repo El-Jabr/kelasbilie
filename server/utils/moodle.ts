@@ -41,6 +41,41 @@ export interface MoodleUserGrade {
   gradeitems: MoodleGradeItem[]
 }
 
+export interface MoodleCreateUserParam {
+  username: string
+  password?: string
+  firstname: string
+  lastname: string
+  email: string
+  auth?: string
+  idnumber?: string
+}
+
+export interface MoodleEnrolParam {
+  roleid: number // 3 = editingteacher, 4 = teacher, 5 = student
+  userid: number // Moodle User ID
+  courseid: number // Moodle Course ID
+}
+
+function makeError(opts: { statusCode: number; statusMessage: string }) {
+  if (typeof createError === 'function') {
+    return createError(opts)
+  }
+  const err = new Error(opts.statusMessage) as any
+  err.statusCode = opts.statusCode
+  err.statusMessage = opts.statusMessage
+  return err
+}
+
+async function doFetch<T>(url: string): Promise<T> {
+  if (typeof $fetch === 'function') {
+    const res = await $fetch(url, { method: 'GET' })
+    return res as unknown as T
+  }
+  const res = await fetch(url)
+  return (await res.json()) as T
+}
+
 /**
  * Service Wrapper untuk interaksi dengan Moodle REST API
  */
@@ -51,17 +86,40 @@ export class MoodleService {
   private static async getConfig() {
     const setting = await prisma.schoolSetting.findFirst()
     if (!setting || !setting.moodleUrl || !setting.moodleToken) {
-      throw createError({
+      throw makeError({
         statusCode: 400,
         statusMessage: 'URL dan Token Moodle belum dikonfigurasi di Pengaturan Sekolah.'
       })
     }
-    // Hapus trailing slash pada URL jika ada
     const baseUrl = setting.moodleUrl.replace(/\/+$/, '')
     return {
       baseUrl: `${baseUrl}/webservice/rest/server.php`,
       token: setting.moodleToken
     }
+  }
+
+  /**
+   * Helper untuk mengonversi object/array JavaScript ke format URLParams yang dikenali Moodle API
+   */
+  private static buildMoodleParams(obj: any, prefix = ''): Record<string, string> {
+    const result: Record<string, string> = {}
+    if (obj === null || obj === undefined) return result
+
+    if (typeof obj === 'object' && !Array.isArray(obj)) {
+      for (const key of Object.keys(obj)) {
+        const propName = prefix ? `${prefix}[${key}]` : key
+        Object.assign(result, this.buildMoodleParams(obj[key], propName))
+      }
+    } else if (Array.isArray(obj)) {
+      obj.forEach((item, index) => {
+        const propName = `${prefix}[${index}]`
+        Object.assign(result, this.buildMoodleParams(item, propName))
+      })
+    } else {
+      result[prefix] = String(obj)
+    }
+
+    return result
   }
 
   /**
@@ -78,13 +136,11 @@ export class MoodleService {
     })
 
     try {
-      const response = await $fetch<any>(`${baseUrl}?${queryParams.toString()}`, {
-        method: 'GET'
-      })
+      const response = await doFetch<any>(`${baseUrl}?${queryParams.toString()}`)
 
       // Moodle mereturn object exception jika token/fungsi/parameter salah
       if (response && response.exception) {
-        throw createError({
+        throw makeError({
           statusCode: 400,
           statusMessage: `Moodle API Error [${response.errorcode}]: ${response.message}`
         })
@@ -94,11 +150,19 @@ export class MoodleService {
     } catch (error: any) {
       if (error.statusCode) throw error
       console.error(`Moodle Fetch Error (${wsfunction}):`, error)
-      throw createError({
+      throw makeError({
         statusCode: 502,
         statusMessage: `Gagal terhubung ke Moodle API (${wsfunction}): ${error.message}`
       })
     }
+  }
+
+  /**
+   * Panggilan POST generik dengan perataan parameter objek Moodle
+   */
+  public static async post<T>(wsfunction: string, data: Record<string, any> = {}): Promise<T> {
+    const flattenedParams = this.buildMoodleParams(data)
+    return await this.fetch<T>(wsfunction, flattenedParams)
   }
 
   /**
@@ -131,5 +195,33 @@ export class MoodleService {
     return await this.fetch<{ usergrades: MoodleUserGrade[] }>('gradereport_user_get_grade_items', {
       courseid: courseId.toString()
     })
+  }
+
+  /**
+   * Mendaftarkan/membuat user baru di Moodle secara massal (core_user_create_users)
+   */
+  public static async createUsers(users: MoodleCreateUserParam[]): Promise<{ id: number; username: string }[]> {
+    return await this.post<{ id: number; username: string }[]>('core_user_create_users', { users })
+  }
+
+  /**
+   * Memperbarui user Moodle (core_user_update_users)
+   */
+  public static async updateUsers(users: { id: number; password?: string; firstname?: string; lastname?: string; email?: string }[]): Promise<any> {
+    return await this.post<any>('core_user_update_users', { users })
+  }
+
+  /**
+   * Mengambil user Moodle berdasarkan field (core_user_get_users_by_field)
+   */
+  public static async getUsersByField(field: 'username' | 'email' | 'id', values: (string | number)[]): Promise<MoodleUser[]> {
+    return await this.post<MoodleUser[]>('core_user_get_users_by_field', { field, values })
+  }
+
+  /**
+   * Enrolls user ke dalam Course Moodle (enrol_manual_enrol_users)
+   */
+  public static async enrolUsers(enrolments: MoodleEnrolParam[]): Promise<any> {
+    return await this.post<any>('enrol_manual_enrol_users', { enrolments })
   }
 }

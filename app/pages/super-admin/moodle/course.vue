@@ -8,25 +8,39 @@ useSeoMeta({
 })
 
 const toast = useToast()
+const pending = ref(true)
 const isSyncing = ref(false)
+const courses = ref<any[]>([])
 
-// Fetch daftar course dari DB lokal (yang sudah disinkronkan)
-const { data, pending, refresh } = await useFetch('/api/moodle')
-
-const courses = computed(() => data.value?.data || [])
+async function loadCourses() {
+  pending.value = true
+  try {
+    const res: any = await $fetch('/api/moodle', {
+      credentials: 'include'
+    })
+    if (res?.data) {
+      courses.value = res.data
+    }
+  } catch (err) {
+    console.error('Gagal mengambil data Course Moodle:', err)
+  } finally {
+    pending.value = false
+  }
+}
 
 async function handleSync() {
   isSyncing.value = true
   try {
     const res: any = await $fetch('/api/moodle?resource=COURSE', {
-      method: 'POST'
+      method: 'POST',
+      credentials: 'include'
     })
     toast.add({
       title: 'Sinkronisasi Sukses',
       description: res.message || 'Course Moodle berhasil diperbarui.',
       color: 'success'
     })
-    await refresh()
+    await loadCourses()
   } catch (error: any) {
     toast.add({
       title: 'Sinkronisasi Gagal',
@@ -37,6 +51,10 @@ async function handleSync() {
     isSyncing.value = false
   }
 }
+
+onMounted(() => {
+  loadCourses()
+})
 </script>
 
 <template>
@@ -54,6 +72,7 @@ async function handleSync() {
       <UButton
         icon="i-lucide-refresh-cw"
         color="primary"
+        class="cursor-pointer"
         :loading="isSyncing"
         @click="handleSync"
       >
@@ -70,7 +89,7 @@ async function handleSync() {
         <UIcon name="i-lucide-server-off" class="w-12 h-12 mx-auto text-gray-400 mb-3" />
         <p class="text-base font-medium text-gray-600 dark:text-gray-300">Belum ada Course Moodle</p>
         <p class="text-xs text-gray-400 mt-1 mb-4">Klik tombol "Sync Course Moodle" di atas untuk menarik data dari server Moodle.</p>
-        <UButton color="neutral" variant="soft" icon="i-lucide-refresh-cw" :loading="isSyncing" @click="handleSync">
+        <UButton color="neutral" variant="soft" icon="i-lucide-refresh-cw" class="cursor-pointer" :loading="isSyncing" @click="handleSync">
           Mulai Sinkronisasi
         </UButton>
       </div>

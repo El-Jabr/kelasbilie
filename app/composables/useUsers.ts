@@ -35,6 +35,7 @@ export function useUsers() {
 
     try {
       const response = await $fetch<PaginatedResponse<UserSchema>>('/api/users', {
+        credentials: 'include',
         query: {
           page,
           limit: pagination.value.limit,

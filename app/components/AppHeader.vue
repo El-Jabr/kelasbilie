@@ -52,8 +52,58 @@ const items = computed<NavigationMenuItem[]>(() => {
 
   const role = String(authStore.user.role).toUpperCase()
 
-  if (role === 'SUPER_ADMIN') {
-    return [
+  if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
+    const isSuperAdmin = role === 'SUPER_ADMIN'
+
+    const masterChildren = []
+    if (isSuperAdmin) {
+      masterChildren.push({
+        label: 'Users',
+        icon: 'i-lucide-users',
+        description: 'Kelola seluruh pengguna aplikasi.',
+        to: '/super-admin/master/users'
+      })
+    }
+    masterChildren.push(
+      {
+        label: 'Guru',
+        icon: 'i-lucide-graduation-cap',
+        description: 'Kelola data guru sekolah.',
+        to: '/super-admin/master/guru'
+      },
+      {
+        label: 'Siswa',
+        icon: 'i-lucide-school',
+        description: 'Kelola data siswa sekolah.',
+        to: '/super-admin/master/siswa'
+      }
+    )
+
+    const moodleChildren = [
+      {
+        label: 'Cek Nilai Per Kelas',
+        icon: 'i-lucide-award',
+        description: 'Cek nilai seluruh kelas & mapel.',
+        to: '/super-admin/moodle/nilai'
+      },
+      {
+        label: 'Course Moodle',
+        icon: 'i-lucide-book-search',
+        description: 'Daftar course terhubung ke Moodle.',
+        to: '/super-admin/moodle/course'
+      }
+    ]
+
+    if (isSuperAdmin) {
+      moodleChildren.push({
+        label: 'Sinkronisasi Moodle',
+        icon: 'i-lucide-cable',
+        description: 'Synchronize data dengan Moodle.',
+        to: '/super-admin/moodle/sinkronisasi'
+      })
+    }
+
+    const items: NavigationMenuItem[] = [
       {
         label: 'Dashboard',
         icon: 'i-lucide-home',
@@ -63,28 +113,9 @@ const items = computed<NavigationMenuItem[]>(() => {
       {
         label: 'Master Data',
         icon: 'i-lucide-box',
-        to: '/super-admin/master/users',
+        to: isSuperAdmin ? '/super-admin/master/users' : '/super-admin/master/guru',
         active: route.path.startsWith('/super-admin/master'),
-        children: [
-          {
-            label: 'Users',
-            icon: 'i-lucide-users',
-            description: 'Kelola seluruh pengguna aplikasi.',
-            to: '/super-admin/master/users'
-          },
-          {
-            label: 'Guru',
-            icon: 'i-lucide-graduation-cap',
-            description: 'Kelola data guru sekolah.',
-            to: '/super-admin/master/guru'
-          },
-          {
-            label: 'Siswa',
-            icon: 'i-lucide-school',
-            description: 'Kelola data siswa sekolah.',
-            to: '/super-admin/master/siswa'
-          }
-        ]
+        children: masterChildren
       },
       {
         label: 'Akademik',
@@ -95,31 +126,31 @@ const items = computed<NavigationMenuItem[]>(() => {
           {
             label: 'Tahun Ajaran',
             icon: 'i-lucide-calendar',
-            description: 'Manage academic years.',
+            description: 'Kelola tahun ajaran sekolah.',
             to: '/super-admin/akademik/tahun-ajaran'
           },
           {
             label: 'Semester',
             icon: 'i-lucide-clock',
-            description: 'Manage semesters',
+            description: 'Kelola semester aktif.',
             to: '/super-admin/akademik/semester'
           },
           {
             label: 'Kelas',
             icon: 'i-lucide-layers',
-            description: 'Manage class information and schedules.',
+            description: 'Kelola data rombel kelas.',
             to: '/super-admin/akademik/kelas'
           },
           {
             label: 'Mata Pelajaran',
             icon: 'i-lucide-book-open',
-            description: 'Manage subjects and their information.',
+            description: 'Kelola daftar mata pelajaran.',
             to: '/super-admin/akademik/mata-pelajaran'
           },
           {
             label: 'Penugasan Mengajar',
             icon: 'i-lucide-file-spreadsheet',
-            description: 'Assign guru ke kelas dan course Moodle.',
+            description: 'Assign guru ke kelas & Moodle course.',
             to: '/super-admin/akademik/teaching-assignments'
           },
           {
@@ -137,95 +168,46 @@ const items = computed<NavigationMenuItem[]>(() => {
         ]
       },
       {
-        label: 'Moodle',
+        label: 'Nilai & Moodle',
         icon: 'i-lucide-server',
-        to: '/super-admin/moodle/sinkronisasi',
+        to: '/super-admin/moodle/nilai',
         active: route.path.startsWith('/super-admin/moodle'),
-        children: [
-          {
-            label: 'Sinkronisasi',
-            icon: 'i-lucide-cable',
-            description: 'Synchronize data with moodle systems.',
-            to: '/super-admin/moodle/sinkronisasi'
-          },
-          {
-            label: 'Course Moodle',
-            icon: 'i-lucide-book-search',
-            description: 'Display course information.',
-            to: '/super-admin/moodle/course'
-          }
-        ]
+        children: moodleChildren
       },
       {
-        label: 'Monitoring',
-        icon: 'i-lucide-monitor',
-        to: '/super-admin/monitoring/activity-log',
-        active: route.path.startsWith('/super-admin/monitoring'),
-        children: [
-          {
-            label: 'Activity Log',
-            icon: 'i-lucide-activity',
-            description: 'Display a list of user activities.',
-            to: '/super-admin/monitoring/activity-log'
-          }
-        ]
-      },
-      {
-        label: 'Settings',
-        icon: 'i-lucide-settings',
-        to: '/super-admin/settings',
-        active: route.path.startsWith('/super-admin/settings')
-      }
-    ]
-  }
-
-  if (role === 'ADMIN') {
-    return [
-      {
-        label: 'Dashboard',
-        icon: 'i-lucide-home',
+        label: 'Portal Mengajar (Guru)',
+        icon: 'i-lucide-graduation-cap',
         to: '/teacher',
-        active: route.path === '/teacher'
-      },
-      {
-        label: 'Kelas Mengajar',
-        icon: 'i-lucide-book-open',
-        to: '/teacher/classes',
-        active: route.path.startsWith('/teacher/classes')
-      },
-      {
-        label: 'Kelola Akademik',
-        icon: 'i-lucide-book',
-        to: '/super-admin/akademik/teaching-assignments',
-        active: route.path.startsWith('/super-admin/akademik'),
-        children: [
-          {
-            label: 'Penugasan Mengajar',
-            icon: 'i-lucide-file-spreadsheet',
-            description: 'Assign guru ke kelas dan course Moodle.',
-            to: '/super-admin/akademik/teaching-assignments'
-          },
-          {
-            label: 'Wali Kelas',
-            icon: 'i-lucide-user-cog',
-            description: 'Penetapan wali kelas per rombel.',
-            to: '/super-admin/akademik/homerooms'
-          },
-          {
-            label: 'Pembagian Kelas Siswa',
-            icon: 'i-lucide-users-round',
-            description: 'Pendaftaran siswa ke dalam kelas.',
-            to: '/super-admin/akademik/pembagian-kelas'
-          }
-        ]
-      },
-      {
-        label: 'Profil Saya',
-        icon: 'i-lucide-user',
-        to: '/teacher/profile',
-        active: route.path === '/teacher/profile'
+        active: route.path.startsWith('/teacher')
       }
     ]
+
+    if (isSuperAdmin) {
+      items.push(
+        {
+          label: 'Monitoring',
+          icon: 'i-lucide-monitor',
+          to: '/super-admin/monitoring/activity-log',
+          active: route.path.startsWith('/super-admin/monitoring'),
+          children: [
+            {
+              label: 'Activity Log',
+              icon: 'i-lucide-activity',
+              description: 'Riwayat aktivitas sistem.',
+              to: '/super-admin/monitoring/activity-log'
+            }
+          ]
+        },
+        {
+          label: 'Settings',
+          icon: 'i-lucide-settings',
+          to: '/super-admin/settings',
+          active: route.path.startsWith('/super-admin/settings')
+        }
+      )
+    }
+
+    return items
   }
 
   if (role === 'TEACHER') {

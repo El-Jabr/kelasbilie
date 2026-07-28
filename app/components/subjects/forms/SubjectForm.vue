@@ -4,30 +4,38 @@ import type { CreateSubjectSchema } from '~~/shared/schemas/subject'
 const model = defineModel<CreateSubjectSchema>({
   required: true
 })
+
+
 </script>
 
 <template>
-  <div class="space-y-5">
+  <div class="space-y-4">
+    <!-- Kode Mata Pelajaran -->
     <UFormField
       label="Kode Mata Pelajaran"
+      name="code"
       required
     >
       <UInput
         v-model="model.code"
         class="w-full"
-        placeholder="Contoh: MAT-101"
+        placeholder="Contoh: MTK8, IPA7"
       />
     </UFormField>
 
+    <!-- Nama Mata Pelajaran -->
     <UFormField
       label="Nama Mata Pelajaran"
+      name="name"
       required
     >
       <UInput
         v-model="model.name"
         class="w-full"
-        placeholder="Contoh: Matematika"
+        placeholder="Contoh: Matematika Kelas 8"
       />
     </UFormField>
+
+
   </div>
 </template>

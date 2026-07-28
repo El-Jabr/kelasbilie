@@ -24,7 +24,7 @@ function mapGradeCategory(itemName: string | null): 'PH' | 'STS' | 'SAS' | null 
 
 export default defineEventHandler(async (event) => {
   // Memastikan hanya SUPER_ADMIN atau ADMIN yang dapat menjalankan trigger sinkronisasi
-  requireRole(event, ['SUPER_ADMIN', 'ADMIN'])
+  requireRole(event, ['SUPER_ADMIN'])
 
   const query = getQuery(event)
   const resource = (query.resource as string || 'ALL').toUpperCase()
@@ -80,6 +80,7 @@ export default defineEventHandler(async (event) => {
   if (resource === 'ALL' || resource === 'COURSE') {
     try {
       const courses = await MoodleService.getCourses()
+      const moodleCourseIds = courses.map(c => c.id)
       let count = 0
 
       for (const course of courses) {
@@ -120,14 +121,76 @@ export default defineEventHandler(async (event) => {
         count++
       }
 
+      // Hapus course lokal yang sudah tidak ada lagi di Moodle (Mirroring Sync)
+      const orphanCourses = await prisma.course.findMany({
+        where: {
+          id: {
+            notIn: moodleCourseIds
+          }
+        },
+        select: { id: true }
+      })
+
+      const orphanIds = orphanCourses.map(c => c.id)
+      let deletedCount = 0
+
+      if (orphanIds.length > 0) {
+        // 1. Hapus Enrollment terikat
+        await prisma.enrollment.deleteMany({
+          where: { courseId: { in: orphanIds } }
+        })
+
+        // 2. Hapus GradeItem & GradeComponent terikat
+        const gradeItems = await prisma.gradeItem.findMany({
+          where: { courseId: { in: orphanIds } },
+          select: { id: true }
+        })
+        const gItemIds = gradeItems.map(g => g.id)
+
+        if (gItemIds.length > 0) {
+          await prisma.gradeComponent.deleteMany({
+            where: { gradeItemId: { in: gItemIds } }
+          })
+          await prisma.gradeItem.deleteMany({
+            where: { id: { in: gItemIds } }
+          })
+        }
+
+        // 3. Hapus GradeSummary dan TeachingAssignment terikat
+        const teachingsToDelete = await prisma.teachingAssignment.findMany({
+          where: { courseId: { in: orphanIds } },
+          select: { id: true }
+        })
+        const tIds = teachingsToDelete.map(t => t.id)
+
+        if (tIds.length > 0) {
+          await prisma.gradeSummary.deleteMany({
+            where: { teachingId: { in: tIds } }
+          })
+          await prisma.teachingAssignment.deleteMany({
+            where: { id: { in: tIds } }
+          })
+        }
+
+        // 4. Hapus Course dari DB lokal
+        const deleteRes = await prisma.course.deleteMany({
+          where: { id: { in: orphanIds } }
+        })
+        deletedCount = deleteRes.count
+      }
+
+      const logMsg = deletedCount > 0
+        ? `Berhasil menyingkronkan ${count} course dari Moodle dan menghapus ${deletedCount} course lokal yang sudah tidak ada di Moodle.`
+        : `Berhasil menyingkronkan ${count} course dari Moodle.`
+
       await prisma.syncLog.create({
         data: {
           resource: 'COURSE',
           status: 'SUCCESS',
-          message: `Berhasil menyingkronkan ${count} course dari Moodle.`
+          message: logMsg
         }
       })
-      syncResults.course = { status: 'SUCCESS', count }
+      syncResults.course = { status: 'SUCCESS', count, deletedCount }
     } catch (err: any) {
       console.error('Sync Course Error:', err)
       await prisma.syncLog.create({
@@ -141,6 +204,48 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Helper pencarian & auto-linking user berdasarkan moodleUserId, Email, atau Username
+  async function findOrLinkLocalUser(mUser: { id: number, email?: string, username?: string }) {
+    // 1. Cek berdasarkan moodleUserId
+    let localUser = await prisma.user.findFirst({
+      where: { moodleUserId: mUser.id },
+      include: { student: true, teacher: true }
+    })
+
+    if (localUser) return localUser
+
+    // 2. Fallback pencarian via Email
+    if (mUser.email?.trim()) {
+      localUser = await prisma.user.findFirst({
+        where: { email: { equals: mUser.email.trim(), mode: 'insensitive' } },
+        include: { student: true, teacher: true }
+      })
+    }
+
+    // 3. Fallback pencarian via Username
+    if (!localUser && mUser.username?.trim()) {
+      localUser = await prisma.user.findFirst({
+        where: { username: { equals: mUser.username.trim(), mode: 'insensitive' } },
+        include: { student: true, teacher: true }
+      })
+    }
+
+    // 4. Auto-link moodleUserId jika ditemukan lewat Email/Username
+    if (localUser && localUser.moodleUserId === null) {
+      try {
+        await prisma.user.update({
+          where: { id: localUser.id },
+          data: { moodleUserId: mUser.id }
+        })
+        localUser.moodleUserId = mUser.id
+      } catch {
+        // Abaikan jika moodleUserId unik bertabrakan
+      }
+    }
+
+    return localUser
+  }
+
   // 3. Sync Enrollments
   if (resource === 'ALL' || resource === 'USER' || resource === 'ENROLLMENT') {
     try {
@@ -152,11 +257,8 @@ export default defineEventHandler(async (event) => {
           const enrolledUsers = await MoodleService.getEnrolledUsers(course.id)
 
           for (const mUser of enrolledUsers) {
-            // Cari user lokal berdasarkan moodleUserId
-            const localUser = await prisma.user.findFirst({
-              where: { moodleUserId: mUser.id },
-              include: { student: true }
-            })
+            // Cari user lokal (dengan fallback Email/Username & Auto-link)
+            const localUser = await findOrLinkLocalUser(mUser)
 
             if (localUser && localUser.student) {
               await prisma.enrollment.upsert({
@@ -211,20 +313,23 @@ export default defineEventHandler(async (event) => {
       for (const course of courses) {
         try {
           const gradeReport = await MoodleService.getCourseGradeItems(course.id)
+          const validGradeItemIds = new Set<number>()
 
           if (gradeReport && gradeReport.usergrades) {
             for (const uGrade of gradeReport.usergrades) {
-              // Cari siswa lokal berdasarkan moodleUserId
-              const localUser = await prisma.user.findFirst({
-                where: { moodleUserId: uGrade.userid },
-                include: { student: true }
-              })
+              // PREVENT CROSS-CONTAMINATION: Moodle sometimes returns grades for other enrolled courses
+              if (uGrade.courseid !== course.id) continue;
+
+              // Cari siswa lokal berdasarkan moodleUserId (yang sudah ter-autolink pada tahap Enrollment)
+              const localUser = await findOrLinkLocalUser({ id: uGrade.userid })
 
               const studentId = localUser?.student?.id
 
               for (const item of uGrade.gradeitems) {
                 // Jangan simpan item kuis/modul yang tidak memiliki nama atau merupakan akumulasi total course
                 if (!item.itemname || item.itemtype === 'course') continue
+
+                validGradeItemIds.add(item.id)
 
                 const categoryEnum = mapGradeCategory(item.itemname)
 
@@ -239,6 +344,7 @@ export default defineEventHandler(async (event) => {
                     category: categoryEnum
                   },
                   update: {
+                    courseId: course.id, // FIX CORRUPTED DATA
                     name: item.itemname,
                     itemType: item.itemtype,
                     category: categoryEnum
@@ -258,7 +364,14 @@ export default defineEventHandler(async (event) => {
                   })
 
                   if (existingComp?.isManual) {
-                    // Skip jika nilai sudah diisi manual oleh guru
+                    // Update moodleScore without touching the manual score
+                    await prisma.gradeComponent.update({
+                      where: { id: existingComp.id },
+                      data: {
+                        moodleScore: Number(item.graderaw),
+                        lastSync: new Date()
+                      }
+                    })
                     continue
                   }
 
@@ -273,11 +386,13 @@ export default defineEventHandler(async (event) => {
                       studentId: studentId,
                       gradeItemId: item.id,
                       score: Number(item.graderaw),
+                      moodleScore: Number(item.graderaw),
                       isManual: false,
                       lastSync: new Date()
                     },
                     update: {
                       score: Number(item.graderaw),
+                      moodleScore: Number(item.graderaw),
                       lastSync: new Date()
                     }
                   })
@@ -285,6 +400,24 @@ export default defineEventHandler(async (event) => {
                 }
               }
             }
+          }
+
+          // STRICT MIRROR CLEANUP: Hapus GradeItem & GradeComponent lokal yang sudah dihapus/tidak ada di Moodle
+          const existingLocalItems = await prisma.gradeItem.findMany({
+            where: { courseId: course.id },
+            select: { id: true }
+          })
+          const orphanItemIds = existingLocalItems
+            .map(i => i.id)
+            .filter(id => !validGradeItemIds.has(id))
+
+          if (orphanItemIds.length > 0) {
+            await prisma.gradeComponent.deleteMany({
+              where: { gradeItemId: { in: orphanItemIds } }
+            })
+            await prisma.gradeItem.deleteMany({
+              where: { id: { in: orphanItemIds } }
+            })
           }
         } catch (e: any) {
           console.warn(`Gagal fetch grade report course ID ${course.id}:`, e.message)

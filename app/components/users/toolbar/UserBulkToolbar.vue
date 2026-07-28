@@ -1,7 +1,12 @@
 <script setup lang="ts">
-const { users } = defineProps<{
-  users: any[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    users?: any[]
+  }>(),
+  {
+    users: () => []
+  }
+)
 
 const emit = defineEmits<{
   activate: []
@@ -12,7 +17,7 @@ const emit = defineEmits<{
 
 <template>
   <UAlert
-    v-if="users.length"
+    v-if="users?.length"
     color="primary"
     variant="soft"
   >

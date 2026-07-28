@@ -11,7 +11,9 @@ useSeoMeta({
 
 const { fetchClasses } = useClasses()
 
-await fetchClasses()
+onMounted(() => {
+  fetchClasses()
+})
 </script>
 
 <template>

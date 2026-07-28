@@ -13,6 +13,9 @@ interface Row {
   errors: string[]
   nip?: string
   nis?: string
+  email?: string
+  password?: string
+  moodleUserId?: number | string
 }
 
 const file = ref<File | null>(null)
@@ -125,7 +128,11 @@ async function submitImport() {
     const importUrl = `/api/${props.resource}/import`
     const payload = {
       rows: validRows.value.map(row => ({
+        fullname: row.fullname,
         username: row.username,
+        email: row.email,
+        password: row.password,
+        moodleUserId: row.moodleUserId,
         [props.identifier]: row[props.identifier]!
       }))
     }

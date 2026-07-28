@@ -13,6 +13,7 @@ export function useStudents() {
     loading.value = true
     try {
       const response = await $fetch<PaginatedResponse<StudentTableSchema>>('/api/students', {
+        credentials: 'include',
         query: { page, limit: pagination.value.limit, search: search.value || undefined }
       })
       students.value = response.data

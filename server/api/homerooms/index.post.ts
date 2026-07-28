@@ -16,7 +16,6 @@ export default defineEventHandler(async (event) => {
         teacherId: true,
         classroomId: true,
         semesterId: true,
-        createdAt: true,
         teacher: {
           select: {
             id: true,
@@ -49,17 +48,25 @@ export default defineEventHandler(async (event) => {
   } catch (error: any) {
     console.error('Error creating homeroom assignment:', error)
 
+    if (error?.name === 'ZodError' || error?.issues) {
+      const issueMsg = error.issues?.[0]?.message || 'Data form tidak valid.'
+      throw createError({
+        statusCode: 400,
+        statusMessage: issueMsg
+      })
+    }
+
     if (error?.code === 'P2002') {
       throw createError({
         statusCode: 409,
-        statusMessage: 'Kelas ini sudah memiliki wali kelas pada semester tersebut, atau guru ini sudah menjadi wali kelas di kelas lain.'
+        statusMessage: 'Kelas ini sudah memiliki wali kelas pada semester ini, atau guru yang dipilih sudah menjadi wali kelas di kelas lain.'
       })
     }
 
     if (error?.code === 'P2003') {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Data relasi (Guru, Kelas, atau Semester) tidak ditemukan.'
+        statusMessage: 'Data relasi (Guru, Kelas, atau Semester) tidak ditemukan di database.'
       })
     }
 
@@ -69,7 +76,7 @@ export default defineEventHandler(async (event) => {
 
     throw createError({
       statusCode: 500,
-      statusMessage: 'Gagal menugaskan wali kelas.'
+      statusMessage: error.message || 'Gagal menugaskan wali kelas.'
     })
   }
 })

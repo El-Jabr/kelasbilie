@@ -11,7 +11,9 @@ export const subjectSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, 'Nama mata pelajaran wajib diisi.')
+    .min(1, 'Nama mata pelajaran wajib diisi.'),
+
+  classroomId: z.string().optional().nullable()
 })
 
 export type SubjectSchema = z.infer<typeof subjectSchema>
