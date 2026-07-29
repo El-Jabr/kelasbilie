@@ -34,40 +34,53 @@ async function save() { if (dialogs.editDialogOpen.value) await updateTeacher(fo
 
 <template>
   <UCard>
-    <div class="flex gap-3">
-      <UInput
-        v-model="search"
-        icon="i-lucide-search"
-        placeholder="Cari NIP atau nama guru..."
-        class="flex-1"
-      /><UButton
-        :loading="loading"
-        icon="i-lucide-refresh-cw"
-        variant="soft"
-        color="neutral"
-        @click="refresh"
-      >
-        Refresh
-      </UButton><UButton
-        icon="i-lucide-filter-x"
-        variant="soft"
-        color="neutral"
-        @click="resetFilter"
-      >
-        Reset
-      </UButton><UButton
-        icon="i-lucide-plus"
-        @click="dialogs.openCreateDialog"
-      >
-        Tambah Guru
-      </UButton>
-      <UButton
-        icon="i-lucide-upload"
-        variant="outline"
-        to="/super-admin/master/guru/import"
-      >
-        Import Guru
-      </UButton>
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div class="flex flex-1 flex-col gap-3 md:flex-row">
+        <UInput
+          v-model="search"
+          icon="i-lucide-search"
+          placeholder="Cari NIP atau nama guru..."
+          class="flex-1"
+        />
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <UButton
+          :loading="loading"
+          icon="i-lucide-refresh-cw"
+          variant="soft"
+          color="neutral"
+          @click="refresh"
+        >
+          Refresh
+        </UButton>
+
+        <UButton
+          icon="i-lucide-filter-x"
+          variant="soft"
+          color="neutral"
+          @click="resetFilter"
+        >
+          Reset
+        </UButton>
+
+        <UButton
+          icon="i-lucide-upload"
+          color="primary"
+          to="/super-admin/master/guru/import"
+        >
+          Import Guru
+        </UButton>
+
+        <UButton
+          icon="i-lucide-plus"
+          color="primary"
+          variant="outline"
+          @click="dialogs.openCreateDialog"
+        >
+          Tambah Guru
+        </UButton>
+      </div>
     </div>
   </UCard>
   <UCard>
