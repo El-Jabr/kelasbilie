@@ -4,6 +4,7 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/image',
     '@nuxt/ui',
+    '@nuxt/content',
     '@vueuse/nuxt',
     'nuxt-og-image',
     '@pinia/nuxt'
@@ -24,9 +25,11 @@ export default defineNuxtConfig({
     }
   },
 
+  app: {
+    baseURL: '/'
+  },
+
   css: ['~/assets/css/main.css'],
-
-
 
 
 
@@ -34,7 +37,9 @@ export default defineNuxtConfig({
     jwtSecret: process.env.JWT_SECRET
   },
 
-
+  routeRules: {
+    '/docs': { redirect: '/docs/getting-started', prerender: false }
+  },
 
   compatibilityDate: '2026-06-30',
 

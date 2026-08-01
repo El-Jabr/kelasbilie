@@ -19,8 +19,12 @@ useSeoMeta({
   description: 'We are sorry but this page could not be found.'
 })
 
-const navigation = ref([])
-const files = ref([])
+const { data: navigation } = await useAsyncData('navigation', () => queryCollectionNavigation('docs'), {
+  transform: data => data.find(item => item.path === '/docs')?.children || []
+})
+const { data: files } = useLazyAsyncData('search', () => queryCollectionSearchSections('docs'), {
+  server: false
+})
 
 const links = [{
   label: 'Kembali ke Beranda',

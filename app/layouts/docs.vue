@@ -1,5 +1,7 @@
 <script setup lang="ts">
-const navigation = inject<Ref<any[]>>('navigation')
+import type { ContentNavigationItem } from '@nuxt/content'
+
+const navigation = inject<Ref<ContentNavigationItem[]>>('navigation')
 </script>
 
 <template>
