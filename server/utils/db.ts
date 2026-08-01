@@ -1,6 +1,6 @@
 import pg from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient } from '../../prisma/generated/client'
+import { PrismaClient } from '~~/prisma/generated/client'
 
 // Suppress known pg driver adapter concurrency warning (pg v8.13+ deprecation notice)
 if (typeof process !== 'undefined' && process.emitWarning) {

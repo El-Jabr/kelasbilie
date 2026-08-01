@@ -45,13 +45,11 @@ export default defineNuxtConfig({
     '/docs': { redirect: '/docs/getting-started', prerender: false }
   },
 
-  compatibilityDate: '2030-06-30',
+  compatibilityDate: '2025-01-01',
 
   nitro: {
     prerender: {
-      routes: [
-        '/'
-      ],
+      routes: [],
       crawlLinks: false
     }
   },
@@ -66,6 +64,6 @@ export default defineNuxtConfig({
   },
 
   ogImage: {
-    zeroRuntime: true
+    zeroRuntime: false
   }
 })
