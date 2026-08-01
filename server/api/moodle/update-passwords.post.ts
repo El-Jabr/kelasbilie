@@ -62,30 +62,85 @@ export default defineEventHandler(async (event: any) => {
     }
   }
 
-  // 2. Map Moodle User IDs
-  const usernames = students.map(s => sanitizeUsername(s.nis || s.user?.username, s.user?.email))
+  // 2. Map Moodle User IDs (using moodleUserId from DB, or lookup by username, email, & idnumber)
   const moodleUserMap: Record<string, number> = {}
 
-  try {
-    const moodleUsers = await MoodleService.getUsersByField('username', usernames)
-    if (Array.isArray(moodleUsers)) {
-      for (const mu of moodleUsers) {
-        if (mu && mu.username && mu.id) {
-          moodleUserMap[mu.username.toLowerCase()] = mu.id
+  const chunkArray = <T>(arr: T[], size: number): T[][] => {
+    const res: T[][] = []
+    for (let i = 0; i < arr.length; i += size) {
+      res.push(arr.slice(i, i + size))
+    }
+    return res
+  }
+
+  // 2a. Populate from DB user.moodleUserId first
+  for (const s of students) {
+    if (s.user?.moodleUserId) {
+      const u = sanitizeUsername(s.nis || s.user.username, s.user.email)
+      moodleUserMap[u.toLowerCase()] = s.user.moodleUserId
+      if (s.user.email) moodleUserMap[s.user.email.toLowerCase()] = s.user.moodleUserId
+      if (s.nis) moodleUserMap[s.nis] = s.user.moodleUserId
+    }
+  }
+
+  // 2b. Lookup missing users by username
+  const missingUsernames = students
+    .filter(s => !moodleUserMap[sanitizeUsername(s.nis || s.user?.username, s.user?.email).toLowerCase()])
+    .map(s => sanitizeUsername(s.nis || s.user?.username, s.user?.email))
+    .filter(Boolean)
+
+  for (const chunk of chunkArray(missingUsernames, 50)) {
+    try {
+      const moodleUsers = await MoodleService.getUsersByField('username', chunk)
+      if (Array.isArray(moodleUsers)) {
+        for (const mu of moodleUsers) {
+          if (mu && mu.id) {
+            if (mu.username) moodleUserMap[mu.username.toLowerCase()] = mu.id
+            if (mu.email) moodleUserMap[mu.email.toLowerCase()] = mu.id
+            if (mu.idnumber) moodleUserMap[mu.idnumber] = mu.id
+          }
         }
       }
+    } catch (err) {
+      console.warn('Gagal lookup user Moodle by username:', err)
     }
-  } catch (err) {
-    console.error('Gagal mengambil data user Moodle saat update password:', err)
+  }
+
+  // 2c. Lookup missing users by email
+  const missingEmails = students
+    .filter(s => {
+      const u = sanitizeUsername(s.nis || s.user?.username, s.user?.email)
+      const em = s.user?.email || `${s.nis}@siswa.sekolah.id`
+      return !moodleUserMap[u.toLowerCase()] && !moodleUserMap[em.toLowerCase()]
+    })
+    .map(s => s.user?.email || `${s.nis}@siswa.sekolah.id`)
+    .filter(Boolean)
+
+  for (const chunk of chunkArray(missingEmails, 50)) {
+    try {
+      const moodleUsers = await MoodleService.getUsersByField('email', chunk)
+      if (Array.isArray(moodleUsers)) {
+        for (const mu of moodleUsers) {
+          if (mu && mu.id) {
+            if (mu.username) moodleUserMap[mu.username.toLowerCase()] = mu.id
+            if (mu.email) moodleUserMap[mu.email.toLowerCase()] = mu.id
+            if (mu.idnumber) moodleUserMap[mu.idnumber] = mu.id
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal lookup user Moodle by email:', err)
+    }
   }
 
   // 3. Generate Passwords & Prepare Update Payloads
-  const moodleUpdates: { id: number; password: string }[] = []
-  const dbUpdates: { studentId: string; password: string }[] = []
+  const moodleUpdates: { id: number; username?: string; idnumber?: string; password: string }[] = []
+  const dbUpdates: { studentId: string; userId?: string; moodleUserId?: number; password: string }[] = []
 
   for (const s of students) {
     const username = sanitizeUsername(s.nis || s.user?.username, s.user?.email)
-    const moodleUserId = moodleUserMap[username.toLowerCase()]
+    const em = s.user?.email?.toLowerCase() || ''
+    const moodleUserId = s.user?.moodleUserId || moodleUserMap[username.toLowerCase()] || moodleUserMap[em] || moodleUserMap[s.nis]
 
     let newPassword = ''
     if (mode === 'HARIAN') {
@@ -98,31 +153,38 @@ export default defineEventHandler(async (event: any) => {
     if (moodleUserId) {
       moodleUpdates.push({
         id: moodleUserId,
+        username,
+        idnumber: s.nis,
         password: newPassword
       })
     }
 
     dbUpdates.push({
       studentId: s.id,
+      userId: s.userId,
+      moodleUserId,
       password: newPassword
     })
   }
 
-  // 4. Execute Moodle Password Update
+  // 4. Execute Moodle Password Update (in batch chunks of 20)
   let updatedMoodleCount = 0
 
   if (moodleUpdates.length > 0) {
-    try {
-      await MoodleService.updateUsers(moodleUpdates)
-      updatedMoodleCount = moodleUpdates.length
-    } catch (err) {
-      console.error('Gagal update batch password ke Moodle, mencoba per user...', err)
-      for (const item of moodleUpdates) {
-        try {
-          await MoodleService.updateUsers([item])
-          updatedMoodleCount++
-        } catch (singleErr) {
-          console.error(`Gagal update password Moodle user [${item.id}]:`, singleErr)
+    const updateChunks = chunkArray(moodleUpdates, 20)
+    for (const batch of updateChunks) {
+      try {
+        await MoodleService.updateUsers(batch)
+        updatedMoodleCount += batch.length
+      } catch (err) {
+        console.error('Gagal update batch password ke Moodle, mencoba per user...', err)
+        for (const item of batch) {
+          try {
+            await MoodleService.updateUsers([item])
+            updatedMoodleCount++
+          } catch (singleErr) {
+            console.error(`Gagal update password Moodle user [${item.id}]:`, singleErr)
+          }
         }
       }
     }
@@ -144,7 +206,7 @@ export default defineEventHandler(async (event: any) => {
     data: {
       resource: 'USER',
       status: 'SUCCESS',
-      details: `Update Password Siswa Mode [${mode}]: ${updatedMoodleCount} Akun Moodle Diperbarui.`
+      message: `Update Password Siswa Mode [${mode}]: ${updatedMoodleCount} Akun Moodle Diperbarui.`
     }
   })
 

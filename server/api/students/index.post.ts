@@ -1,17 +1,47 @@
+import bcrypt from 'bcryptjs'
 import { prisma } from '../../utils/db'
-import { createStudentSchema } from '~~/shared/schemas/student'
 
 export default defineEventHandler(async (event) => {
   try {
-    const body = await readValidatedBody(event, createStudentSchema.parse)
-    const user = await prisma.user.findUnique({ where: { id: body.userId }, select: { id: true } })
+    const body = await readBody(event)
+    const nis = String(body.nis || '').trim()
+    const userId = body.userId ? String(body.userId).trim() : ''
 
-    if (!user) {
-      throw createError({ statusCode: 404, statusMessage: 'Akun pengguna tidak ditemukan.' })
+    if (!nis) {
+      throw createError({ statusCode: 400, statusMessage: 'NIS wajib diisi.' })
+    }
+
+    let targetUserId = userId
+
+    if (!targetUserId) {
+      // Create new user on the fly
+      const fullname = String(body.fullname || '').trim()
+      const username = String(body.username || nis).trim()
+      const email = String(body.email || `${username}@student.kelasbilie.sch.id`).trim()
+      const password = String(body.password || `Bilie#${nis}`).trim()
+
+      if (!fullname) {
+        throw createError({ statusCode: 400, statusMessage: 'Nama Lengkap wajib diisi.' })
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10)
+
+      const newUser = await prisma.user.create({
+        data: {
+          fullname,
+          username,
+          email,
+          password: hashedPassword,
+          role: 'STUDENT',
+          isActive: true
+        }
+      })
+
+      targetUserId = newUser.id
     }
 
     const student = await prisma.student.create({
-      data: { userId: body.userId, nis: body.nis.trim() },
+      data: { userId: targetUserId, nis },
       select: {
         id: true,
         userId: true,
@@ -21,11 +51,11 @@ export default defineEventHandler(async (event) => {
     })
 
     return { success: true, message: 'Siswa berhasil ditambahkan.', data: student }
-  } catch (error) {
-    if ((error as { code?: string })?.code === 'P2002') {
-      throw createError({ statusCode: 409, statusMessage: 'NIS atau akun pengguna sudah digunakan.' })
+  } catch (error: any) {
+    if (error?.code === 'P2002') {
+      throw createError({ statusCode: 409, statusMessage: 'NIS, Username, atau Email sudah digunakan.' })
     }
     if (error && typeof error === 'object' && 'statusCode' in error) throw error
-    throw createError({ statusCode: 500, statusMessage: 'Failed to create student.' })
+    throw createError({ statusCode: 500, statusMessage: 'Failed to create student: ' + error.message })
   }
 })

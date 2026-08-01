@@ -12,7 +12,9 @@ const { data: gradesRes, status: gradesStatus, refresh } = await useAsyncData<an
   'student-grades',
   async () => {
     if (!studentId.value) return null
-    return await $fetch(`/api/grades/student/${studentId.value}`)
+    return await $fetch(`/api/grades/student/${studentId.value}`, {
+      credentials: 'include'
+    })
   },
   {
     watch: [studentId]

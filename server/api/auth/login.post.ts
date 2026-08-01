@@ -1,4 +1,5 @@
 import { prisma } from '../../utils/db'
+import { logger } from '../../utils/logger'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
@@ -10,12 +11,16 @@ export default defineEventHandler(async (event) => {
     where: { email: body.email }
   })
 
-  if (!user)
+  if (!user) {
+    logger.warn({ email: body.email }, '[AUTH] Login gagal: Email tidak ditemukan')
     throw createError({ statusCode: 401, message: 'Email tidak ditemukan' })
+  }
 
   const valid = await bcrypt.compare(body.password, user.password)
-  if (!valid)
+  if (!valid) {
+    logger.warn({ email: body.email, userId: user.id }, '[AUTH] Login gagal: Password salah')
     throw createError({ statusCode: 401, message: 'Password salah' })
+  }
 
   /**
    * Buat JWT token yang berisi data dasar user.
@@ -41,6 +46,8 @@ export default defineEventHandler(async (event) => {
     secure: process.env.NODE_ENV === 'production',
     path: '/'
   })
+
+  logger.info({ email: user.email, userId: user.id, role: user.role }, `[AUTH] Login berhasil untuk ${user.email}`)
 
   return {
     success: true,

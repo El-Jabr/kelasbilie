@@ -8,6 +8,7 @@ interface TeacherImportRow {
   email?: string
   nip: string
   password?: string
+  moodleUserId?: number | string
   role?: 'TEACHER' | 'ADMIN'
 }
 
@@ -37,19 +38,21 @@ export default defineEventHandler(async (event) => {
   }[] = []
 
   for (const row of body.rows) {
-    const fullname = row.fullname?.trim()
-    const username = row.username?.trim()
     const nip = row.nip?.trim()
+    const username = row.username?.trim() || nip
+    const fullname = row.fullname?.trim() || username
     const email = row.email?.trim() || `${username}@teacher.kelasbilie.sch.id`
     const rawPassword = row.password?.trim() || generateRandomPassword()
     const userRole = row.role?.toUpperCase() === 'ADMIN' ? 'ADMIN' : 'TEACHER'
+    const moodleUserIdRaw = row.moodleUserId ? Number(row.moodleUserId) : null
+    const moodleUserId = moodleUserIdRaw && !isNaN(moodleUserIdRaw) ? moodleUserIdRaw : null
 
-    if (!fullname || !username || !nip) {
+    if (!nip || !username || !fullname) {
       result.push({
         username: username || '-',
         nip: nip || '-',
         status: 'failed',
-        message: 'Fullname, Username, dan NIP wajib diisi.'
+        message: 'NIP, Username, dan Fullname wajib diisi.'
       })
       continue
     }
@@ -74,6 +77,7 @@ export default defineEventHandler(async (event) => {
               username,
               email,
               password: hashedPassword,
+              moodleUserId,
               role: userRole,
               isActive: true
             }

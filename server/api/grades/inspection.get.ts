@@ -72,10 +72,19 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: 'Penugasan mengajar tidak ditemukan.' })
     }
 
-    const allItems = selectedTeaching.course?.gradeItems || []
+    // Ambil langsung dari prisma.gradeItem untuk memastikan semua item (termasuk yang baru di-sync) terbawa
+    const allItems = await prisma.gradeItem.findMany({
+      where: { courseId: selectedTeaching.courseId },
+      orderBy: { id: 'asc' }
+    })
+
     const phGradeItems = allItems.filter(g => g.category === 'PH')
     const stsGradeItems = allItems.filter(g => g.category === 'STS')
     const sasGradeItems = allItems.filter(g => g.category === 'SAS')
+    const uncategorizedItems = allItems.filter(g => !g.category)
+
+    // Kolom item detail hanya menampilkan selain STS dan SAS (misal PH, Tugas, Kuis)
+    const detailGradeItems = allItems.filter(g => g.category !== 'STS' && g.category !== 'SAS')
 
     const itemIds = allItems.map(g => g.id)
     const studentIds = studentClasses.map(sc => sc.studentId)
@@ -100,29 +109,29 @@ export default defineEventHandler(async (event) => {
     const studentsResult = studentClasses.map(sc => {
       const studentId = sc.studentId
 
+      const itemScores: Record<number, number | null> = {}
       const phScores: Record<number, number> = {}
       const phValues: number[] = []
 
-      // Map itemDetails (including moodleScore)
+      // Map itemDetails
       const itemDetails: Record<number, { score: number | null, moodleScore: number | null, isManual: boolean }> = {}
 
       for (const gi of allItems) {
         const comp = components.find(c => c.studentId === studentId && c.gradeItemId === gi.id)
         if (comp) {
+          const roundedScore = comp.score !== null ? Math.round(comp.score) : null
+          itemScores[gi.id] = roundedScore
           itemDetails[gi.id] = {
-            score: comp.score !== null ? Math.round(comp.score) : null,
+            score: roundedScore,
             moodleScore: comp.moodleScore !== null && comp.moodleScore !== undefined ? Math.round(comp.moodleScore) : null,
             isManual: comp.isManual
           }
-        }
-      }
-
-      for (const gi of phGradeItems) {
-        const comp = components.find(c => c.studentId === studentId && c.gradeItemId === gi.id)
-        if (comp !== undefined && comp.score !== null) {
-          const roundedScore = Math.round(comp.score)
-          phScores[gi.id] = roundedScore
-          phValues.push(roundedScore)
+          if (gi.category === 'PH' && roundedScore !== null) {
+            phScores[gi.id] = roundedScore
+            phValues.push(roundedScore)
+          }
+        } else {
+          itemScores[gi.id] = null
         }
       }
 
@@ -175,6 +184,7 @@ export default defineEventHandler(async (event) => {
         studentId: sc.student.id,
         nis: sc.student.nis,
         fullname: sc.student.user?.fullname || '-',
+        itemScores,
         phScores,
         itemDetails,
         averagePh,
@@ -188,9 +198,12 @@ export default defineEventHandler(async (event) => {
       mode: 'SUBJECT_DETAIL',
       semester: activeSemester,
       teaching: selectedTeaching,
+      allItems,
+      detailGradeItems,
       phGradeItems,
       stsGradeItems,
       sasGradeItems,
+      uncategorizedItems,
       students: studentsResult
     }
   }

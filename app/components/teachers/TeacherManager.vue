@@ -1,15 +1,40 @@
 <script setup lang="ts">
 /* eslint-disable @stylistic/max-statements-per-line */
 import type { TableColumn } from '@nuxt/ui'
-import { createTeacherSchema, type CreateTeacherSchema, type TeacherTableSchema } from '~~/shared/schemas/teacher'
+import type { TeacherTableSchema } from '~~/shared/schemas/teacher'
 
 const { teachers, pagination, loading, search, refresh, resetFilter, changePage } = useTeachers()
 const dialogs = useTeacherDialogs()
 const { creating, updating, deleting, createTeacher, updateTeacher, deleteTeacher } = useTeacherActions()
 const users = ref<{ value: string, label: string }[]>([])
-const form = reactive<CreateTeacherSchema>({ userId: '', nip: '' })
-const columns: TableColumn<TeacherTableSchema>[] = [{ accessorKey: 'nip', header: 'NIP' }, { accessorKey: 'user.fullname', header: 'Nama Guru' }, { accessorKey: 'user.username', header: 'Username' }, { id: 'action' }]
+
+const createMode = ref<'existing' | 'new'>('new')
+
+const form = reactive<{
+  userId?: string
+  nip: string
+  fullname?: string
+  username?: string
+  password?: string
+  role?: string
+}>({
+  userId: '',
+  nip: '',
+  fullname: '',
+  username: '',
+  password: '',
+  role: 'TEACHER'
+})
+
+const columns: TableColumn<TeacherTableSchema>[] = [
+  { accessorKey: 'nip', header: 'NIP' },
+  { accessorKey: 'user.fullname', header: 'Nama Guru' },
+  { accessorKey: 'user.username', header: 'Username' },
+  { id: 'action' }
+]
+
 const debounceRefresh = useDebounceFn(refresh, 500)
+
 const formDialogOpen = computed({
   get: () => dialogs.createDialogOpen.value || dialogs.editDialogOpen.value,
   set: (open) => {
@@ -20,16 +45,63 @@ const formDialogOpen = computed({
   }
 })
 
-watch(search, debounceRefresh)
-watch(dialogs.createDialogOpen, (open) => { if (open) Object.assign(form, { userId: '', nip: '' }) })
-watch(dialogs.editDialogOpen, (open) => { if (open && dialogs.selectedTeacher.value) Object.assign(form, { userId: dialogs.selectedTeacher.value.userId, nip: dialogs.selectedTeacher.value.nip }) })
+async function loadUnassignedUsers() {
+  try {
+    const response = await $fetch<{ data: { id: string, fullname: string, username: string }[] }>('/api/users', {
+      query: { unassignedFor: 'TEACHER', limit: 200 }
+    })
+    if (response?.data) {
+      users.value = response.data.map(u => ({ value: u.id, label: `${u.fullname} (${u.username})` }))
+    }
+  } catch (err) {
+    console.error('Gagal memuat list user unassigned guru:', err)
+  }
+}
 
-onMounted(async () => {
-  const response = await $fetch<{ data: { id: string, fullname: string, username: string }[] }>('/api/users', { query: { limit: 100 } })
-  users.value = response.data.map(user => ({ value: user.id, label: `${user.fullname} (${user.username})` }))
+watch(search, debounceRefresh)
+
+watch(dialogs.createDialogOpen, (open) => {
+  if (open) {
+    Object.assign(form, { userId: '', nip: '', fullname: '', username: '', password: '', role: 'TEACHER' })
+    loadUnassignedUsers()
+  }
 })
 
-async function save() { if (dialogs.editDialogOpen.value) await updateTeacher(form); else await createTeacher(form) }
+watch(dialogs.editDialogOpen, (open) => {
+  if (open && dialogs.selectedTeacher.value) {
+    const t = dialogs.selectedTeacher.value
+    Object.assign(form, {
+      userId: t.userId,
+      nip: t.nip,
+      fullname: t.user?.fullname || '',
+      username: t.user?.username || ''
+    })
+    if (t.userId && t.user) {
+      const exists = users.value.some(u => u.value === t.userId)
+      if (!exists) {
+        users.value.unshift({
+          value: t.userId,
+          label: `${t.user.fullname} (${t.user.username})`
+        })
+      }
+    }
+  }
+})
+
+onMounted(() => {
+  loadUnassignedUsers()
+})
+
+async function save() {
+  if (dialogs.editDialogOpen.value) {
+    await updateTeacher({ userId: form.userId, nip: form.nip })
+  } else {
+    const payload = createMode.value === 'existing'
+      ? { userId: form.userId, nip: form.nip }
+      : { fullname: form.fullname, nip: form.nip, username: form.username, password: form.password, role: form.role }
+    await createTeacher(payload as any)
+  }
+}
 </script>
 
 <template>
@@ -83,7 +155,8 @@ async function save() { if (dialogs.editDialogOpen.value) await updateTeacher(fo
       </div>
     </div>
   </UCard>
-  <UCard>
+
+  <UCard class="mt-4">
     <UTable
       :data="teachers"
       :columns="columns"
@@ -100,7 +173,8 @@ async function save() { if (dialogs.editDialogOpen.value) await updateTeacher(fo
       </template>
     </UTable>
   </UCard>
-  <div class="flex justify-end">
+
+  <div class="flex justify-end mt-4">
     <UPagination
       :page="pagination.page"
       :items-per-page="pagination.limit"
@@ -108,42 +182,77 @@ async function save() { if (dialogs.editDialogOpen.value) await updateTeacher(fo
       @update:page="changePage"
     />
   </div>
+
   <UModal v-model:open="formDialogOpen">
     <template #content>
       <UCard>
         <template #header>
           <h2 class="text-lg font-semibold">
-            {{ dialogs.editDialogOpen.value ? 'Edit Guru' : 'Tambah Guru' }}
+            {{ dialogs.editDialogOpen.value ? 'Edit Data Guru' : 'Tambah Guru Baru' }}
           </h2>
-        </template><UForm
-          :schema="createTeacherSchema"
-          :state="form"
-          @submit="save"
-        >
+        </template>
+
+        <form @submit.prevent="save">
           <div class="space-y-4">
-            <UFormField
-              label="Akun Pengguna"
-              required
-            >
+            <!-- Mode Switcher (Create Only) -->
+            <div v-if="!dialogs.editDialogOpen.value" class="flex items-center gap-4 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs font-medium">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" v-model="createMode" value="new" class="text-emerald-600 focus:ring-emerald-500" />
+                <span>Buat Akun & Profile Guru Baru</span>
+              </label>
+
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" v-model="createMode" value="existing" class="text-emerald-600 focus:ring-emerald-500" />
+                <span>Pilih dari User System Unassigned ({{ users.length }})</span>
+              </label>
+            </div>
+
+            <!-- Mode Edit: Display Name & Username -->
+            <template v-if="dialogs.editDialogOpen.value">
+              <UFormField label="Nama Lengkap Guru">
+                <UInput v-model="form.fullname" disabled class="w-full bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-80" />
+              </UFormField>
+
+              <UFormField label="Username System">
+                <UInput v-model="form.username" disabled class="w-full bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-80" />
+              </UFormField>
+            </template>
+
+            <!-- Mode Create Existing: Dropdown Unassigned Users -->
+            <UFormField v-else-if="createMode === 'existing'" label="Akun Pengguna System" required>
               <USelect
                 v-model="form.userId"
                 :items="users"
                 value-key="value"
                 label-key="label"
-                placeholder="Pilih akun"
-                class="w-full"
-              />
-            </UFormField><UFormField
-              label="NIP"
-              required
-            >
-              <UInput
-                v-model="form.nip"
+                placeholder="Pilih akun pengguna yang belum terdaftar di guru..."
                 class="w-full"
               />
             </UFormField>
+
+            <!-- Mode New: Full Fields -->
+            <template v-if="createMode === 'new' && !dialogs.editDialogOpen.value">
+              <UFormField label="Nama Lengkap Guru" required>
+                <UInput v-model="form.fullname" placeholder="Contoh: Drs. Bambang" class="w-full" />
+              </UFormField>
+
+              <UFormField label="Username (Opsional, Default NIP)">
+                <UInput v-model="form.username" placeholder="Kosongkan jika samakan dengan NIP" class="w-full" />
+              </UFormField>
+
+              <UFormField label="Password Login (Opsional)">
+                <UInput v-model="form.password" type="password" placeholder="Default: Bilie#[NIP]" class="w-full" />
+              </UFormField>
+            </template>
+
+            <!-- Common Field: NIP -->
+            <UFormField label="NIP (Nomor Induk Pegawai)" required>
+              <UInput v-model="form.nip" placeholder="Contoh: 198001012005011001" class="w-full" />
+            </UFormField>
           </div>
-        </UForm><template #footer>
+        </form>
+
+        <template #footer>
           <div class="flex justify-end gap-2">
             <UButton
               color="neutral"
@@ -151,7 +260,8 @@ async function save() { if (dialogs.editDialogOpen.value) await updateTeacher(fo
               @click="dialogs.editDialogOpen.value ? dialogs.closeEditDialog() : dialogs.closeCreateDialog()"
             >
               Batal
-            </UButton><UButton
+            </UButton>
+            <UButton
               :loading="creating || updating"
               @click="save"
             >

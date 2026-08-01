@@ -8,10 +8,23 @@ definePageMeta({
 const { data: studentRes, status, refresh } = await useFetch<any>('/api/students/me')
 const student = computed(() => studentRes.value?.data ?? null)
 
-const currentClass = computed(() => student.value?.studentClasses?.[0] ?? null)
+const studentClassesList = computed<any[]>(() => student.value?.classes ?? [])
+
+const currentClass = computed(() => {
+  if (!studentClassesList.value.length) return null
+  return studentClassesList.value.find((sc: any) => sc.semester?.isActive) || studentClassesList.value[0] || null
+})
+
 const classroom = computed(() => currentClass.value?.classroom ?? null)
-const homeroom = computed(() => classroom.value?.homeroomAssignments?.[0]?.teacher ?? null)
 const semester = computed(() => currentClass.value?.semester ?? null)
+
+const homeroom = computed(() => {
+  const homerooms = classroom.value?.homerooms
+  if (!homerooms || !homerooms.length) return null
+  const activeSemId = semester.value?.id
+  const matched = homerooms.find((h: any) => h.semesterId === activeSemId || h.semester?.isActive)
+  return (matched || homerooms[0])?.teacher ?? null
+})
 </script>
 
 <template>

@@ -30,24 +30,32 @@ const navItems = computed<NavigationMenuItem[]>(() => {
   if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
     const isSuperAdmin = role === 'SUPER_ADMIN'
 
+    const isMasterActive = route.path.startsWith('/super-admin/master')
+    const isAkademikActive = route.path.startsWith('/super-admin/akademik')
+    const isMoodleActive = route.path.startsWith('/super-admin/moodle')
+    const isMonitoringActive = route.path.startsWith('/super-admin/monitoring')
+
     const masterChildren = []
     if (isSuperAdmin) {
       masterChildren.push({
         label: 'Users',
         icon: 'i-lucide-users',
-        to: '/super-admin/master/users'
+        to: '/super-admin/master/users',
+        active: route.path.startsWith('/super-admin/master/users')
       })
     }
     masterChildren.push(
       {
         label: 'Guru',
         icon: 'i-lucide-graduation-cap',
-        to: '/super-admin/master/guru'
+        to: '/super-admin/master/guru',
+        active: route.path.startsWith('/super-admin/master/guru')
       },
       {
         label: 'Siswa',
         icon: 'i-lucide-school',
-        to: '/super-admin/master/siswa'
+        to: '/super-admin/master/siswa',
+        active: route.path.startsWith('/super-admin/master/siswa')
       }
     )
 
@@ -55,12 +63,14 @@ const navItems = computed<NavigationMenuItem[]>(() => {
       {
         label: 'Cek Nilai Per Kelas',
         icon: 'i-lucide-award',
-        to: '/super-admin/moodle/nilai'
+        to: '/super-admin/moodle/nilai',
+        active: route.path.startsWith('/super-admin/moodle/nilai')
       },
       {
         label: 'Course Moodle',
         icon: 'i-lucide-book-search',
-        to: '/super-admin/moodle/course'
+        to: '/super-admin/moodle/course',
+        active: route.path.startsWith('/super-admin/moodle/course')
       }
     ]
 
@@ -68,7 +78,8 @@ const navItems = computed<NavigationMenuItem[]>(() => {
       moodleChildren.push({
         label: 'Sinkronisasi Moodle',
         icon: 'i-lucide-cable',
-        to: '/super-admin/moodle/sinkronisasi'
+        to: '/super-admin/moodle/sinkronisasi',
+        active: route.path.startsWith('/super-admin/moodle/sinkronisasi')
       })
     }
 
@@ -82,58 +93,68 @@ const navItems = computed<NavigationMenuItem[]>(() => {
       {
         label: 'Master Data',
         icon: 'i-lucide-box',
-        to: isSuperAdmin ? '/super-admin/master/users' : '/super-admin/master/guru',
-        active: route.path.startsWith('/super-admin/master'),
+        active: isMasterActive,
+        defaultOpen: isMasterActive,
+        open: isMasterActive,
         children: masterChildren
       },
       {
         label: 'Akademik',
         icon: 'i-lucide-book',
-        to: '/super-admin/akademik/tahun-ajaran',
-        active: route.path.startsWith('/super-admin/akademik'),
+        active: isAkademikActive,
+        defaultOpen: isAkademikActive,
+        open: isAkademikActive,
         children: [
           {
             label: 'Tahun Ajaran',
             icon: 'i-lucide-calendar',
-            to: '/super-admin/akademik/tahun-ajaran'
+            to: '/super-admin/akademik/tahun-ajaran',
+            active: route.path.startsWith('/super-admin/akademik/tahun-ajaran')
           },
           {
             label: 'Semester',
             icon: 'i-lucide-clock',
-            to: '/super-admin/akademik/semester'
+            to: '/super-admin/akademik/semester',
+            active: route.path.startsWith('/super-admin/akademik/semester')
           },
           {
             label: 'Kelas',
             icon: 'i-lucide-layers',
-            to: '/super-admin/akademik/kelas'
+            to: '/super-admin/akademik/kelas',
+            active: route.path.startsWith('/super-admin/akademik/kelas')
           },
           {
             label: 'Mata Pelajaran',
             icon: 'i-lucide-book-open',
-            to: '/super-admin/akademik/mata-pelajaran'
+            to: '/super-admin/akademik/mata-pelajaran',
+            active: route.path.startsWith('/super-admin/akademik/mata-pelajaran')
           },
           {
             label: 'Penugasan Mengajar',
             icon: 'i-lucide-file-spreadsheet',
-            to: '/super-admin/akademik/teaching-assignments'
+            to: '/super-admin/akademik/teaching-assignments',
+            active: route.path.startsWith('/super-admin/akademik/teaching-assignments')
           },
           {
             label: 'Wali Kelas',
             icon: 'i-lucide-user-cog',
-            to: '/super-admin/akademik/homerooms'
+            to: '/super-admin/akademik/homerooms',
+            active: route.path.startsWith('/super-admin/akademik/homerooms')
           },
           {
             label: 'Pembagian Kelas Siswa',
             icon: 'i-lucide-users-round',
-            to: '/super-admin/akademik/pembagian-kelas'
+            to: '/super-admin/akademik/pembagian-kelas',
+            active: route.path.startsWith('/super-admin/akademik/pembagian-kelas')
           }
         ]
       },
       {
         label: 'Nilai & Moodle',
         icon: 'i-lucide-server',
-        to: '/super-admin/moodle/nilai',
-        active: route.path.startsWith('/super-admin/moodle'),
+        active: isMoodleActive,
+        defaultOpen: isMoodleActive,
+        open: isMoodleActive,
         children: moodleChildren
       },
       {
@@ -149,13 +170,21 @@ const navItems = computed<NavigationMenuItem[]>(() => {
         {
           label: 'Monitoring',
           icon: 'i-lucide-monitor',
-          to: '/super-admin/monitoring/activity-log',
-          active: route.path.startsWith('/super-admin/monitoring'),
+          active: isMonitoringActive,
+          defaultOpen: isMonitoringActive,
+          open: isMonitoringActive,
           children: [
             {
               label: 'Activity Log',
               icon: 'i-lucide-activity',
-              to: '/super-admin/monitoring/activity-log'
+              to: '/super-admin/monitoring/activity-log',
+              active: route.path.startsWith('/super-admin/monitoring/activity-log')
+            },
+            {
+              label: 'Debugging (Pino)',
+              icon: 'i-lucide-terminal',
+              to: '/super-admin/monitoring/debugging',
+              active: route.path.startsWith('/super-admin/monitoring/debugging')
             }
           ]
         },
@@ -268,17 +297,16 @@ async function handleLogout() {
           </div>
         </div>
 
-        <UTooltip text="Logout">
-          <UButton
-            icon="i-lucide-log-out"
-            color="error"
-            variant="ghost"
-            size="xs"
-            class="shrink-0 cursor-pointer"
-            :loading="loading"
-            @click="handleLogout"
-          />
-        </UTooltip>
+        <UButton
+          icon="i-lucide-log-out"
+          color="error"
+          variant="ghost"
+          size="xs"
+          title="Logout"
+          class="shrink-0 cursor-pointer"
+          :loading="loading"
+          @click="handleLogout"
+        />
       </div>
     </div>
   </aside>

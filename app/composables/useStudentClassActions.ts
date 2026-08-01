@@ -1,5 +1,9 @@
+import { LazyModalConfirm } from '#components'
+
 export function useStudentClassActions() {
   const toast = useToast()
+  const overlay = useOverlay()
+  const confirmModal = overlay.create(LazyModalConfirm)
   const { refreshSC } = useStudentClasses()
   const { closeSingleModal, editingId } = useStudentClassDialogs()
 
@@ -129,7 +133,13 @@ export function useStudentClassActions() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Apakah Anda yakin ingin menghapus data siswa dari kelas ini?')) return
+    const confirmed = await confirmModal.open({
+      title: 'Keluarkan Siswa dari Kelas',
+      message: 'Apakah Anda yakin ingin menghapus data pendaftaran siswa dari kelas ini?',
+      confirmText: 'Ya, Hapus',
+      color: 'error'
+    })
+    if (!confirmed) return
 
     try {
       await $fetch(`/api/student-classes/${id}`, { method: 'DELETE' })

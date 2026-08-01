@@ -39,10 +39,13 @@ async function loadDropdowns() {
         label: `Kelas ${c.name} (Tingkat ${c.level})`,
         value: c.id
       }))
-      if (classRes.data.length > 0) {
+      if (classRes.data.length > 0 && !selectedClassroomId.value) {
         selectedClassroomId.value = classRes.data[0].id
       }
     }
+    await nextTick()
+    refreshUnassigned()
+    refreshMembers()
   } catch (err) {
     console.error('Gagal memuat dropdown plotting:', err)
   }
@@ -52,29 +55,42 @@ onMounted(() => {
   loadDropdowns()
 })
 
+function extractId(val: any): string {
+  if (!val) return ''
+  if (typeof val === 'string') return val.trim()
+  if (typeof val === 'object') {
+    if (val.value) return String(val.value).trim()
+    if (val.id) return String(val.id).trim()
+  }
+  return String(val).trim()
+}
+
+const targetSemesterId = computed(() => extractId(selectedSemesterId.value))
+const targetClassroomId = computed(() => extractId(selectedClassroomId.value))
+
 // 2. Fetch Unassigned Students
 const { data: unassignedRes, pending: pendingUnassigned, refresh: refreshUnassigned } = await useFetch('/api/students/unassigned', {
-  query: computed(() => ({
-    semesterId: selectedSemesterId.value,
-    search: searchUnassigned.value
-  })),
-  immediate: !!selectedSemesterId.value
+  query: {
+    semesterId: targetSemesterId,
+    search: searchUnassigned
+  },
+  watch: [targetSemesterId, searchUnassigned]
 })
 
-const unassignedStudents = computed(() => unassignedRes.value?.data ?? [])
+const unassignedStudents = computed(() => unassignedRes.value?.data ?? (Array.isArray(unassignedRes.value) ? unassignedRes.value : []))
 
 // 3. Fetch Class Members (StudentClass records in target classroom & semester)
 const { data: membersRes, pending: pendingMembers, refresh: refreshMembers } = await useFetch('/api/student-classes', {
-  query: computed(() => ({
-    classroomId: selectedClassroomId.value,
-    semesterId: selectedSemesterId.value,
-    search: searchMembers.value,
+  query: {
+    classroomId: targetClassroomId,
+    semesterId: targetSemesterId,
+    search: searchMembers,
     limit: 200
-  })),
-  immediate: !!(selectedClassroomId.value && selectedSemesterId.value)
+  },
+  watch: [targetClassroomId, targetSemesterId, searchMembers]
 })
 
-const classMembers = computed(() => membersRes.value?.data ?? [])
+const classMembers = computed(() => membersRes.value?.data ?? (Array.isArray(membersRes.value) ? membersRes.value : []))
 
 // Filtered lists
 const filteredUnassigned = computed(() => unassignedStudents.value)
@@ -114,17 +130,19 @@ watch(selectedMemberClassIds, (newVal) => {
   selectAllMembers.value = newVal.length === filteredMembers.value.length
 })
 
-// Reset selection on classroom or semester change
-watch([selectedClassroomId, selectedSemesterId], () => {
+// Reset selection & refresh list on classroom or semester change
+watch([targetClassroomId, targetSemesterId, searchUnassigned, searchMembers], () => {
   selectedUnassignedIds.value = []
   selectedMemberClassIds.value = []
   selectAllUnassigned.value = false
   selectAllMembers.value = false
+  refreshUnassigned()
+  refreshMembers()
 })
 
 // ACTION: Batch Assign Unassigned Students to Classroom
 async function assignSelectedStudents() {
-  if (!selectedClassroomId.value || !selectedSemesterId.value) {
+  if (!targetClassroomId.value || !targetSemesterId.value) {
     toast.add({ title: 'Perhatian', description: 'Pilih semester dan kelas target.', color: 'warning' })
     return
   }
@@ -135,16 +153,19 @@ async function assignSelectedStudents() {
 
   isAssigning.value = true
   try {
-    const payload = selectedUnassignedIds.value.map(studentId => ({
-      studentId,
-      classroomId: selectedClassroomId.value,
-      semesterId: selectedSemesterId.value
-    }))
-
     const doFetch: any = $fetch
     const res: any = await doFetch('/api/student-classes/bulk', {
       method: 'POST',
-      body: { items: payload }
+      body: {
+        classroomId: targetClassroomId.value,
+        semesterId: targetSemesterId.value,
+        studentIds: selectedUnassignedIds.value,
+        items: selectedUnassignedIds.value.map(studentId => ({
+          studentId,
+          classroomId: targetClassroomId.value,
+          semesterId: targetSemesterId.value
+        }))
+      }
     })
 
     toast.add({

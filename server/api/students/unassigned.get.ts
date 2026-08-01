@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
 
   const unassignedStudents = await prisma.student.findMany({
     where: {
-      studentClasses: {
+      classes: {
         none: {
           semesterId: activeSemesterId
         }
@@ -40,8 +40,8 @@ export default defineEventHandler(async (event) => {
         select: {
           id: true,
           fullname: true,
-          email: true,
-          avatar: true
+          username: true,
+          email: true
         }
       }
     },

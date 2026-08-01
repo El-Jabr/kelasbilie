@@ -133,17 +133,16 @@ async function handleLogout() {
           </div>
         </div>
 
-        <UTooltip text="Logout">
-          <UButton
-            icon="i-lucide-log-out"
-            color="error"
-            variant="ghost"
-            size="xs"
-            class="shrink-0 cursor-pointer"
-            :loading="loading"
-            @click="handleLogout"
-          />
-        </UTooltip>
+        <UButton
+          icon="i-lucide-log-out"
+          color="error"
+          variant="ghost"
+          size="xs"
+          title="Logout"
+          class="shrink-0 cursor-pointer"
+          :loading="loading"
+          @click="handleLogout"
+        />
       </div>
     </div>
   </aside>

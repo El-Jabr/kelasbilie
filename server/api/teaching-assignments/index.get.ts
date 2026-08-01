@@ -7,11 +7,13 @@ export default defineEventHandler(async (event) => {
   const search = String(query.search ?? '').trim()
 
   const teacherId = query.teacherId ? String(query.teacherId) : undefined
+  const classroomId = query.classroomId ? String(query.classroomId) : undefined
   const semesterId = query.semesterId ? String(query.semesterId) : undefined
   const activeSemester = query.activeSemester === 'true'
 
   const where = {
     ...(teacherId && { teacherId }),
+    ...(classroomId && { classroomId }),
     ...(semesterId && { semesterId }),
     ...(activeSemester && { semester: { isActive: true } }),
     ...(search && {

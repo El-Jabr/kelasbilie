@@ -22,7 +22,8 @@ const { data: componentsRes, status: componentsStatus, refresh } = await useAsyn
       query: {
         studentId: studentId.value,
         teachingId
-      }
+      },
+      credentials: 'include'
     })
   },
   {

@@ -37,20 +37,20 @@ export default defineEventHandler(async (event) => {
   }[] = []
 
   for (const row of body.rows) {
-    const fullname = row.fullname?.trim()
-    const username = row.username?.trim()
     const nis = row.nis?.trim()
+    const username = row.username?.trim() || nis
+    const fullname = row.fullname?.trim() || username
     const email = row.email?.trim() || `${username}@student.kelasbilie.sch.id`
     const rawPassword = row.password?.trim() || generateRandomPassword()
     const moodleUserIdRaw = row.moodleUserId ? Number(row.moodleUserId) : null
     const moodleUserId = moodleUserIdRaw && !isNaN(moodleUserIdRaw) ? moodleUserIdRaw : null
 
-    if (!fullname || !username || !nis) {
+    if (!nis || !username || !fullname) {
       result.push({
         username: username || '-',
         nis: nis || '-',
         status: 'failed',
-        message: 'Fullname, Username, dan NIS wajib diisi.'
+        message: 'NIS, Username, dan Fullname wajib diisi.'
       })
       continue
     }

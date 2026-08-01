@@ -178,7 +178,7 @@ async function handleTestConnection() {
                 <span class="text-sm font-medium block">Otomatiskan Sinkronisasi</span>
                 <span class="text-xs text-gray-400">Aktifkan sinkronisasi berkala di background</span>
               </div>
-              <UToggle v-model="formState.syncEnabled" />
+              <USwitch v-model="formState.syncEnabled" />
             </div>
 
             <div>

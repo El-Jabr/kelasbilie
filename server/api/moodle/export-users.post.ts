@@ -156,28 +156,81 @@ export default defineEventHandler(async (event: any) => {
     }
   }
 
-  // 3. Match Existing Users in Moodle
+  // 3. Match Existing Users in Moodle (by username, email, & idnumber)
   const moodleUserMap: Record<string, number> = {}
-  const usernames = userList.map(u => u.username)
 
-  try {
-    const existingMoodleUsers = await MoodleService.getUsersByField('username', usernames)
-    if (Array.isArray(existingMoodleUsers)) {
-      for (const mu of existingMoodleUsers) {
-        if (mu && mu.username && mu.id) {
-          moodleUserMap[mu.username.toLowerCase()] = mu.id
+  // Helper to chunk arrays for Moodle API calls (max 50 per batch)
+  const chunkArray = <T>(arr: T[], size: number): T[][] => {
+    const res: T[][] = []
+    for (let i = 0; i < arr.length; i += size) {
+      res.push(arr.slice(i, i + size))
+    }
+    return res
+  }
+
+  // Lookup by username
+  const usernames = userList.map(u => u.username).filter(Boolean)
+  for (const chunk of chunkArray(usernames, 50)) {
+    try {
+      const existing = await MoodleService.getUsersByField('username', chunk)
+      if (Array.isArray(existing)) {
+        for (const mu of existing) {
+          if (mu && mu.id) {
+            if (mu.username) moodleUserMap[mu.username.toLowerCase()] = mu.id
+            if (mu.email) moodleUserMap[mu.email.toLowerCase()] = mu.id
+            if (mu.idnumber) moodleUserMap[mu.idnumber] = mu.id
+          }
         }
       }
+    } catch (e) {
+      console.warn('Lookup by username warning:', e)
     }
-  } catch (err) {
-    console.warn('Gagal memverifikasi user Moodle existing, mencoba pembuatan user baru...', err)
+  }
+
+  // Lookup by email
+  const emails = userList.map(u => u.email).filter(Boolean)
+  for (const chunk of chunkArray(emails, 50)) {
+    try {
+      const existing = await MoodleService.getUsersByField('email', chunk)
+      if (Array.isArray(existing)) {
+        for (const mu of existing) {
+          if (mu && mu.id) {
+            if (mu.username) moodleUserMap[mu.username.toLowerCase()] = mu.id
+            if (mu.email) moodleUserMap[mu.email.toLowerCase()] = mu.id
+            if (mu.idnumber) moodleUserMap[mu.idnumber] = mu.id
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Lookup by email warning:', e)
+    }
+  }
+
+  // Lookup by idnumber (NIS / NIP)
+  const idnumbers = userList.map(u => u.nipOrNis).filter(n => n && n !== '-')
+  for (const chunk of chunkArray(idnumbers, 50)) {
+    try {
+      const existing = await MoodleService.getUsersByField('idnumber', chunk)
+      if (Array.isArray(existing)) {
+        for (const mu of existing) {
+          if (mu && mu.id) {
+            if (mu.username) moodleUserMap[mu.username.toLowerCase()] = mu.id
+            if (mu.email) moodleUserMap[mu.email.toLowerCase()] = mu.id
+            if (mu.idnumber) moodleUserMap[mu.idnumber] = mu.id
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Lookup by idnumber warning:', e)
+    }
   }
 
   // 4. Create Missing Users in Moodle
   const usersToCreate: MoodleCreateUserParam[] = []
 
   for (const u of userList) {
-    if (!moodleUserMap[u.username]) {
+    const existingId = moodleUserMap[u.username.toLowerCase()] || moodleUserMap[u.email.toLowerCase()] || moodleUserMap[u.nipOrNis]
+    if (!existingId) {
       usersToCreate.push({
         username: u.username,
         password: u.initialPassword,
@@ -197,14 +250,14 @@ export default defineEventHandler(async (event: any) => {
       const createdRes = await MoodleService.createUsers(usersToCreate)
       if (Array.isArray(createdRes)) {
         for (const created of createdRes) {
-          if (created && created.username && created.id) {
-            moodleUserMap[created.username.toLowerCase()] = created.id
+          if (created && created.id) {
+            if (created.username) moodleUserMap[created.username.toLowerCase()] = created.id
             usersCreatedCount++
           }
         }
       }
     } catch (err: any) {
-      console.error('Gagal membuat user di Moodle:', err)
+      console.error('Gagal membuat user di Moodle (batch), mencoba per-user:', err)
       for (const uParam of usersToCreate) {
         try {
           const singleRes = await MoodleService.createUsers([uParam])
@@ -219,6 +272,38 @@ export default defineEventHandler(async (event: any) => {
     }
   }
 
+  // Update DB user moodleUserId & sync Moodle usernames to NIS
+  const existingUpdates: { id: number; username: string; idnumber: string; firstname: string; lastname: string }[] = []
+
+  for (const u of userList) {
+    const moodleId = moodleUserMap[u.username.toLowerCase()] || moodleUserMap[u.email.toLowerCase()] || moodleUserMap[u.nipOrNis]
+    if (moodleId) {
+      await prisma.user.update({
+        where: { id: u.appUserId },
+        data: { moodleUserId: moodleId }
+      }).catch(() => {})
+
+      existingUpdates.push({
+        id: moodleId,
+        username: u.username,
+        idnumber: u.nipOrNis,
+        firstname: u.firstname,
+        lastname: u.lastname
+      })
+    }
+  }
+
+  // Execute Moodle username & idnumber sync (in batch chunks of 20)
+  if (existingUpdates.length > 0) {
+    for (const chunk of chunkArray(existingUpdates, 20)) {
+      try {
+        await MoodleService.updateUsers(chunk)
+      } catch (e) {
+        console.warn('Gagal batch update username Moodle existing:', e)
+      }
+    }
+  }
+
   // 5. Auto-Enroll Users to Moodle Courses
   let enrolmentsCount = 0
 
@@ -226,7 +311,7 @@ export default defineEventHandler(async (event: any) => {
     const enrolments: MoodleEnrolParam[] = []
 
     for (const u of userList) {
-      const moodleUserId = moodleUserMap[u.username]
+      const moodleUserId = moodleUserMap[u.username.toLowerCase()] || moodleUserMap[u.email.toLowerCase()] || moodleUserMap[u.nipOrNis]
       if (!moodleUserId) continue
 
       const roleid = u.type === 'TEACHER' ? 3 : 5
@@ -241,17 +326,20 @@ export default defineEventHandler(async (event: any) => {
     }
 
     if (enrolments.length > 0) {
-      try {
-        await MoodleService.enrolUsers(enrolments)
-        enrolmentsCount = enrolments.length
-      } catch (err: any) {
-        console.error('Gagal melakukan enrollment massal ke Moodle:', err)
-        for (const en of enrolments) {
-          try {
-            await MoodleService.enrolUsers([en])
-            enrolmentsCount++
-          } catch (e) {
-            // Ignore duplicate enrollment
+      const chunks = chunkArray(enrolments, 20)
+      for (const batch of chunks) {
+        try {
+          await MoodleService.enrolUsers(batch)
+          enrolmentsCount += batch.length
+        } catch (err: any) {
+          console.error('Gagal batch enrolment ke Moodle, mencoba per-user:', err)
+          for (const en of batch) {
+            try {
+              await MoodleService.enrolUsers([en])
+              enrolmentsCount++
+            } catch (e) {
+              // Ignore single enrolment error
+            }
           }
         }
       }
@@ -276,7 +364,7 @@ export default defineEventHandler(async (event: any) => {
     data: {
       resource: 'USER',
       status: 'SUCCESS',
-      details: `Ekspor & Enroll User: ${usersCreatedCount} User Baru, ${enrolmentsCount} Enrollment ke Course Moodle.`
+      message: `Ekspor & Enroll User: ${usersCreatedCount} User Baru, ${enrolmentsCount} Enrollment ke Course Moodle.`
     }
   })
 

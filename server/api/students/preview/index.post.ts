@@ -3,102 +3,125 @@ import { prisma } from '../../../utils/db'
 
 export default defineEventHandler(async (event) => {
   const files = await readMultipartFormData(event)
-  const file = files?.find(item => item.name === 'file')
-  if (!file?.filename?.toLowerCase().endsWith('.csv')) {
-    throw createError({ statusCode: 400, statusMessage: 'File harus berformat CSV.' })
+
+  if (!files) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'File tidak ditemukan'
+    })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const records: any[] = parse(file.data.toString('utf8'), {
-    columns: true,
-    skip_empty_lines: true,
-    trim: true
-  })
+  const file = files.find(f => f.name === 'file')
 
-  const usernames = records.map(row => String(row.username ?? '').trim()).filter(Boolean)
-  const nises = records.map(row => String(row.nis ?? '').trim()).filter(Boolean)
-  const emails = records.map(row => String(row.email ?? '').trim()).filter(Boolean)
+  if (!file) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'File tidak ditemukan'
+    })
+  }
 
-  // Cek user yang sudah terdaftar di database
-  const existingUsers = await prisma.user.findMany({
-    where: {
-      OR: [
-        { username: { in: usernames } },
-        ...(emails.length ? [{ email: { in: emails } }] : [])
-      ]
-    },
-    select: { id: true, username: true, email: true, student: { select: { id: true } } }
-  })
-  const userByUsername = new Map(existingUsers.map(u => [u.username, u]))
-  const userByEmail = new Map(existingUsers.filter(u => u.email).map(u => [u.email!, u]))
+  // Parse CSV
+  let excelRows: any[] = []
+  try {
+    excelRows = parse(file.data.toString('utf8'), {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true
+    })
+  } catch (err: any) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Gagal membaca format file CSV: ' + err.message
+    })
+  }
 
-  // Cek NIS yang sudah terdaftar
-  const existingStudents = await prisma.student.findMany({
-    where: { nis: { in: nises } },
-    select: { nis: true }
-  })
-  const existingNises = new Set(existingStudents.map(s => s.nis))
-
-  const usernameSet = new Set<string>()
   const nisSet = new Set<string>()
+  const usernameSet = new Set<string>()
   const emailSet = new Set<string>()
 
-  const rows = records.map((row, index) => {
-    const fullname = String(row.fullname ?? '').trim()
-    const username = String(row.username ?? '').trim()
+  const nises = excelRows.map((r: any) => String(r.nis ?? '').trim()).filter(Boolean)
+  const usernames = excelRows.map((r: any) => String(r.username ?? r.nis ?? '').trim()).filter(Boolean)
+  const emails = excelRows.map((r: any) => String(r.email ?? '').trim()).filter(Boolean)
+
+  const [existingStudents, existingUsers] = await Promise.all([
+    prisma.student.findMany({
+      where: { nis: { in: nises } },
+      select: { nis: true }
+    }),
+    prisma.user.findMany({
+      where: {
+        OR: [
+          { username: { in: usernames } },
+          { email: { in: emails } }
+        ]
+      },
+      select: { username: true, email: true }
+    })
+  ])
+
+  const dbNis = new Set(existingStudents.map(s => s.nis))
+  const dbUsername = new Set(existingUsers.map(u => u.username))
+  const dbEmail = new Set(existingUsers.map(u => u.email).filter(Boolean))
+
+  const rows = []
+  let valid = 0
+  let invalid = 0
+
+  for (let i = 0; i < excelRows.length; i++) {
+    const row: any = excelRows[i]
+
     const nis = String(row.nis ?? '').trim()
+    const username = String(row.username ?? nis).trim()
+    const fullname = String(row.fullname ?? username).trim()
     const email = String(row.email ?? '').trim()
-    const password = String(row.password ?? '').trim()
-    const moodleUserId = String(row.moodleUserId ?? '').trim()
+    const password = String(row.password ?? '')
+    const moodleUserIdRaw = row.moodleUserId ? Number(row.moodleUserId) : null
+
     const errors: string[] = []
 
-    if (!fullname) errors.push('Fullname wajib diisi')
-    if (!username) errors.push('Username wajib diisi')
     if (!nis) errors.push('NIS wajib diisi')
-
-    if (usernameSet.has(username)) errors.push('Username duplikat pada file')
-    if (nisSet.has(nis)) errors.push('NIS duplikat pada file')
-    if (email && emailSet.has(email)) errors.push('Email duplikat pada file')
-
-    if (username) usernameSet.add(username)
-    if (nis) nisSet.add(nis)
-    if (email) emailSet.add(email)
-
-    // Cek konflik dengan database
-    const existingUser = userByUsername.get(username)
-    if (existingUser?.student) {
-      errors.push('User/Username sudah terdaftar sebagai siswa')
-    }
+    if (!username) errors.push('Username wajib diisi')
+    if (!fullname) errors.push('Fullname / Nama Siswa wajib diisi')
 
     if (email) {
-      const existingEmailUser = userByEmail.get(email)
-      if (existingEmailUser && existingEmailUser.username !== username) {
-        errors.push('Email sudah digunakan user lain di database')
-      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email)) errors.push('Format email tidak valid')
     }
 
-    if (existingNises.has(nis)) {
-      errors.push('NIS sudah digunakan di database')
-    }
+    if (nis && nisSet.has(nis)) errors.push('NIS duplikat pada file')
+    if (username && usernameSet.has(username)) errors.push('Username duplikat pada file')
+    if (email && emailSet.has(email)) errors.push('Email duplikat pada file')
 
-    return {
-      row: index + 2,
-      fullname: fullname || (existingUser?.username ?? ''),
-      username,
+    if (nis && dbNis.has(nis)) errors.push('NIS sudah terdaftar')
+    if (username && dbUsername.has(username)) errors.push('Username sudah digunakan')
+    if (email && dbEmail.has(email)) errors.push('Email sudah digunakan')
+
+    if (nis) nisSet.add(nis)
+    if (username) usernameSet.add(username)
+    if (email) emailSet.add(email)
+
+    const isValid = errors.length === 0
+    if (isValid) valid++
+    else invalid++
+
+    rows.push({
+      row: i + 2,
       nis,
-      email: email || undefined,
-      password: password || undefined,
-      moodleUserId: moodleUserId || undefined,
-      valid: errors.length === 0,
+      username,
+      fullname,
+      email,
+      password,
+      moodleUserId: moodleUserIdRaw,
+      valid: isValid,
       errors
-    }
-  })
+    })
+  }
 
   return {
     summary: {
-      total: rows.length,
-      valid: rows.filter(row => row.valid).length,
-      invalid: rows.filter(row => !row.valid).length
+      total: excelRows.length,
+      valid,
+      invalid
     },
     rows
   }

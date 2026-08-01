@@ -39,14 +39,11 @@ export default defineEventHandler(async (event) => {
           isActive: true
         }
       },
-      studentClasses: {
-        where: {
-          semester: {
-            isActive: true
-          }
-        },
+      classes: {
         select: {
           id: true,
+          classroomId: true,
+          semesterId: true,
           classroom: {
             select: {
               id: true,
@@ -54,14 +51,11 @@ export default defineEventHandler(async (event) => {
               level: true,
               room: true,
               building: true,
-              homeroomAssignments: {
-                where: {
-                  semester: {
-                    isActive: true
-                  }
-                },
+              floor: true,
+              homerooms: {
                 select: {
                   id: true,
+                  semesterId: true,
                   teacher: {
                     select: {
                       id: true,
@@ -72,6 +66,12 @@ export default defineEventHandler(async (event) => {
                           email: true
                         }
                       }
+                    }
+                  },
+                  semester: {
+                    select: {
+                      id: true,
+                      isActive: true
                     }
                   }
                 }

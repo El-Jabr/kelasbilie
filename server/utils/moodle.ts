@@ -161,8 +161,45 @@ export class MoodleService {
    * Panggilan POST generik dengan perataan parameter objek Moodle
    */
   public static async post<T>(wsfunction: string, data: Record<string, any> = {}): Promise<T> {
+    const { baseUrl, token } = await this.getConfig()
     const flattenedParams = this.buildMoodleParams(data)
-    return await this.fetch<T>(wsfunction, flattenedParams)
+
+    const bodyParams = new URLSearchParams({
+      wstoken: token,
+      wsfunction: wsfunction,
+      moodlewsrestformat: 'json',
+      ...flattenedParams
+    })
+
+    try {
+      const response = await $fetch<any>(baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: bodyParams.toString()
+      })
+
+      if (response && response.exception) {
+        const msg = String(response.message || response.errorcode || '')
+        if (msg.includes('Message was not sent') || msg.includes('Message could not be sent')) {
+          return { success: true, warning: msg } as unknown as T
+        }
+        throw makeError({
+          statusCode: 400,
+          statusMessage: `Moodle API Error [${response.errorcode}]: ${response.message}`
+        })
+      }
+
+      return response as T
+    } catch (error: any) {
+      if (error.statusCode) throw error
+      console.error(`Moodle POST Error (${wsfunction}):`, error)
+      throw makeError({
+        statusCode: 502,
+        statusMessage: `Gagal terhubung ke Moodle API (${wsfunction}): ${error.message}`
+      })
+    }
   }
 
   /**
@@ -207,14 +244,14 @@ export class MoodleService {
   /**
    * Memperbarui user Moodle (core_user_update_users)
    */
-  public static async updateUsers(users: { id: number; password?: string; firstname?: string; lastname?: string; email?: string }[]): Promise<any> {
+  public static async updateUsers(users: { id: number; username?: string; idnumber?: string; password?: string; firstname?: string; lastname?: string; email?: string }[]): Promise<any> {
     return await this.post<any>('core_user_update_users', { users })
   }
 
   /**
    * Mengambil user Moodle berdasarkan field (core_user_get_users_by_field)
    */
-  public static async getUsersByField(field: 'username' | 'email' | 'id', values: (string | number)[]): Promise<MoodleUser[]> {
+  public static async getUsersByField(field: 'username' | 'email' | 'id' | 'idnumber', values: (string | number)[]): Promise<MoodleUser[]> {
     return await this.post<MoodleUser[]>('core_user_get_users_by_field', { field, values })
   }
 
@@ -222,6 +259,13 @@ export class MoodleService {
    * Enrolls user ke dalam Course Moodle (enrol_manual_enrol_users)
    */
   public static async enrolUsers(enrolments: MoodleEnrolParam[]): Promise<any> {
-    return await this.post<any>('enrol_manual_enrol_users', { enrolments })
+    try {
+      return await this.post<any>('enrol_manual_enrol_users', { enrolments })
+    } catch (err: any) {
+      if (err.message && (err.message.includes('Message was not sent') || err.message.includes('Message could not be sent'))) {
+        return { success: true, warning: 'Message was not sent' }
+      }
+      throw err
+    }
   }
 }

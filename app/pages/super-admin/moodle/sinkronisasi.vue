@@ -220,7 +220,7 @@ onMounted(() => {
             </div>
             <div>
               <h2 class="text-base font-bold text-gray-900 dark:text-white">
-                🚀 Ekspor User App & Auto-Enroll ke Moodle
+                Ekspor User App & Auto-Enroll ke Moodle
               </h2>
               <p class="text-xs text-gray-500 dark:text-gray-400">
                 Buat akun Moodle untuk Guru & Siswa dari aplikasi secara otomatis, lalu enroll ke Course Moodle sesuai rombel/penugasan.
@@ -309,7 +309,7 @@ onMounted(() => {
             :loading="isExportingUsers"
             @click="handleExportUsers"
           >
-            🚀 Ekspor User & Enroll ke Moodle
+            Ekspor User & Enroll ke Moodle
           </UButton>
         </div>
       </template>
@@ -325,7 +325,7 @@ onMounted(() => {
             </div>
             <div>
               <h2 class="text-base font-bold text-gray-900 dark:text-white">
-                🔑 Mode Password Moodle Siswa & Ekspor CSV
+                Mode Password Moodle Siswa & Ekspor CSV
               </h2>
               <p class="text-xs text-gray-500 dark:text-gray-400">
                 Atur mode password Moodle (Mode Harian vs Mode Ujian STS/SAS 6-angka random), lalu unduh daftar kredensial CSV siswa.
@@ -358,7 +358,7 @@ onMounted(() => {
                 />
                 <div>
                   <div class="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
-                    <span>🟢 Mode Harian</span>
+                    <span>Mode Harian</span>
                   </div>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     Password: <code class="font-bold text-emerald-600 dark:text-emerald-400">bilie + NIS</code> (Misal: <code class="font-mono">bilie12345</code>)
@@ -380,7 +380,7 @@ onMounted(() => {
                 />
                 <div>
                   <div class="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
-                    <span>🟠 Mode Ujian STS/SAS</span>
+                    <span>Mode Ujian STS/SAS</span>
                   </div>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     Password: <code class="font-bold text-amber-600 dark:text-amber-400">bilie + 6 Angka Acak</code> (Misal: <code class="font-mono">bilie892301</code>)
@@ -442,7 +442,7 @@ onMounted(() => {
               :loading="isExportingCsv"
               @click="downloadStudentCsv"
             >
-              📥 Download CSV Siswa
+              Download CSV Siswa
             </UButton>
 
             <UButton
@@ -453,7 +453,7 @@ onMounted(() => {
               :loading="isUpdatingPasswords"
               @click="handleUpdatePasswords"
             >
-              🔄 Sync Password ke Moodle
+              Sync Password ke Moodle
             </UButton>
           </div>
         </div>
@@ -462,10 +462,16 @@ onMounted(() => {
 
     <!-- FEATURE 3: Sync Trigger Action Cards (PULL Moodle to App) -->
     <div>
-      <h2 class="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-        <UIcon name="i-lucide-download-cloud" class="w-5 h-5 text-blue-500" />
-        Tarik Data Dari Moodle ke Aplikasi (Pull Sync)
-      </h2>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+        <h2 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <UIcon name="i-lucide-download-cloud" class="w-5 h-5 text-blue-500" />
+          Tarik Data Dari Moodle ke Aplikasi (Pull Sync)
+        </h2>
+        <NuxtLink to="/super-admin/akademik/teaching-assignments" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1">
+          <UIcon name="i-lucide-zap" class="w-4 h-4 text-emerald-500" />
+          <span>Sync Nilai Cepat Per-Course (di Penugasan Mengajar) &rarr;</span>
+        </NuxtLink>
+      </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <UCard class="text-center">

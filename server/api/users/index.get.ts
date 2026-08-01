@@ -12,7 +12,7 @@ const VALID_SORT = [
 type SortField = typeof VALID_SORT[number]
 
 export default defineEventHandler(async (event) => {
-  requireRole(event, ['SUPER_ADMIN'])
+  requireRole(event, ['SUPER_ADMIN', 'ADMIN'])
 
   const query = getQuery(event)
 
@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
   const search = String(query.search ?? '').trim()
 
   const role = String(query.role ?? '').trim()
+  const unassignedFor = String(query.unassignedFor ?? '').trim().toUpperCase()
 
   const active = String(query.active ?? '').trim()
 
@@ -59,7 +60,13 @@ export default defineEventHandler(async (event) => {
     ]
   }
 
-  if (role && role !== 'ALL') {
+  if (unassignedFor === 'STUDENT') {
+    where.role = 'STUDENT'
+    where.student = null
+  } else if (unassignedFor === 'TEACHER') {
+    where.role = { in: ['TEACHER', 'ADMIN'] }
+    where.teacher = null
+  } else if (role && role !== 'ALL') {
     where.role = role
   }
 

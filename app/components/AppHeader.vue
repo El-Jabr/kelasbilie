@@ -102,15 +102,14 @@ async function logout() {
           class="hidden lg:inline-flex"
         />
 
-        <UTooltip text="Logout">
-          <UButton
-            class="cursor-pointer lg:hidden"
-            icon="i-lucide-log-out"
-            color="neutral"
-            variant="ghost"
-            @click="logout"
-          />
-        </UTooltip>
+        <UButton
+          class="cursor-pointer lg:hidden"
+          icon="i-lucide-log-out"
+          color="neutral"
+          variant="ghost"
+          title="Logout"
+          @click="logout"
+        />
 
         <UButton
           class="cursor-pointer hidden lg:inline-flex"

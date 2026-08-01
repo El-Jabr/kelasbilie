@@ -95,11 +95,22 @@ async function batchMoveSelected() {
   }
 }
 
+import { LazyModalConfirm } from '#components'
+
+const overlay = useOverlay()
+const confirmModal = overlay.create(LazyModalConfirm)
+
 // Batch Delete Selected Students from Classes
 async function batchDeleteSelected() {
   if (selectedIds.value.length === 0) return
 
-  if (!confirm(`Apakah Anda yakin ingin mengeluarkan ${selectedIds.value.length} siswa dari kelas?`)) return
+  const confirmed = await confirmModal.open({
+    title: 'Keluarkan Siswa Terpilih',
+    message: `Apakah Anda yakin ingin mengeluarkan ${selectedIds.value.length} siswa terpilih dari kelas ini?`,
+    confirmText: 'Ya, Keluarkan',
+    color: 'error'
+  })
+  if (!confirmed) return
 
   isBatchDeleting.value = true
   try {
