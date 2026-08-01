@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { TableColumn } from '@nuxt/ui'
+import type { DropdownMenuItem, TableColumn } from '@nuxt/ui'
 
 const {
   homerooms,
-  loading
+  loading,
+  search
 } = useHomerooms()
 
 const {
@@ -17,12 +18,43 @@ const columns: TableColumn<any>[] = [
   { accessorKey: 'semester', header: 'Semester' },
   { id: 'actions', header: 'Aksi' }
 ]
+
+const filteredHomerooms = computed(() => {
+  if (!search.value) return homerooms.value
+  const kw = search.value.toLowerCase()
+  return homerooms.value.filter((h: any) =>
+    (h.classroom?.name || '').toLowerCase().includes(kw) ||
+    (h.teacher?.user?.fullname || '').toLowerCase().includes(kw) ||
+    (h.teacher?.nip || '').toLowerCase().includes(kw) ||
+    (h.semester?.type || '').toLowerCase().includes(kw)
+  )
+})
+
+function getActionItems(row: any): DropdownMenuItem[][] {
+  return [
+    [
+      {
+        label: 'Edit Wali Kelas',
+        icon: 'i-lucide-pencil',
+        onSelect: () => openEditDialog(row)
+      }
+    ],
+    [
+      {
+        label: 'Hapus',
+        icon: 'i-lucide-trash-2',
+        color: 'error',
+        onSelect: () => openDeleteDialog(row)
+      }
+    ]
+  ]
+}
 </script>
 
 <template>
   <UCard :ui="{ body: 'p-0 sm:p-0' }">
     <UTable
-      :data="homerooms"
+      :data="filteredHomerooms"
       :columns="columns"
       :loading="loading"
       :empty-state="{ icon: 'i-lucide-users', label: 'Belum ada data wali kelas.' }"
@@ -44,21 +76,15 @@ const columns: TableColumn<any>[] = [
       </template>
 
       <template #actions-cell="{ row }">
-        <div class="flex justify-end gap-1">
-          <UButton
-            icon="i-lucide-pencil"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            @click="openEditDialog(row.original)"
-          />
-          <UButton
-            icon="i-lucide-trash-2"
-            color="error"
-            variant="ghost"
-            size="xs"
-            @click="openDeleteDialog(row.original)"
-          />
+        <div class="flex items-center">
+          <UDropdownMenu :items="getActionItems(row.original)">
+            <UButton
+              icon="i-lucide-ellipsis"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+            />
+          </UDropdownMenu>
         </div>
       </template>
     </UTable>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+
 const toast = useToast()
 const { teachingAssignments, loading } = useTeachingAssignments()
 const { openEditDialog } = useTeachingAssignmentDialogs()
@@ -11,12 +13,12 @@ const page = ref(1)
 const pageCount = ref(10)
 
 const columns: any[] = [
-  { key: 'teacher', label: 'Guru', sortable: true },
-  { key: 'subject', label: 'Mata Pelajaran', sortable: true },
-  { key: 'classroom', label: 'Kelas', sortable: true },
-  { key: 'semester', label: 'Semester' },
-  { key: 'course', label: 'Moodle Course' },
-  { key: 'actions', label: 'Aksi', class: 'text-right' }
+  { accessorKey: 'teacher', header: 'Guru' },
+  { accessorKey: 'subject', header: 'Mata Pelajaran' },
+  { accessorKey: 'classroom', header: 'Kelas' },
+  { accessorKey: 'semester', header: 'Semester' },
+  { accessorKey: 'course', header: 'Moodle Course' },
+  { accessorKey: 'actions', header: 'Aksi' }
 ]
 
 const filteredRows = computed(() => {
@@ -84,6 +86,35 @@ async function syncCourseGrades(courseId: number, subjectName?: string, classNam
     syncingCourseId.value = null
   }
 }
+
+function getActionItems(row: any): DropdownMenuItem[][] {
+  const mainGroup: DropdownMenuItem[] = []
+
+  if (row.courseId) {
+    mainGroup.push({
+      label: 'Sync Nilai Moodle',
+      icon: 'i-lucide-refresh-cw',
+      onSelect: () => syncCourseGrades(row.courseId, row.subject?.name, row.classroom?.name)
+    })
+  }
+
+  mainGroup.push({
+    label: 'Edit Penugasan',
+    icon: 'i-lucide-pencil',
+    onSelect: () => openEditDialog(row)
+  })
+
+  const dangerGroup: DropdownMenuItem[] = [
+    {
+      label: 'Hapus Penugasan',
+      icon: 'i-lucide-trash-2',
+      color: 'error',
+      onSelect: () => handleDelete(row.id)
+    }
+  ]
+
+  return [mainGroup, dangerGroup]
+}
 </script>
 
 <template>
@@ -95,88 +126,66 @@ async function syncCourseGrades(courseId: number, subjectName?: string, classNam
       </div>
     </template>
 
-    <div v-if="loading" class="py-8 text-center text-sm text-gray-400">
+    <div v-if="loading && teachingAssignments.length === 0" class="py-8 text-center text-sm text-gray-400">
       Memuat data penugasan mengajar...
     </div>
 
-    <div v-else-if="teachingAssignments.length === 0" class="py-8 text-center text-sm text-gray-400">
+    <div v-else-if="!loading && teachingAssignments.length === 0" class="py-8 text-center text-sm text-gray-400">
       Belum ada penugasan mengajar. Klik tombol "Tambah Penugasan" untuk membuat baru.
     </div>
 
     <div v-else>
       <UTable
-        :rows="paginatedRows"
+        :data="paginatedRows"
         :columns="columns"
-        :empty-state="{ icon: 'i-lucide-file-x', text: 'Tidak ada data penugasan mengajar yang cocok.' }"
+        :loading="loading"
       >
-        <template #teacher-data="{ row }">
+        <template #teacher-cell="{ row }">
           <span class="font-medium">
-            {{ (row as any).teacher?.user?.fullname || (row as any).teacherId }}
+            {{ (row as any).original.teacher?.user?.fullname || (row as any).original.teacherId }}
           </span>
         </template>
         
-        <template #subject-data="{ row }">
+        <template #subject-cell="{ row }">
           <UBadge color="info" variant="soft" size="xs">
-            {{ (row as any).subject?.name || (row as any).subjectId }}
+            {{ (row as any).original.subject?.name || (row as any).original.subjectId }}
           </UBadge>
         </template>
         
-        <template #classroom-data="{ row }">
+        <template #classroom-cell="{ row }">
           <UBadge color="neutral" variant="soft" size="xs">
-            {{ (row as any).classroom?.name || (row as any).classroomId }}
+            {{ (row as any).original.classroom?.name || (row as any).original.classroomId }}
           </UBadge>
         </template>
         
-        <template #semester-data="{ row }">
+        <template #semester-cell="{ row }">
           <span class="text-xs text-gray-500">
-            {{ (row as any).semester?.type }} ({{ (row as any).semester?.academicYear?.name || '-' }})
+            {{ (row as any).original.semester?.type }} ({{ (row as any).original.semester?.academicYear?.name || '-' }})
           </span>
         </template>
         
-        <template #course-data="{ row }">
-          <span v-if="(row as any).course" class="text-emerald-600 dark:text-emerald-400 font-semibold text-xs font-mono">
-            {{ (row as any).course.fullname }}
+        <template #course-cell="{ row }">
+          <span v-if="(row as any).original.course" class="text-emerald-600 dark:text-emerald-400 font-semibold text-xs font-mono">
+            {{ (row as any).original.course.fullname }}
           </span>
-          <span v-else-if="(row as any).courseId" class="text-gray-600 dark:text-gray-400 text-xs font-mono">
-            ID: {{ (row as any).courseId }}
+          <span v-else-if="(row as any).original.courseId" class="text-gray-600 dark:text-gray-400 text-xs font-mono">
+            ID: {{ (row as any).original.courseId }}
           </span>
           <span v-else class="text-amber-500 italic text-xs">
             Belum terhubung
           </span>
         </template>
         
-        <template #actions-data="{ row }">
-          <div class="flex items-center justify-end gap-1">
-            <UButton
-              v-if="(row as any).courseId"
-              icon="i-lucide-refresh-cw"
-              color="success"
-              variant="soft"
-              size="xs"
-              title="Sync Nilai Moodle Mapel Ini"
-              class="cursor-pointer font-medium"
-              :loading="syncingCourseId === (row as any).courseId"
-              @click="syncCourseGrades((row as any).courseId, (row as any).subject?.name, (row as any).classroom?.name)"
-            >
-              Sync Nilai
-            </UButton>
-
-            <UButton
-              icon="i-lucide-pencil"
-              color="neutral"
-              variant="ghost"
-              size="xs"
-              title="Edit Penugasan"
-              @click="openEditDialog(row)"
-            />
-            <UButton
-              icon="i-lucide-trash-2"
-              color="error"
-              variant="ghost"
-              size="xs"
-              title="Hapus Penugasan"
-              @click="handleDelete((row as any).id)"
-            />
+        <template #actions-cell="{ row }">
+          <div class="flex items-center">
+            <UDropdownMenu :items="getActionItems((row as any).original)">
+              <UButton
+                icon="i-lucide-ellipsis"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+              />
+            </UDropdownMenu>
           </div>
         </template>
       </UTable>
@@ -186,9 +195,9 @@ async function syncCourseGrades(courseId: number, subjectName?: string, classNam
       <div class="flex justify-between items-center text-xs text-gray-500">
         <span>Menampilkan {{ paginatedRows.length }} dari {{ filteredRows.length }} penugasan</span>
         <UPagination
-          v-model="page"
-          :page-count="pageCount"
+          v-model:page="page"
           :total="filteredRows.length"
+          :items-per-page="pageCount"
         />
       </div>
     </template>

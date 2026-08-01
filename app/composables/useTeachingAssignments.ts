@@ -41,8 +41,10 @@ export function useTeachingAssignments() {
     () => null
   )
 
-  async function fetchTeachingAssignments() {
-    loading.value = true
+  async function fetchTeachingAssignments(force = false) {
+    if (teachingAssignments.value.length === 0 || force) {
+      loading.value = true
+    }
     try {
       const [asRes, tRes, sRes, cRes, semRes, coRes]: any = await Promise.all([
         $fetch('/api/teaching-assignments', { credentials: 'include' }),
@@ -67,7 +69,7 @@ export function useTeachingAssignments() {
   }
 
   async function refresh() {
-    await fetchTeachingAssignments()
+    await fetchTeachingAssignments(true)
   }
 
   // Options for select inputs
