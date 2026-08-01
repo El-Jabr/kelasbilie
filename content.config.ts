@@ -39,7 +39,7 @@ export const collections = {
     source: '0.index.yml',
     type: 'page',
     schema: z.object({
-      hero: z.object({
+      hero: createBaseSchema().extend({
         links: z.array(createLinkSchema()).optional()
       }).optional(),
       sections: z.array(

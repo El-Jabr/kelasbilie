@@ -520,7 +520,7 @@ onMounted(() => {
           :page="currentPage"
           :items-per-page="itemsPerPage"
           :total="totalStudents"
-          @update:page="(p) => currentPage = p"
+          @update:page="(p: number) => currentPage = p"
         />
       </div>
     </div>
@@ -629,7 +629,7 @@ onMounted(() => {
           :page="currentPage"
           :items-per-page="itemsPerPage"
           :total="totalStudents"
-          @update:page="(p) => currentPage = p"
+          @update:page="(p: number) => currentPage = p"
         />
       </div>
     </div>
