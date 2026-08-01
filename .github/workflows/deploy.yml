@@ -19,7 +19,7 @@ jobs:
 
           git pull origin main
 
-          npm ci
+          npm install --legacy-peer-deps
 
           npx prisma generate
 

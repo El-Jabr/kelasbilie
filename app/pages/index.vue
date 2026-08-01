@@ -1,8 +1,8 @@
 <script setup lang="ts">
 const { data: page } = await useAsyncData('index', () => queryCollection('index').first())
 
-const title = computed(() => page.value?.seo?.title || page.value?.title)
-const description = computed(() => page.value?.seo?.description || page.value?.description)
+const title = page.value?.seo?.title || page.value?.title
+const description = page.value?.seo?.description || page.value?.description
 
 useSeoMeta({
   titleTemplate: '',
@@ -19,7 +19,7 @@ useSeoMeta({
     <UPageHero
       :title="page.title"
       :description="page.description"
-      :links="page.hero?.links"
+      :links="page.hero.links"
     >
       <template #top>
         <HeroBackground />
@@ -27,7 +27,6 @@ useSeoMeta({
 
       <template #title>
         <MDC
-          v-if="page.title"
           :value="page.title"
           unwrap="p"
         />
@@ -56,7 +55,6 @@ useSeoMeta({
     </UPageSection>
 
     <UPageSection
-      v-if="page.features"
       :title="page.features.title"
       :description="page.features.description"
     >
@@ -71,7 +69,6 @@ useSeoMeta({
     </UPageSection>
 
     <UPageSection
-      v-if="page.testimonials"
       id="testimonials"
       :headline="page.testimonials.headline"
       :title="page.testimonials.title"
@@ -98,7 +95,6 @@ useSeoMeta({
     <USeparator />
 
     <UPageCTA
-      v-if="page.cta"
       v-bind="page.cta"
       variant="naked"
       class="overflow-hidden"

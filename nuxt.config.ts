@@ -31,14 +31,17 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-
+  content: {
+    experimental: {
+      sqliteConnector: 'native'
+    }
+  },
 
   runtimeConfig: {
     jwtSecret: process.env.JWT_SECRET
   },
 
   routeRules: {
-    '/': { prerender: false, ssr: true },
     '/docs': { redirect: '/docs/getting-started', prerender: false }
   },
 
@@ -46,7 +49,9 @@ export default defineNuxtConfig({
 
   nitro: {
     prerender: {
-      routes: [],
+      routes: [
+        '/'
+      ],
       crawlLinks: false
     }
   },
