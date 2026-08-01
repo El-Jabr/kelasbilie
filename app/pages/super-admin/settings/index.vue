@@ -16,7 +16,11 @@ const formState = reactive({
   moodleUrl: '',
   moodleToken: '',
   syncEnabled: true,
-  syncInterval: 30
+  syncInterval: 30,
+  aiEnabled: false,
+  geminiApiKey: '',
+  aiSystemPrompt: '',
+  logo: ''
 })
 
 const pending = ref(true)
@@ -31,6 +35,10 @@ async function refresh() {
       formState.moodleToken = res.data.moodleToken || ''
       formState.syncEnabled = res.data.syncEnabled ?? true
       formState.syncInterval = res.data.syncInterval ?? 30
+      formState.aiEnabled = res.data.aiEnabled ?? false
+      formState.geminiApiKey = res.data.geminiApiKey || ''
+      formState.aiSystemPrompt = res.data.aiSystemPrompt || ''
+      formState.logo = res.data.logo || ''
     }
   } catch (err) {
     console.error('Failed to fetch settings:', err)
@@ -191,6 +199,56 @@ async function handleTestConnection() {
                 min="5"
                 placeholder="30"
               />
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Integration Section -->
+        <div class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <h3 class="text-base font-semibold border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
+            <UIcon name="i-lucide-brain-circuit" class="w-5 h-5 text-primary-500" />
+            Integrasi AI (Gemini)
+          </h3>
+
+          <div class="grid grid-cols-1 gap-4">
+            <div class="flex items-center justify-between p-4 bg-primary-50 dark:bg-primary-900/10 rounded-lg border border-primary-100 dark:border-primary-900/50">
+              <div>
+                <span class="text-sm font-medium block text-primary-900 dark:text-primary-100">Aktifkan Analisis AI</span>
+                <span class="text-xs text-primary-700 dark:text-primary-300">Izinkan sistem menggunakan Google Gemini untuk menganalisis nilai akademik secara otomatis.</span>
+              </div>
+              <USwitch v-model="formState.aiEnabled" />
+            </div>
+
+            <div v-if="formState.aiEnabled" class="animate-in fade-in slide-in-from-top-2 duration-300">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Gemini API Key
+              </label>
+              <UInput
+                v-model="formState.geminiApiKey"
+                type="password"
+                placeholder="Masukkan API Key dari Google AI Studio"
+                icon="i-lucide-key"
+              >
+              </UInput>
+              <p class="mt-1 text-xs text-gray-500">
+                Dapatkan API Key di <a href="https://aistudio.google.com/" target="_blank" class="text-primary-600 hover:underline">Google AI Studio</a>.
+              </p>
+            </div>
+
+            <div v-if="formState.aiEnabled" class="animate-in fade-in slide-in-from-top-2 duration-300">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Konteks Tambahan Sekolah (System Prompt)
+              </label>
+              <UTextarea
+                v-model="formState.aiSystemPrompt"
+                class="w-full"
+                :rows="4"
+                autoresize
+                placeholder="Contoh: Sekolah ini adalah pesantren. Sebut orang tua dengan Murobbi. Kurikulum mengutamakan tahfidz..."
+              />
+              <p class="mt-1 text-xs text-gray-500">
+                Konteks ini akan disertakan ke AI setiap kali melakukan analisis agar bahasanya sesuai dengan lingkungan sekolah Anda.
+              </p>
             </div>
           </div>
         </div>

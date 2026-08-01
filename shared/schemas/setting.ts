@@ -6,6 +6,9 @@ export const updateSettingSchema = z.object({
   moodleToken: z.string().trim().nullable().optional(),
   syncEnabled: z.boolean().optional(),
   syncInterval: z.number().int().min(5, 'Interval minimal 5 menit.').optional(),
+  aiEnabled: z.boolean().optional(),
+  geminiApiKey: z.string().trim().nullable().optional(),
+  aiSystemPrompt: z.string().trim().nullable().optional(),
   logo: z.string().nullable().optional()
 })
 

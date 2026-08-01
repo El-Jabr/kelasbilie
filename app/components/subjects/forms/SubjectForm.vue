@@ -36,6 +36,22 @@ const model = defineModel<CreateSubjectSchema>({
       />
     </UFormField>
 
+    <!-- KKM -->
+    <UFormField
+      label="KKM (Kriteria Ketuntasan Minimal)"
+      name="kkm"
+      required
+    >
+      <UInput
+        v-model.number="model.kkm"
+        type="number"
+        min="0"
+        max="100"
+        class="w-full"
+        placeholder="Contoh: 75"
+      />
+    </UFormField>
+
 
   </div>
 </template>

@@ -74,6 +74,14 @@ const columns = [
         >
           Lihat Rekap Nilai
         </UButton>
+        <UButton
+          :to="`/teacher/classes/${teachingId}/ai-analysis`"
+          color="purple"
+          variant="solid"
+          icon="i-lucide-brain-circuit"
+        >
+          Analisis AI
+        </UButton>
       </div>
     </div>
 

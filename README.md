@@ -1,11 +1,11 @@
-# 🏫 KelasBilie — Sistem Manajemen Akademik Sekolah
+# 🏫 KelasBilie — Sistem Manajemen Akademik Sekolah & Pesantren
 
 <p align="center">
   <img src="public/logo.png" alt="KelasBilie" width="120" />
 </p>
 
 <p align="center">
-  Sistem informasi akademik berbasis web untuk manajemen sekolah yang terintegrasi dengan Moodle LMS.
+  Sistem informasi akademik berbasis web untuk manajemen sekolah & pesantren yang terintegrasi dengan Moodle LMS dan Kecerdasan Buatan (Google Gemini AI).
   <br/>
   Dibangun dengan <strong>Nuxt 4</strong>, <strong>Nuxt UI v4</strong>, <strong>Prisma ORM</strong>, dan <strong>PostgreSQL</strong>.
 </p>
@@ -15,6 +15,7 @@
   <img src="https://img.shields.io/badge/Nuxt_UI-v4-00DC82?logo=nuxt&labelColor=020420" />
   <img src="https://img.shields.io/badge/Prisma-7.x-2D3748?logo=prisma&labelColor=020420" />
   <img src="https://img.shields.io/badge/PostgreSQL-15+-336791?logo=postgresql&labelColor=020420" />
+  <img src="https://img.shields.io/badge/Google_Gemini-AI_Analysis-blue?logo=google" />
   <img src="https://img.shields.io/badge/Moodle-LMS_Integration-orange?logo=moodle" />
 </p>
 
@@ -22,372 +23,86 @@
 
 ## 📌 Tentang Aplikasi
 
-**KelasBilie** adalah sistem manajemen akademik sekolah yang mencakup:
+**KelasBilie** adalah sistem manajemen akademik sekolah dan pesantren modern yang mencakup:
 
-- Manajemen data Master (Guru, Siswa, User)
+- Manajemen Data Master (Guru, Siswa, User) & Penentuan KKM Per Mata Pelajaran
 - Pengelolaan Akademik (Kelas, Semester, Mata Pelajaran, Pembagian Rombel)
-- Input & Rekap Nilai Siswa (PH, STS, SAS, Nilai Akhir)
-- Integrasi penuh dengan **Moodle LMS** (sinkronisasi user, kursus, dan nilai)
-- Portal khusus per peran: **Super Admin**, **Admin**, **Guru**, **Siswa**
+- Engine Penilaian Akademik (PH, STS, SAS, Nilai Akhir) dengan Kalkulasi Otomatis
+- Integrasi Penuh **Moodle LMS** (sinkronisasi user, auto-enrollment kursus, dan pembacaan nilai otomatis)
+- **Integrasi AI Gemini** untuk Analisis Performa Siswa & Kelas dengan Konteks Khusus Sekolah/Pesantren (misal: penyesuaian istilah *Murobbi*, *Tahfidz*, *Muthala'ah*)
+- Suite **Unit Testing Komprehensif (Vitest)** untuk seluruh API backend (57 test scenario)
 
 ---
 
-## 🔑 Peran & Akses
+## 👥 Alur Kerja Aplikasi Berdasarkan Peran (Role Workflow)
 
-| Peran | Akses |
-|---|---|
-| **SUPER_ADMIN** | Akses penuh ke semua modul & pengaturan sistem |
-| **ADMIN** | Master data, Akademik, Nilai — tanpa akses Settings & Moodle Sinkronisasi |
-| **TEACHER** | Dashboard Guru, input nilai kelasnya, wali kelas |
-| **STUDENT** | Portal siswa, lihat nilai, lihat informasi kelas |
+Aplikasi KelasBilie membedakan hak akses dan alur kerja pengguna ke dalam 4 peran (*role*):
 
----
+### 1. 🛡️ Super Admin (`SUPER_ADMIN`)
+*Role puncak dengan wewenang penuh atas seluruh konfigurasi dan data aplikasi.*
+- **Pengaturan Sistem & AI (`/settings`)**: Mengatur nama sekolah, koneksi REST API Moodle (URL & Token), serta mengaktifkan Integrasi AI Gemini (API Key & System Prompt Konteks Sekolah/Pesantren).
+- **Integrasi & Sinkronisasi Moodle (`/super-admin/moodle/sinkronisasi`)**:
+  - Mengekspor data akun Guru & Siswa ke Moodle secara otomatis.
+  - Melakukan sinkronisasi nilai siswa dari Moodle ke database lokal.
+  - Mengelola **Dual Mode Password Moodle Siswa** (*Mode Harian* vs *Mode Ujian STS/SAS*) dan mengunduh CSV kredensial ujian.
+- **Manajemen Data Master & Akademik**: Menambah, mengedit, dan menghapus data User, Guru, Siswa, Tahun Ajaran, Semester, Kelas, Mata Pelajaran (termasuk nilai **KKM**), serta Pembagian Rombel Siswa (*drag-and-drop*).
+- **Analisis AI Khusus (`/super-admin/ai`)**: Menjalankan analisis performa belajar kelas dan siswa berbasis AI Gemini.
 
-## 🏗️ Modul & Fitur Lengkap
+### 2. 👔 Admin (`ADMIN`)
+*Role manajerial akademik untuk mendukung operasional sekolah tanpa akses konfigurasi kritis.*
+- **Kelola Data Master**: Menambah dan mengupdate data Guru, Siswa, dan User.
+- **Kelola Akademik**: Menentukan Kelas, Mata Pelajaran & Nilai KKM, Pembagian Rombel Siswa, dan Penugasan Wali Kelas.
+- **Inspeksi Nilai (`/super-admin/moodle/nilai`)**: Memantau rekapitulasi nilai seluruh kelas dan detail komponen nilai per mata pelajaran.
+- **Analisis AI**: Mengakses fitur Analisis AI untuk siswa dan kelas.
+- *Batasan*: Tidak dapat mengubah kredensial koneksi Moodle atau System Prompt di menu Settings.
 
-### 🔐 Autentikasi
-- Login dengan Email + Password (JWT-based, HTTPOnly cookie)
-- Role-based access control (RBAC) — middleware `auth` + `role` di setiap halaman
-- Logout dengan konfirmasi modal
+### 3. 👨‍🏫 Guru (`TEACHER`)
+*Portal khusus pendidik (`/teacher`) untuk mengelola kelas mengajar dan input penilaian.*
+- **Daftar Kelas Mengajar (`/teacher/classes`)**: Melihat daftar kelas dan mata pelajaran yang diampu pada semester aktif.
+- **Input & Pengelolaan Nilai (`/teacher/classes/[id]/grades`)**:
+  - Menginput nilai Penilaian Harian (PH 1, PH 2, PH 3, dst.) dan menambah item penilaian harian baru.
+  - Menginput nilai Sumatif Tengah Semester (STS) dan Sumatif Akhir Semester (SAS).
+  - Melihat *badge* referensi nilai Moodle asli (`Moodle: [skor]`).
+  - Sistem menghitung otomatis Nilai Akhir dengan formula: `(50% × Rata-rata PH) + (25% × STS) + (25% × SAS)`.
+- **Portal Wali Kelas (`/teacher/homeroom`)**: Guru yang ditugaskan sebagai Wali Kelas dapat memantau rekap nilai seluruh mata pelajaran santri/siswa di kelas binaannya.
+- **Analisis AI Kelas/Siswa**: Menjalankan analisis AI Gemini khusus untuk siswa dan kelas yang diampunya.
 
----
-
-### 🧑‍💼 Super Admin / Admin Panel (`/super-admin`)
-
-#### Master Data
-- **Kelola User** (`/master/users`) — Tambah, edit, hapus user sistem; reset password; set role
-- **Kelola Guru** (`/master/guru`) — CRUD data guru dengan NIP, mata pelajaran, import CSV bulk
-- **Kelola Siswa** (`/master/siswa`) — CRUD data siswa dengan NIS, kelas, import CSV bulk
-
-#### Akademik
-- **Tahun Ajaran** (`/akademik/tahun-ajaran`) — CRUD Tahun Ajaran (contoh: 2024/2025)
-- **Semester** (`/akademik/semester`) — CRUD Semester (Ganjil/Genap), set semester aktif
-- **Kelas** (`/akademik/kelas`) — CRUD Kelas/Rombel (nama, tingkat, ruang)
-- **Mata Pelajaran** (`/akademik/mata-pelajaran`) — CRUD Mata Pelajaran dengan kode mapel
-- **Penugasan Mengajar** (`/akademik/teaching-assignments`) — Assign guru ke kelas + mapel + course Moodle
-- **Wali Kelas** (`/akademik/homerooms`) — Assign guru sebagai wali kelas per semester
-- **Pembagian Kelas Siswa** (`/akademik/pembagian-kelas`) — Drag-and-drop transfer siswa ke rombel kelas via panel ganda (Transfer List), dengan filter semester + kelas target
-
-#### Nilai & Moodle
-- **Inspeksi Nilai Per Kelas** (`/moodle/nilai`) — Lihat rekap nilai semua siswa per kelas & mapel dalam dua mode:
-  - *Mode CLASSROOM_OVERVIEW* — semua nilai akhir seluruh mapel dalam satu tabel
-  - *Mode SUBJECT_DETAIL* — detail PH 1, PH 2, PH 3, ..., Rata-rata PH (50%), STS (25%), SAS (25%), Nilai Akhir
-- **Course Moodle** (`/moodle/course`) — Lihat daftar kursus Moodle yang terhubung ke penugasan mengajar
-- **Sinkronisasi Moodle** (`/moodle/sinkronisasi`) *(Super Admin only)*:
-  - Ekspor user aplikasi (Guru & Siswa) ke Moodle sekaligus auto-enroll ke course
-  - Sinkronisasi nilai siswa dari Moodle ke database lokal
-  - **Mode Password Siswa Moodle**:
-    - *Mode Harian*: password = `Bilie#` + NIS (contoh: `Bilie#20240001`)
-    - *Mode Ujian STS/SAS*: password = `Bilie#` + 6 angka acak (contoh: `Bilie#892301`)
-  - Download CSV kredensial Moodle siswa (NIS, Nama, Kelas, Username, Password)
-
-#### Monitoring
-- **Activity Log** (`/monitoring/activity-log`) — Log semua aktivitas sinkronisasi & perubahan data sistem
-
-#### Settings
-- **Pengaturan Sistem** (`/settings`) — Konfigurasi nama sekolah, koneksi Moodle (URL + Token API), dan pengaturan global
+### 4. 🎓 Siswa / Santri (`STUDENT`)
+*Portal mandiri siswa (`/student`) untuk transparansi hasil akademik.*
+- **Dashboard Siswa**: Informasi kelas, wali kelas, semester aktif, dan statistik pribadi.
+- **Lihat Nilai Akademik (`/student/grades`)**: Transparansi rekapitulasi nilai per mata pelajaran, rincian PH, STS, SAS, status KKM, serta Nilai Akhir.
+- **Profil Siswa**: Informasi data diri dan akun.
 
 ---
 
-### 👨‍🏫 Portal Guru (`/teacher`)
+## 🎯 Aturan Pembuatan Kursus & Quiz Moodle Agar Sinkronisasi Mulus
 
-- **Dashboard Guru** — Ringkasan tugas mengajar, info semester aktif, statistik kelas
-- **Daftar Kelas Mengajar** (`/teacher/classes`) — Semua kelas yang diajar guru pada semester aktif
-- **Detail Kelas** (`/teacher/classes/[id]`) — Daftar siswa di kelas, ringkasan nilai
-- **Input Nilai Siswa** (`/teacher/classes/[id]/grades`) — Tabel Inspeksi Nilai lengkap:
-  - Input nilai PH 1, PH 2, PH 3 (dinamis)
-  - Tambah item PH manual baru (➕ Tambah Item PH)
-  - Input nilai STS dan SAS
-  - Nilai Akhir dihitung otomatis: `(50% × Avg PH) + (25% × STS) + (25% × SAS)`
-  - Badge referensi `Moodle: [skor]` untuk nilai asli dari Moodle
-  - Simpan nilai dengan satu klik
-- **Wali Kelas** (`/teacher/homeroom`) — Guru wali kelas melihat daftar seluruh siswa di kelasnya
-- **Profil Guru** (`/teacher/profile`) — Lihat & edit data profil pribadi
+Agar proses sinkronisasi nilai dari **Moodle LMS** ke **KelasBilie** berjalan lancar tanpa kendala, ikuti aturan standar pembuatan kursus (*Course*) dan kuis (*Quiz*) di Moodle berikut:
 
----
+### 1. 📌 Aturan Pemetaan Kursus (Course Mapping Rules)
+1. **Penyamaan ID Course**: Setiap kursus yang dibuat di Moodle harus dihubungkan ke **Penugasan Mengajar (Teaching Assignment)** di KelasBilie melalui menu `/super-admin/akademik/teaching-assignments`.
+2. **Auto-Enrollment**: Pastikan siswa telah diekspor dari KelasBilie via menu `/super-admin/moodle/sinkronisasi` agar Moodle ID dan username siswa terhubung sempurna.
 
-### 🎓 Portal Siswa (`/student`)
+### 2. 📝 Aturan Penamaan Quiz & Grade Items di Moodle
+KelasBilie secara otomatis mengelompokkan nilai dari Moodle ke dalam 3 kategori utama: **PH**, **STS**, dan **SAS**. Ikuti konvensi penamaan judul Quiz/Activity di Moodle berikut:
 
-- **Dashboard Siswa** — Info kelas, wali kelas, semester, ringkasan informasi akademik
-- **Nilai Akademik** (`/student/grades`) — Lihat nilai per mata pelajaran, breakdown PH/STS/SAS, dan nilai akhir
-- **Profil Siswa** (`/student/profile`) — Lihat data diri & informasi kelas
+| Kategori Nilai | Kata Kunci Penamaan di Moodle (Case-Insensitive) | Contoh Judul Quiz di Moodle |
+|---|---|---|
+| **Penilaian Harian (PH)** | Harus mengandung kata: `PH`, `Tugas`, `Kuis`, `Daily`, atau `Assignment` | - `PH 1 Bab Al-Qur'an`<br/>- `Tugas 2 Fiqih`<br/>- `Kuis Harian 3` |
+| **Sumatif Tengah Semester (STS)** | Harus mengandung kata: `STS`, `UTS`, atau `Midterm` | - `STS IPA Kelas 8`<br/>- `UTS Matematika Semester Ganjil` |
+| **Sumatif Akhir Semester (SAS)** | Harus mengandung kata: `SAS`, `UAS`, atau `Final` | - `SAS Bahasa Arab Semester Ganjil`<br/>- `UAS IPA Kelas 8` |
 
----
+> [!TIP]
+> **Catatan Pengolahan Nilai PH:**  
+> Jika dalam satu kursus Moodle terdapat beberapa kuis PH (misal: PH 1, PH 2, PH 3), KelasBilie akan secara otomatis menghitung **Rata-Rata PH** sebelum dimasukkan ke dalam bobot 50% Nilai Akhir.
 
-## 🔗 Integrasi Moodle LMS
-
-KelasBilie mendukung integrasi Moodle melalui **REST API Moodle** dengan token autentikasi.
-
-### Fungsi yang Didukung
-
-| Fungsi | Moodle WS Function |
-|---|---|
-| Buat User Baru | `core_user_create_users` |
-| Update User | `core_user_update_users` |
-| Cari User | `core_user_get_users_by_field` |
-| Enroll ke Course | `enrol_manual_enrol_users` |
-| Ambil Daftar Course | `core_course_get_courses` |
-| Ambil Nilai dari Moodle | `gradereport_user_get_grade_items` |
-
-### Alur Sinkronisasi Nilai
-
-1. Nilai siswa di Moodle dibaca per grade item dalam setiap course
-2. Grade item dipetakan ke `GradeItem` (PH/STS/SAS) berdasarkan `cmid` / nama
-3. Nilai disimpan di `GradeComponent` dengan `moodleScore` (nilai asli) dan `score` (nilai aktif)
-4. Nilai akhir dikalkulasi ulang: `(50% × Avg PH) + (25% × STS) + (25% × SAS)`
+### 3. ⚙️ Pengaturan Grade Setting di Moodle
+- **Skala Nilai**: Pastikan nilai maksimal (*Grade Range*) pada kuis Moodle disetel ke rentang **0 - 100**.
+- **Grading Method**: Gunakan metode penilaian standar (*Highest Grade* atau *Last Attempt*).
 
 ---
 
-## 🚀 Instalasi & Setup
-
-### Prasyarat
-
-- Node.js ≥ 18
-- pnpm ≥ 11
-- PostgreSQL ≥ 15
-- (Opsional) Moodle LMS dengan REST API aktif
-
-### 1. Clone & Install
-
-```bash
-git clone https://github.com/your-org/kelasbilie.git
-cd kelasbilie
-pnpm install
-```
-
-### 2. Konfigurasi Environment
-
-Salin file contoh dan isi variabel yang diperlukan:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
-
-```env
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/kelasbilie"
-JWT_SECRET=your_jwt_secret_min_32_chars_here
-NUXT_PUBLIC_SITE_URL=https://your-domain.com
-
-# Moodle (opsional, isi jika menggunakan integrasi Moodle)
-MOODLE_URL=https://moodle.your-school.com
-MOODLE_TOKEN=your_moodle_rest_api_token
-```
-
-### 3. Setup Database
-
-```bash
-# Generate Prisma Client
-npx prisma generate
-
-# Push schema ke database (development)
-npx prisma db push
-
-# Atau jalankan migration (production)
-npx prisma migrate deploy
-```
-
-### 4. Buat Akun Super Admin
-
-```bash
-pnpm db:superadmin
-```
-
-Script akan meminta email, nama lengkap, dan password untuk akun Super Admin pertama.
-
-### 5. Jalankan Development Server
-
-```bash
-pnpm dev
-```
-
-Aplikasi akan berjalan di `http://localhost:3000`.
-
----
-
-## 🏭 Deployment Produksi
-
-### Build Produksi
-
-```bash
-pnpm build
-```
-
-Output tersedia di folder `.output/`.
-
-### Preview Build
-
-```bash
-pnpm preview
-```
-
-### Deploy ke Server (Node.js)
-
-Setelah `pnpm build`, jalankan:
-
-```bash
-node .output/server/index.mjs
-```
-
-Atau gunakan PM2 untuk manajemen proses:
-
-```bash
-pm2 start .output/server/index.mjs --name kelasbilie
-pm2 save
-pm2 startup
-```
-
-### Deploy ke Docker
-
-Buat `Dockerfile`:
-
-```dockerfile
-FROM node:20-alpine
-
-WORKDIR /app
-COPY .output/ .output/
-COPY .env .env
-
-EXPOSE 3000
-ENV HOST=0.0.0.0 PORT=3000
-
-CMD ["node", ".output/server/index.mjs"]
-```
-
-```bash
-docker build -t kelasbilie .
-docker run -p 3000:3000 --env-file .env kelasbilie
-```
-
-### Konfigurasi Nginx (Reverse Proxy)
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
----
-
-## 📜 Script NPM
-
-| Perintah | Fungsi |
-|---|---|
-| `pnpm dev` | Jalankan development server (hot reload) |
-| `pnpm build` | Build untuk produksi |
-| `pnpm preview` | Preview build produksi secara lokal |
-| `pnpm typecheck` | Periksa type TypeScript (`nuxt typecheck`) |
-| `pnpm lint` | Linting kode dengan ESLint |
-| `pnpm db:superadmin` | Buat akun Super Admin pertama |
-| `pnpm db:test` | Uji koneksi database |
-| `npx prisma studio` | Buka Prisma Studio (GUI database) |
-| `npx prisma db push` | Sync schema Prisma ke database (dev) |
-| `npx prisma migrate deploy` | Terapkan migration (production) |
-
----
-
-## 🗂️ Struktur Proyek
-
-```
-kelasbilie/
-├── app/
-│   ├── components/         # Komponen Vue reusable
-│   │   ├── AdminSidebar.vue   # Sidebar panel admin/super-admin
-│   │   ├── TeacherSidebar.vue # Sidebar portal guru
-│   │   ├── StudentSidebar.vue # Sidebar portal siswa
-│   │   ├── AppHeader.vue      # Header landing page (publik)
-│   │   ├── AppFooter.vue      # Footer landing page (publik)
-│   │   └── modal/             # Modal-modal reusable (Logout, dll)
-│   ├── layouts/
-│   │   ├── admin.vue      # Layout sidebar Super Admin & Admin
-│   │   ├── teacher.vue    # Layout sidebar Guru
-│   │   ├── student.vue    # Layout sidebar Siswa
-│   │   ├── auth.vue       # Layout halaman login
-│   │   └── default.vue    # Layout publik (landing page)
-│   ├── pages/
-│   │   ├── index.vue          # Landing page publik
-│   │   ├── login.vue          # Halaman login
-│   │   ├── super-admin/       # Panel Super Admin & Admin
-│   │   ├── teacher/           # Portal Guru
-│   │   └── student/           # Portal Siswa
-│   ├── middleware/            # Auth & Role middleware
-│   └── stores/                # Pinia stores (authStore)
-├── server/
-│   ├── api/               # REST API endpoints (Nitro)
-│   │   ├── auth/          # Login, Logout, Me
-│   │   ├── users/         # CRUD Users
-│   │   ├── teachers/      # CRUD Guru
-│   │   ├── students/      # CRUD Siswa + export CSV
-│   │   ├── classes/       # CRUD Kelas
-│   │   ├── semesters/     # CRUD Semester
-│   │   ├── subjects/      # CRUD Mata Pelajaran
-│   │   ├── academic-years/# CRUD Tahun Ajaran
-│   │   ├── teaching-assignments/ # Penugasan Mengajar
-│   │   ├── student-classes/      # Pembagian Rombel
-│   │   ├── homerooms/     # Wali Kelas
-│   │   ├── grades/        # Nilai (GradeItem, GradeComponent, Inspection)
-│   │   ├── moodle/        # Integrasi Moodle (sync, export, password)
-│   │   ├── settings/      # Pengaturan Sistem
-│   │   └── dashboard/     # Data dashboard summary
-│   └── utils/
-│       ├── auth.ts        # JWT & auth utilities
-│       ├── db.ts          # Prisma client instance
-│       └── moodle.ts      # Moodle REST API service
-├── prisma/
-│   ├── schema.prisma      # Definisi schema database
-│   └── migrations/        # Migration files
-├── scripts/
-│   ├── create-super-admin.ts  # Script buat akun super admin
-│   └── test-database.ts       # Script uji koneksi DB
-├── content/               # Konten landing page (Nuxt Content)
-├── public/                # Aset statis (logo, favicon, dll)
-├── .env.example           # Template environment variables
-├── nuxt.config.ts         # Konfigurasi Nuxt
-├── package.json
-└── README.md
-```
-
----
-
-## 🔒 Keamanan
-
-- Autentikasi menggunakan **JWT** yang disimpan di **HTTPOnly Cookie** (aman dari XSS)
-- Password di-hash dengan **bcryptjs**
-- Setiap endpoint API dilindungi dengan `requireRole()` — role checking server-side
-- CORS dikonfigurasi pada level Nuxt server
-
----
-
-## 📦 Tech Stack
-
-| Layer | Teknologi |
-|---|---|
-| **Frontend** | Nuxt 4, Vue 3, Nuxt UI v4, TailwindCSS 4 |
-| **Backend** | Nitro (Nuxt server), REST API |
-| **Database** | PostgreSQL + Prisma ORM |
-| **Autentikasi** | JWT (HTTPOnly Cookie) + bcryptjs |
-| **State Management** | Pinia |
-| **Integrasi LMS** | Moodle REST API |
-| **Icons** | Lucide Icons, Simple Icons |
-| **Package Manager** | pnpm |
-
----
-
-## 🧩 Formula Nilai Akhir
+## 🧩 Formula Penilaian Akhir
 
 Sistem menggunakan formula penilaian baku:
 
@@ -395,43 +110,63 @@ Sistem menggunakan formula penilaian baku:
 Nilai Akhir = (50% × Rata-rata PH) + (25% × STS) + (25% × SAS)
 ```
 
-- **PH** (Penilaian Harian) — Bisa lebih dari satu, diambil rata-ratanya
-- **STS** (Sumatif Tengah Semester) — Satu nilai per semester
-- **SAS** (Sumatif Akhir Semester) — Satu nilai per semester
-- Semua nilai dibulatkan ke bilangan bulat terdekat
+- **PH** (Penilaian Harian) — Diambil rata-ratanya dari seluruh item PH
+- **STS** (Sumatif Tengah Semester) — Bobot 25%
+- **SAS** (Sumatif Akhir Semester) — Bobot 25%
+- Seluruh kalkulasi dibulatkan ke bilangan bulat terdekat
 
 ---
 
-## 📱 Akses Moodle Siswa (Dual Mode Password)
+## 📱 Dual Mode Password Moodle Siswa
 
-Sebelum ujian STS/SAS, admin dapat mengganti mode password Moodle siswa:
+Untuk mendukung pelaksanaan ujian berbasis komputer yang aman, KelasBilie menyediakan fitur **Dual Mode Password**:
 
-| Mode | Format Password | Contoh |
-|---|---|---|
-| **Harian** | `Bilie#` + NIS | `Bilie#20240001` |
-| **Ujian STS/SAS** | `Bilie#` + 6 angka acak | `Bilie#892301` |
+| Mode | Format Password | Contoh | Tujuan |
+|---|---|---|---|
+| **Mode Harian** | `Bilie#` + NIS | `Bilie#20240001` | Digunakan untuk pembelajaran dan kuis harian |
+| **Mode Ujian STS/SAS** | `Bilie#` + 6 angka acak | `Bilie#892301` | Mencegah kecurangan / kebocoran login saat ujian resmi |
 
-Setelah ujian selesai, password dikembalikan ke mode Harian.  
-Daftar username & password bisa diunduh sebagai file **CSV** untuk dibagikan ke siswa.
-
----
-
-## 🤝 Kontribusi
-
-1. Fork repository ini
-2. Buat branch fitur: `git checkout -b feature/nama-fitur`
-3. Commit perubahan: `git commit -m 'feat: tambah fitur X'`
-4. Push ke branch: `git push origin feature/nama-fitur`
-5. Buat Pull Request
+*Admin dapat mengunduh daftar username & password mode ujian dalam bentuk file **CSV** untuk dibagikan saat pelaksanaan ujian.*
 
 ---
 
-## 📄 Lisensi
+## 🧪 Unit Testing
 
-[MIT License](LICENSE) — Bebas digunakan untuk keperluan pendidikan.
+KelasBilie dilengkapi dengan suite pengujian unit berbasis **Vitest**:
+
+```bash
+# Jalankan seluruh unit test (57 scenario)
+npm test
+```
+
+Test suite mencakup:
+- Autentikasi JWT & Role Access Control
+- CRUD Master Data & Akademik (Tahun Ajaran, Semester, Kelas, Siswa, Guru, Mapel & KKM)
+- Engine Penilaian & Kalkulasi Rata-rata
+- Integrasi AI Gemini (Siswa, Kelas, Mapel, & System Prompt)
+- Integrasi Moodle REST API & Export Kredensial
+
+---
+
+## 🚀 Instalasi & Run
+
+```bash
+# Install dependencies
+pnpm install
+
+# Setup env & DB
+cp .env.example .env
+npx prisma db push
+
+# Buat Super Admin pertama
+pnpm db:superadmin
+
+# Jalankan dev server
+pnpm dev
+```
 
 ---
 
 <p align="center">
-  Made with ❤️ for Indonesian Schools
+  Made with ❤️ for Indonesian Schools & Pesantren
 </p>

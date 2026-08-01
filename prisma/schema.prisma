@@ -133,6 +133,7 @@ model Subject {
   id        String               @id @default(uuid())
   code      String               @unique
   name      String
+  kkm       Int                  @default(70)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -279,6 +280,11 @@ model SchoolSetting {
   syncEnabled  Boolean @default(true)
   syncInterval Int     @default(30) // menit
 
+  // Integrasi AI
+  aiEnabled       Boolean @default(false)
+  geminiApiKey    String? @db.Text
+  aiSystemPrompt  String? @db.Text
+
   logo      String?
   updatedAt DateTime @updatedAt
 }
@@ -289,4 +295,18 @@ model SyncLog {
   status   String
   message  String?
   syncedAt DateTime @default(now())
+}
+
+model AiAnalysisCache {
+  id          String   @id @default(uuid())
+  type        String   // 'class' | 'student' | 'subject'
+  refId       String
+  semesterId  String?
+  dataHash    String   // deteksi perubahan data
+  result      String   @db.Text
+  generatedAt DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([type, refId])
+  @@index([expiresAt])
 }

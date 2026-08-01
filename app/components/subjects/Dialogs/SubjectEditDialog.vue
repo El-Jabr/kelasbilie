@@ -18,6 +18,7 @@ const {
 const form = reactive<CreateSubjectSchema>({
   code: '',
   name: '',
+  kkm: 75,
   classroomId: undefined
 })
 
@@ -33,6 +34,7 @@ watch(
     Object.assign(form, {
       code: selectedSubject.value.code || '',
       name: selectedSubject.value.name || '',
+      kkm: selectedSubject.value.kkm ?? 75,
       classroomId: firstTeaching?.classroomId || undefined
     })
   },
@@ -45,6 +47,7 @@ async function save() {
   await updateSubject({
     code: form.code.trim(),
     name: form.name.trim(),
+    kkm: form.kkm || 75,
     classroomId: form.classroomId || undefined
   })
 }

@@ -13,6 +13,12 @@ export const subjectSchema = z.object({
     .trim()
     .min(1, 'Nama mata pelajaran wajib diisi.'),
 
+  kkm: z
+    .number()
+    .min(0, 'KKM tidak boleh kurang dari 0')
+    .max(100, 'KKM tidak boleh lebih dari 100')
+    .default(70),
+
   classroomId: z.string().optional().nullable()
 })
 

@@ -17,6 +17,7 @@ const {
 const form = reactive<CreateSubjectSchema>({
   code: '',
   name: '',
+  kkm: 75,
   classroomId: undefined
 })
 
@@ -25,6 +26,7 @@ watch(createDialogOpen, (open) => {
     Object.assign(form, {
       code: '',
       name: '',
+      kkm: 75,
       classroomId: undefined
     })
   }
@@ -34,6 +36,7 @@ async function save() {
   await createSubject({
     code: form.code.trim(),
     name: form.name.trim(),
+    kkm: form.kkm || 75,
     classroomId: form.classroomId || undefined
   })
 }

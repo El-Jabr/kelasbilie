@@ -190,12 +190,36 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Trigger auto-calculate GradeSummary for TeachingAssignments linked to this course
     const teachings = await prisma.teachingAssignment.findMany({
       where: { courseId: courseId }
     })
     for (const teaching of teachings) {
       await calculateGradeSummary(teaching.id, teaching.semesterId)
+      
+      // Invalidate AI Analysis Cache
+      await prisma.aiAnalysisCache.deleteMany({
+        where: {
+          OR: [
+            { type: 'class', refId: teaching.classroomId, semesterId: teaching.semesterId },
+            { type: 'subject', refId: teaching.id, semesterId: teaching.semesterId }
+            // Note: student cache is also invalidated below
+          ]
+        }
+      })
+    }
+    
+    // Invalidate AI student caches for all students in this course
+    if (gradeReport && gradeReport.usergrades) {
+      for (const uGrade of gradeReport.usergrades) {
+        if (uGrade.courseid !== courseId) continue
+        const localUser = await findOrLinkLocalUser({ id: uGrade.userid })
+        const studentId = localUser?.student?.id
+        if (studentId) {
+          await prisma.aiAnalysisCache.deleteMany({
+            where: { type: 'student', refId: studentId }
+          })
+        }
+      }
     }
 
     const durationMs = Date.now() - startTime

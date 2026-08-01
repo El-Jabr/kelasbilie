@@ -21,12 +21,14 @@ export default defineEventHandler(async (event) => {
       where: { id },
       data: {
         ...(body.code !== undefined && { code: body.code.trim() }),
-        ...(body.name !== undefined && { name: body.name.trim() })
+        ...(body.name !== undefined && { name: body.name.trim() }),
+        ...(body.kkm !== undefined && { kkm: body.kkm })
       },
       select: {
         id: true,
         code: true,
-        name: true
+        name: true,
+        kkm: true
       }
     })
 

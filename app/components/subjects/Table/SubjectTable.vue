@@ -16,6 +16,10 @@ const columns: TableColumn<any>[] = [
     header: 'Nama Mata Pelajaran'
   },
   {
+    accessorKey: 'kkm',
+    header: 'KKM'
+  },
+  {
     id: 'classroom',
     header: 'Kelas'
   },
@@ -39,7 +43,7 @@ const columns: TableColumn<any>[] = [
     >
       <!-- Kode -->
       <template #code-cell="{ row }">
-        <UBadge color="primary" variant="subtle" size="xs" class="font-mono font-bold">
+        <UBadge color="primary" variant="subtle" size="md" class="font-mono font-bold">
           {{ row.original.code }}
         </UBadge>
       </template>
@@ -51,6 +55,13 @@ const columns: TableColumn<any>[] = [
         </span>
       </template>
 
+      <!-- KKM -->
+      <template #kkm-cell="{ row }">
+        <UBadge color="warning" variant="subtle" size="md" class="font-bold">
+          {{ row.original.kkm || 75 }}
+        </UBadge>
+      </template>
+
       <!-- Kelas (Classroom) -->
       <template #classroom-cell="{ row }">
         <div v-if="row.original.teachings?.length" class="flex flex-wrap gap-1">
@@ -59,7 +70,8 @@ const columns: TableColumn<any>[] = [
             :key="t.id"
             color="neutral"
             variant="soft"
-            size="xs"
+            size="md"
+            class="font-medium"
           >
             {{ t.classroom?.name || 'Kelas' }}
           </UBadge>

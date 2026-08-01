@@ -33,6 +33,7 @@ const navItems = computed<NavigationMenuItem[]>(() => {
     const isMasterActive = route.path.startsWith('/super-admin/master')
     const isAkademikActive = route.path.startsWith('/super-admin/akademik')
     const isMoodleActive = route.path.startsWith('/super-admin/moodle')
+    const isAiActive = route.path.startsWith('/super-admin/ai')
     const isMonitoringActive = route.path.startsWith('/super-admin/monitoring')
 
     const masterChildren = []
@@ -162,6 +163,27 @@ const navItems = computed<NavigationMenuItem[]>(() => {
         icon: 'i-lucide-graduation-cap',
         to: '/teacher',
         active: route.path.startsWith('/teacher')
+      },
+      {
+        label: 'Analisis AI',
+        icon: 'i-lucide-brain-circuit',
+        active: isAiActive,
+        defaultOpen: isAiActive,
+        open: isAiActive,
+        children: [
+          {
+            label: 'Analisis Kelas',
+            icon: 'i-lucide-users',
+            to: '/super-admin/ai/analisis-kelas',
+            active: route.path.startsWith('/super-admin/ai/analisis-kelas')
+          },
+          {
+            label: 'Analisis Siswa',
+            icon: 'i-lucide-user-check',
+            to: '/super-admin/ai/analisis-siswa',
+            active: route.path.startsWith('/super-admin/ai/analisis-siswa')
+          }
+        ]
       }
     ]
 

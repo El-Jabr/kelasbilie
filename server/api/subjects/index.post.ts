@@ -11,12 +11,14 @@ export default defineEventHandler(async (event) => {
     const subject = await prisma.subject.create({
       data: {
         code: body.code.trim(),
-        name: body.name.trim()
+        name: body.name.trim(),
+        kkm: body.kkm
       },
       select: {
         id: true,
         code: true,
-        name: true
+        name: true,
+        kkm: true
       }
     })
 

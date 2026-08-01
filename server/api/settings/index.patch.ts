@@ -27,6 +27,9 @@ export default defineEventHandler(async (event) => {
           moodleToken: parsed.data.moodleToken || null,
           syncEnabled: parsed.data.syncEnabled ?? true,
           syncInterval: parsed.data.syncInterval ?? 30,
+          aiEnabled: parsed.data.aiEnabled ?? false,
+          geminiApiKey: parsed.data.geminiApiKey || null,
+          aiSystemPrompt: parsed.data.aiSystemPrompt || null,
           logo: parsed.data.logo || null
         }
       })
@@ -39,6 +42,9 @@ export default defineEventHandler(async (event) => {
           ...(parsed.data.moodleToken !== undefined && { moodleToken: parsed.data.moodleToken || null }),
           ...(parsed.data.syncEnabled !== undefined && { syncEnabled: parsed.data.syncEnabled }),
           ...(parsed.data.syncInterval !== undefined && { syncInterval: parsed.data.syncInterval }),
+          ...(parsed.data.aiEnabled !== undefined && { aiEnabled: parsed.data.aiEnabled }),
+          ...(parsed.data.geminiApiKey !== undefined && { geminiApiKey: parsed.data.geminiApiKey || null }),
+          ...(parsed.data.aiSystemPrompt !== undefined && { aiSystemPrompt: parsed.data.aiSystemPrompt || null }),
           ...(parsed.data.logo !== undefined && { logo: parsed.data.logo || null })
         }
       })
