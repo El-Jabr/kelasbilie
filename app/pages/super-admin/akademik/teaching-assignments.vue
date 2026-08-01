@@ -32,6 +32,7 @@ onMounted(() => {
         icon="i-lucide-plus"
         color="primary"
         @click="openCreateDialog"
+        class="items-center justify-center"
       >
         Tambah Penugasan
       </UButton>

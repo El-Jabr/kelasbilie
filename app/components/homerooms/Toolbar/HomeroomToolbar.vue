@@ -2,7 +2,8 @@
 const {
   loading,
   search,
-  refresh
+  refresh,
+  resetFilter
 } = useHomerooms()
 
 const { openCreateDialog } = useHomeroomDialogs()
@@ -10,9 +11,9 @@ const { openCreateDialog } = useHomeroomDialogs()
 
 <template>
   <UCard :ui="{ body: 'p-4 sm:p-5' }">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <!-- Search Input -->
-      <div class="w-full sm:w-80">
+      <div class="w-full lg:w-80">
         <UInput
           v-model="search"
           icon="i-lucide-search"
@@ -23,7 +24,7 @@ const { openCreateDialog } = useHomeroomDialogs()
       </div>
 
       <!-- Action Buttons -->
-      <div class="flex items-center gap-2 justify-end w-full sm:w-auto">
+      <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
         <UButton
           color="neutral"
           variant="subtle"
@@ -37,10 +38,22 @@ const { openCreateDialog } = useHomeroomDialogs()
         </UButton>
 
         <UButton
+          v-if="search"
+          color="neutral"
+          variant="subtle"
+          icon="i-lucide-filter-x"
+          size="md"
+          class="flex-1 sm:flex-initial justify-center"
+          @click="resetFilter"
+        >
+          Reset Filter
+        </UButton>
+
+        <UButton
           color="primary"
           icon="i-lucide-plus"
           size="md"
-          class="flex-1 sm:flex-initial justify-center"
+          class="w-full sm:w-auto justify-center font-semibold"
           @click="openCreateDialog"
         >
           Assign Wali Kelas

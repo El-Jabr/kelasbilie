@@ -8,16 +8,6 @@ const {
 
 <template>
   <div class="flex items-center justify-between">
-    <div class="text-sm text-muted">
-      Menampilkan
-      {{ (pagination.page - 1) * pagination.limit + 1 }}
-      -
-      {{ Math.min(pagination.page * pagination.limit, pagination.total) }}
-      dari
-      {{ pagination.total }}
-      data
-    </div>
-
     <div class="flex items-center gap-4">
       <USelect
         :model-value="pagination.limit"
