@@ -6,6 +6,42 @@ const { deleteTeachingAssignment } = useTeachingAssignmentActions()
 
 const syncingCourseId = ref<number | null>(null)
 
+const search = ref('')
+const page = ref(1)
+const pageCount = ref(10)
+
+const columns: any[] = [
+  { key: 'teacher', label: 'Guru', sortable: true },
+  { key: 'subject', label: 'Mata Pelajaran', sortable: true },
+  { key: 'classroom', label: 'Kelas', sortable: true },
+  { key: 'semester', label: 'Semester' },
+  { key: 'course', label: 'Moodle Course' },
+  { key: 'actions', label: 'Aksi', class: 'text-right' }
+]
+
+const filteredRows = computed(() => {
+  let list = teachingAssignments.value
+  if (search.value) {
+    const kw = search.value.toLowerCase()
+    list = list.filter((r: any) => 
+      (r.teacher?.user?.fullname || '').toLowerCase().includes(kw) ||
+      (r.subject?.name || '').toLowerCase().includes(kw) ||
+      (r.classroom?.name || '').toLowerCase().includes(kw)
+    )
+  }
+  return list
+})
+
+const paginatedRows = computed(() => {
+  const start = (page.value - 1) * pageCount.value
+  const end = start + pageCount.value
+  return filteredRows.value.slice(start, end)
+})
+
+watch(search, () => {
+  page.value = 1
+})
+
 import { LazyModalConfirm } from '#components'
 
 const overlay = useOverlay()
@@ -52,6 +88,13 @@ async function syncCourseGrades(courseId: number, subjectName?: string, classNam
 
 <template>
   <UCard>
+    <template #header>
+      <div class="flex justify-between items-center gap-4">
+        <h3 class="font-bold text-gray-900 dark:text-white">Daftar Penugasan</h3>
+        <UInput v-model="search" icon="i-lucide-search" placeholder="Cari guru, mapel, kelas..." class="w-full sm:w-64" size="sm" />
+      </div>
+    </template>
+
     <div v-if="loading" class="py-8 text-center text-sm text-gray-400">
       Memuat data penugasan mengajar...
     </div>
@@ -60,85 +103,94 @@ async function syncCourseGrades(courseId: number, subjectName?: string, classNam
       Belum ada penugasan mengajar. Klik tombol "Tambah Penugasan" untuk membuat baru.
     </div>
 
-    <div v-else class="overflow-x-auto">
-      <table class="w-full text-left text-sm border-collapse">
-        <thead class="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase font-semibold text-gray-500 border-b border-gray-200 dark:border-gray-700">
-          <tr>
-            <th class="py-3 px-4">Guru</th>
-            <th class="py-3 px-4">Mata Pelajaran</th>
-            <th class="py-3 px-4">Kelas</th>
-            <th class="py-3 px-4">Semester</th>
-            <th class="py-3 px-4">Moodle Course</th>
-            <th class="py-3 px-4 text-right">Aksi</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-          <tr v-for="item in teachingAssignments" :key="item.id" class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-            <td class="py-3 px-4 font-medium">
-              {{ item.teacher?.user?.fullname || item.teacherId }}
-            </td>
-            <td class="py-3 px-4">
-              <UBadge color="info" variant="soft" size="xs">
-                {{ item.subject?.name || item.subjectId }}
-              </UBadge>
-            </td>
-            <td class="py-3 px-4">
-              <UBadge color="neutral" variant="soft" size="xs">
-                {{ item.classroom?.name || item.classroomId }}
-              </UBadge>
-            </td>
-            <td class="py-3 px-4 text-xs text-gray-500">
-              {{ item.semester?.type }} ({{ item.semester?.academicYear?.name || '-' }})
-            </td>
-            <td class="py-3 px-4 font-mono text-xs">
-              <span v-if="item.course" class="text-emerald-600 dark:text-emerald-400 font-semibold">
-                {{ item.course.fullname }}
-              </span>
-              <span v-else-if="item.courseId" class="text-gray-600 dark:text-gray-400">
-                ID: {{ item.courseId }}
-              </span>
-              <span v-else class="text-amber-500 italic text-xs">
-                Belum terhubung
-              </span>
-            </td>
-            <td class="py-3 px-4 text-right">
-              <div class="flex items-center justify-end gap-1">
-                <!-- Tombol Sync Nilai Moodle Per Course -->
-                <UButton
-                  v-if="item.courseId"
-                  icon="i-lucide-refresh-cw"
-                  color="success"
-                  variant="soft"
-                  size="xs"
-                  title="Sync Nilai Moodle Mapel Ini"
-                  class="cursor-pointer font-medium"
-                  :loading="syncingCourseId === item.courseId"
-                  @click="syncCourseGrades(item.courseId, item.subject?.name, item.classroom?.name)"
-                >
-                  Sync Nilai
-                </UButton>
+    <div v-else>
+      <UTable
+        :rows="paginatedRows"
+        :columns="columns"
+        :empty-state="{ icon: 'i-lucide-file-x', text: 'Tidak ada data penugasan mengajar yang cocok.' }"
+      >
+        <template #teacher-data="{ row }">
+          <span class="font-medium">
+            {{ (row as any).teacher?.user?.fullname || (row as any).teacherId }}
+          </span>
+        </template>
+        
+        <template #subject-data="{ row }">
+          <UBadge color="info" variant="soft" size="xs">
+            {{ (row as any).subject?.name || (row as any).subjectId }}
+          </UBadge>
+        </template>
+        
+        <template #classroom-data="{ row }">
+          <UBadge color="neutral" variant="soft" size="xs">
+            {{ (row as any).classroom?.name || (row as any).classroomId }}
+          </UBadge>
+        </template>
+        
+        <template #semester-data="{ row }">
+          <span class="text-xs text-gray-500">
+            {{ (row as any).semester?.type }} ({{ (row as any).semester?.academicYear?.name || '-' }})
+          </span>
+        </template>
+        
+        <template #course-data="{ row }">
+          <span v-if="(row as any).course" class="text-emerald-600 dark:text-emerald-400 font-semibold text-xs font-mono">
+            {{ (row as any).course.fullname }}
+          </span>
+          <span v-else-if="(row as any).courseId" class="text-gray-600 dark:text-gray-400 text-xs font-mono">
+            ID: {{ (row as any).courseId }}
+          </span>
+          <span v-else class="text-amber-500 italic text-xs">
+            Belum terhubung
+          </span>
+        </template>
+        
+        <template #actions-data="{ row }">
+          <div class="flex items-center justify-end gap-1">
+            <UButton
+              v-if="(row as any).courseId"
+              icon="i-lucide-refresh-cw"
+              color="success"
+              variant="soft"
+              size="xs"
+              title="Sync Nilai Moodle Mapel Ini"
+              class="cursor-pointer font-medium"
+              :loading="syncingCourseId === (row as any).courseId"
+              @click="syncCourseGrades((row as any).courseId, (row as any).subject?.name, (row as any).classroom?.name)"
+            >
+              Sync Nilai
+            </UButton>
 
-                <UButton
-                  icon="i-lucide-pencil"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  title="Edit Penugasan"
-                  @click="openEditDialog(item)"
-                />
-                <UButton
-                  icon="i-lucide-trash-2"
-                  color="error"
-                  variant="ghost"
-                  size="xs"
-                  title="Hapus Penugasan"
-                  @click="handleDelete(item.id)"
-                />
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            <UButton
+              icon="i-lucide-pencil"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              title="Edit Penugasan"
+              @click="openEditDialog(row)"
+            />
+            <UButton
+              icon="i-lucide-trash-2"
+              color="error"
+              variant="ghost"
+              size="xs"
+              title="Hapus Penugasan"
+              @click="handleDelete((row as any).id)"
+            />
+          </div>
+        </template>
+      </UTable>
     </div>
+
+    <template v-if="filteredRows.length > 0" #footer>
+      <div class="flex justify-between items-center text-xs text-gray-500">
+        <span>Menampilkan {{ paginatedRows.length }} dari {{ filteredRows.length }} penugasan</span>
+        <UPagination
+          v-model="page"
+          :page-count="pageCount"
+          :total="filteredRows.length"
+        />
+      </div>
+    </template>
   </UCard>
 </template>

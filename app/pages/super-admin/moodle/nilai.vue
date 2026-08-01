@@ -246,7 +246,7 @@ onMounted(() => {
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-          <UIcon name="i-lucide-award" class="w-7 h-7 text-emerald-500" />
+          <UIcon name="i-lucide-award" class="hidden sm:inline-block w-7 h-7 text-emerald-500" />
           Inspeksi & Rekap Nilai Siswa Per Kelas
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400">

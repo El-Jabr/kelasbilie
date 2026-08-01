@@ -131,7 +131,7 @@ async function handleTestConnection() {
         <!-- Identitas Sekolah Section -->
         <div class="space-y-4">
           <h3 class="text-base font-semibold border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
-            <UIcon name="i-lucide-building-2" class="w-5 h-5 text-primary-500" />
+            <UIcon name="i-lucide-building-2" class="hidden sm:inline-block w-5 h-5 text-primary-500" />
             Identitas Sekolah
           </h3>
 
@@ -143,6 +143,7 @@ async function handleTestConnection() {
               <UInput
                 v-model="formState.schoolName"
                 placeholder="Contoh: SMA Negeri 1 Kelasbilie"
+                class="w-full lg:w-1/3"
               />
             </div>
           </div>
@@ -151,7 +152,7 @@ async function handleTestConnection() {
         <!-- Moodle Integration Section -->
         <div class="space-y-4 pt-4">
           <h3 class="text-base font-semibold border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
-            <UIcon name="i-lucide-server" class="w-5 h-5 text-primary-500" />
+            <UIcon name="i-lucide-server" class="hidden sm:inline-block w-5 h-5 text-primary-500" />
             Integrasi Server Moodle
           </h3>
 
@@ -164,6 +165,7 @@ async function handleTestConnection() {
                 v-model="formState.moodleUrl"
                 placeholder="https://moodle.sekolah.sch.id"
                 icon="i-lucide-globe"
+                class="w-full"
               />
             </div>
 
@@ -176,6 +178,7 @@ async function handleTestConnection() {
                 type="password"
                 placeholder="Kunci token webservice Moodle"
                 icon="i-lucide-key"
+                class="w-full"
               />
             </div>
           </div>
@@ -198,6 +201,7 @@ async function handleTestConnection() {
                 type="number"
                 min="5"
                 placeholder="30"
+                class="w-full"
               />
             </div>
           </div>
@@ -206,7 +210,7 @@ async function handleTestConnection() {
         <!-- AI Integration Section -->
         <div class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <h3 class="text-base font-semibold border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
-            <UIcon name="i-lucide-brain-circuit" class="w-5 h-5 text-primary-500" />
+            <UIcon name="i-lucide-brain-circuit" class="hidden sm:inline-block w-5 h-5 text-primary-500" />
             Integrasi AI (Gemini)
           </h3>
 
@@ -228,8 +232,8 @@ async function handleTestConnection() {
                 type="password"
                 placeholder="Masukkan API Key dari Google AI Studio"
                 icon="i-lucide-key"
-              >
-              </UInput>
+                class="w-full lg:w-1/3"
+              />
               <p class="mt-1 text-xs text-gray-500">
                 Dapatkan API Key di <a href="https://aistudio.google.com/" target="_blank" class="text-primary-600 hover:underline">Google AI Studio</a>.
               </p>

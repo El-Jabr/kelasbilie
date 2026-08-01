@@ -7,7 +7,7 @@ definePageMeta({
 
 const { data, status, refresh } = await useAsyncData<any>(
   'student-me-dashboard',
-  () => $fetch('/api/students/me', { credentials: 'include' })
+  () => ($fetch as any)('/api/students/me', { credentials: 'include' })
 )
 
 const studentData = computed(() => data.value?.data ?? null)

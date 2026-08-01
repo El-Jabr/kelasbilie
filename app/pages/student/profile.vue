@@ -71,7 +71,7 @@ const homeroom = computed(() => {
         <UCard>
           <template #header>
             <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-user-check" class="w-5 h-5 text-primary-500" />
+              <UIcon name="i-lucide-user-check" class="hidden sm:inline-block w-5 h-5 text-primary-500" />
               <h3 class="font-semibold text-gray-900 dark:text-white">Informasi Akun</h3>
             </div>
           </template>
@@ -108,7 +108,7 @@ const homeroom = computed(() => {
         <UCard>
           <template #header>
             <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-school" class="w-5 h-5 text-primary-500" />
+              <UIcon name="i-lucide-school" class="hidden sm:inline-block w-5 h-5 text-primary-500" />
               <h3 class="font-semibold text-gray-900 dark:text-white">Rombel & Wali Kelas</h3>
             </div>
           </template>

@@ -92,6 +92,7 @@ async function onSubmit() {
             :model-value="teacher.user?.fullname"
             disabled
             icon="i-lucide-user"
+            class="w-full"
           />
         </div>
 
@@ -103,6 +104,7 @@ async function onSubmit() {
             :model-value="teacher.user?.username"
             disabled
             icon="i-lucide-at-sign"
+            class="w-full"
           />
         </div>
 
@@ -114,6 +116,7 @@ async function onSubmit() {
             :model-value="teacher.user?.email || '-'"
             disabled
             icon="i-lucide-mail"
+            class="w-full"
           />
         </div>
 
@@ -125,6 +128,7 @@ async function onSubmit() {
             v-model="state.nip"
             icon="i-lucide-id-card"
             placeholder="Masukkan NIP Anda"
+            class="w-full"
           />
         </div>
 

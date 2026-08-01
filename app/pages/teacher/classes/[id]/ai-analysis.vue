@@ -93,20 +93,23 @@ function getEfektivitasColor(efektivitas: string) {
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <UIcon name="i-lucide-brain-circuit" class="text-primary-500" />
+          <UIcon name="i-lucide-brain-circuit" class="hidden sm:inline-block text-primary-500" />
           AI Analisis Pembelajaran
         </h1>
         <p class="text-sm text-gray-500" v-if="teaching">
           Mata Pelajaran: {{ teaching.subject.name }} | Kelas: {{ teaching.classroom.name }}
         </p>
       </div>
-      <div>
+      <div class="w-full md:w-auto">
         <UButton
           color="neutral"
           variant="ghost"
-          icon="i-lucide-arrow-left"
           :to="`/teacher/classes/${teachingId}`"
+          class="w-full md:w-auto flex justify-center"
         >
+          <template #leading>
+            <UIcon name="i-lucide-arrow-left" class="hidden sm:inline-block" />
+          </template>
           Kembali ke Detail Kelas
         </UButton>
       </div>
@@ -123,13 +126,16 @@ function getEfektivitasColor(efektivitas: string) {
     <!-- Hasil Analisis -->
     <div v-else-if="analysisData" class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div class="flex items-center gap-2 text-sm text-gray-500">
-          <UIcon :name="isCached ? 'i-lucide-history' : 'i-lucide-zap'" :class="isCached ? 'text-blue-500' : 'text-green-500'" />
+          <UIcon :name="isCached ? 'i-lucide-history' : 'i-lucide-zap'" :class="['hidden sm:inline-block', isCached ? 'text-blue-500' : 'text-green-500']" />
           <span>{{ isCached ? 'Data dari cache.' : 'Dihasilkan oleh AI langsung.' }}</span>
           <span>Diperbarui: {{ generatedAt }}</span>
         </div>
-        <UButton size="xs" color="neutral" variant="ghost" icon="i-lucide-refresh-cw" :loading="isAnalyzing" @click="handleForceRefresh">
+        <UButton size="xs" color="neutral" variant="ghost" :loading="isAnalyzing" class="w-full sm:w-auto justify-center" @click="handleForceRefresh">
+          <template #leading>
+            <UIcon name="i-lucide-refresh-cw" class="hidden sm:inline-block" />
+          </template>
           Force Refresh
         </UButton>
       </div>
@@ -155,7 +161,7 @@ function getEfektivitasColor(efektivitas: string) {
         <!-- Item Bermasalah -->
         <UCard>
           <h3 class="text-lg font-semibold flex items-center gap-2 mb-4 text-red-600">
-            <UIcon name="i-lucide-alert-circle" />
+            <UIcon name="i-lucide-alert-circle" class="hidden sm:inline-block" />
             Area yang Perlu Perbaikan
           </h3>
           <div class="space-y-4">
@@ -172,7 +178,7 @@ function getEfektivitasColor(efektivitas: string) {
         <!-- Strategi Pembelajaran -->
         <UCard>
           <h3 class="text-lg font-semibold flex items-center gap-2 mb-4 text-primary-600">
-            <UIcon name="i-lucide-lightbulb" />
+            <UIcon name="i-lucide-lightbulb" class="hidden sm:inline-block" />
             Rekomendasi Strategi Pedagogi
           </h3>
           <div class="space-y-3">

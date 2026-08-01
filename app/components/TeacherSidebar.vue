@@ -40,6 +40,12 @@ const navItems = computed<NavigationMenuItem[]>(() => {
       active: route.path.startsWith('/teacher/classes')
     },
     {
+      label: 'Rekap Wali Kelas',
+      icon: 'i-lucide-award',
+      to: '/teacher/homeroom',
+      active: route.path.startsWith('/teacher/homeroom')
+    },
+    {
       label: 'Profil Saya',
       icon: 'i-lucide-user',
       to: '/teacher/profile',

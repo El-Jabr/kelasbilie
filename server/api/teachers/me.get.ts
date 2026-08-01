@@ -38,6 +38,55 @@ export default defineEventHandler(async (event) => {
           role: true,
           isActive: true
         }
+      },
+      teachings: {
+        orderBy: { id: 'desc' },
+        select: {
+          id: true,
+          teacherId: true,
+          subjectId: true,
+          classroomId: true,
+          semesterId: true,
+          courseId: true,
+          subject: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              kkm: true
+            }
+          },
+          classroom: {
+            select: {
+              id: true,
+              name: true,
+              level: true,
+              room: true,
+              building: true,
+              floor: true
+            }
+          },
+          semester: {
+            select: {
+              id: true,
+              type: true,
+              isActive: true,
+              academicYear: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
+          },
+          course: {
+            select: {
+              id: true,
+              fullname: true,
+              shortname: true
+            }
+          }
+        }
       }
     }
   })

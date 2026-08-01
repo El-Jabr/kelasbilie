@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+
 definePageMeta({
   layout: 'teacher',
   middleware: ['auth', 'role'],
   role: ['TEACHER', 'ADMIN']
 })
 
+const router = useRouter()
 const { data: teacherRes } = await useFetch('/api/teachers/me')
 const teacher = computed(() => teacherRes.value?.data)
 
@@ -24,13 +27,41 @@ const { data: teachingsRes, pending } = await useFetch('/api/teaching-assignment
 const assignments = computed(() => teachingsRes.value?.data ?? [])
 const pagination = computed(() => teachingsRes.value?.pagination ?? { page: 1, limit: 10, total: 0, pages: 1 })
 
-const columns = [
+const columns: any[] = [
   { accessorKey: 'subject', header: 'Mata Pelajaran' },
   { accessorKey: 'classroom', header: 'Kelas' },
   { accessorKey: 'semester', header: 'Semester' },
   { accessorKey: 'course', header: 'Course Moodle' },
   { accessorKey: 'actions', header: 'Aksi' }
 ]
+
+function getActionItems(id: string): DropdownMenuItem[][] {
+  return [
+    [
+      {
+        label: 'Detail Siswa',
+        icon: 'i-lucide-users',
+        onSelect: () => {
+          router.push(`/teacher/classes/${id}`)
+        }
+      },
+      {
+        label: 'Input Nilai',
+        icon: 'i-lucide-edit-3',
+        onSelect: () => {
+          router.push(`/teacher/classes/${id}/grades`)
+        }
+      },
+      {
+        label: 'Rekap Nilai',
+        icon: 'i-lucide-bar-chart-3',
+        onSelect: () => {
+          router.push(`/teacher/classes/${id}/summary`)
+        }
+      }
+    ]
+  ]
+}
 </script>
 
 <template>
@@ -58,62 +89,42 @@ const columns = [
       >
         <template #subject-cell="{ row }">
           <div>
-            <div class="font-medium text-gray-900 dark:text-white">{{ row.original.subject?.name }}</div>
-            <div class="text-xs text-gray-500 font-mono">{{ row.original.subject?.code }}</div>
+            <div class="font-medium text-gray-900 dark:text-white">{{ (row as any).original.subject?.name }}</div>
+            <div class="text-xs text-gray-500 font-mono">{{ (row as any).original.subject?.code }}</div>
           </div>
         </template>
 
         <template #classroom-cell="{ row }">
           <UBadge color="success" variant="subtle">
-            {{ row.original.classroom?.name }} (Lt {{ row.original.classroom?.floor }})
+            {{ (row as any).original.classroom?.name }} (Lt {{ (row as any).original.classroom?.floor }})
           </UBadge>
         </template>
 
         <template #semester-cell="{ row }">
           <div class="text-xs">
-            <div>{{ row.original.semester?.academicYear?.name }}</div>
-            <UBadge :color="row.original.semester?.isActive ? 'success' : 'neutral'" size="sm">
-              {{ row.original.semester?.type }} {{ row.original.semester?.isActive ? '(Aktif)' : '' }}
+            <div>{{ (row as any).original.semester?.academicYear?.name }}</div>
+            <UBadge :color="(row as any).original.semester?.isActive ? 'success' : 'neutral'" size="sm">
+              {{ (row as any).original.semester?.type }} {{ (row as any).original.semester?.isActive ? '(Aktif)' : '' }}
             </UBadge>
           </div>
         </template>
 
         <template #course-cell="{ row }">
-          <span v-if="row.original.course" class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-            {{ row.original.course?.shortname }}
+          <span v-if="(row as any).original.course" class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+            {{ (row as any).original.course?.shortname }}
           </span>
           <span v-else class="text-xs text-gray-400">Tidak ada</span>
         </template>
 
         <template #actions-cell="{ row }">
-          <div class="flex items-center gap-2">
-            <UButton
-              :to="`/teacher/classes/${row.original.id}`"
-              color="primary"
-              variant="soft"
-              size="xs"
-              icon="i-lucide-users"
-            >
-              Detail
-            </UButton>
-            <UButton
-              :to="`/teacher/classes/${row.original.id}/grades`"
-              color="success"
-              variant="soft"
-              size="xs"
-              icon="i-lucide-edit-3"
-            >
-              Input Nilai
-            </UButton>
-            <UButton
-              :to="`/teacher/classes/${row.original.id}/summary`"
-              color="neutral"
-              variant="soft"
-              size="xs"
-              icon="i-lucide-bar-chart-3"
-            >
-              Rekap
-            </UButton>
+          <div class="flex items-center">
+            <UDropdownMenu :items="getActionItems((row as any).original.id)">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-lucide-ellipsis"
+              />
+            </UDropdownMenu>
           </div>
         </template>
       </UTable>

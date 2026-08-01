@@ -50,6 +50,40 @@ function formatDate(dateStr: string | Date | null) {
     minute: '2-digit'
   })
 }
+
+const search = ref('')
+const page = ref(1)
+const pageCount = ref(10)
+
+const columns: any[] = [
+  { key: 'name', label: 'Nama Tugas / Penilaian', sortable: true },
+  { key: 'category', label: 'Kategori', sortable: true },
+  { key: 'type', label: 'Tipe / Sumber', sortable: true },
+  { key: 'score', label: 'Skor / Nilai', sortable: true, class: 'text-center' },
+  { key: 'lastSync', label: 'Terakhir Diperbarui', sortable: true, class: 'text-right' }
+]
+
+const filteredComponents = computed(() => {
+  let list = components.value
+  if (search.value) {
+    const kw = search.value.toLowerCase()
+    list = list.filter((r: any) => 
+      (r.gradeItem?.name || '').toLowerCase().includes(kw) ||
+      (r.gradeItem?.category || '').toLowerCase().includes(kw)
+    )
+  }
+  return list
+})
+
+const paginatedComponents = computed(() => {
+  const start = (page.value - 1) * pageCount.value
+  const end = start + pageCount.value
+  return filteredComponents.value.slice(start, end)
+})
+
+watch(search, () => {
+  page.value = 1
+})
 </script>
 
 <template>
@@ -104,12 +138,17 @@ function formatDate(dateStr: string | Date | null) {
     <template v-else>
       <UCard>
         <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <UIcon name="i-lucide-list-checks" class="w-5 h-5 text-primary-500" />
-              Rincian Skor Per Komponen Tugas / Ujian
-            </h3>
-            <span class="text-xs text-gray-500">Total: {{ components.length }} Komponen</span>
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center justify-between w-full sm:w-auto">
+              <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <UIcon name="i-lucide-list-checks" class="hidden sm:inline-block w-5 h-5 text-primary-500" />
+                Rincian Skor Per Komponen Tugas / Ujian
+              </h3>
+            </div>
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+              <span class="text-xs text-gray-500 hidden sm:inline-block">Total: {{ components.length }} Komponen</span>
+              <UInput v-model="search" icon="i-lucide-search" placeholder="Cari nama komponen/kategori..." size="sm" class="w-full sm:w-64" />
+            </div>
           </div>
         </template>
 
@@ -121,42 +160,55 @@ function formatDate(dateStr: string | Date | null) {
           </p>
         </div>
 
-        <div v-else class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase font-semibold text-gray-500 border-b border-gray-200 dark:border-gray-700">
-              <tr>
-                <th class="py-3 px-4">Nama Tugas / Penilaian</th>
-                <th class="py-3 px-4">Kategori</th>
-                <th class="py-3 px-4">Tipe / Sumber</th>
-                <th class="py-3 px-4 text-center">Skor / Nilai</th>
-                <th class="py-3 px-4 text-right">Terakhir Diperbarui</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-              <tr v-for="comp in components" :key="comp.id" class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-                <td class="py-3 px-4 font-medium">
-                  {{ comp.gradeItem?.name || 'Item Penilaian' }}
-                </td>
-                <td class="py-3 px-4">
-                  <UBadge :color="getCategoryBadgeColor(comp.gradeItem?.category || 'PH')" variant="subtle" size="sm">
-                    {{ comp.gradeItem?.category || 'PH' }}
-                  </UBadge>
-                </td>
-                <td class="py-3 px-4 text-xs font-mono text-gray-500 uppercase">
-                  {{ comp.gradeItem?.itemType || 'ASSIGNMENT' }}
-                </td>
-                <td class="py-3 px-4 text-center font-bold text-base">
-                  <span :class="(comp.score ?? 0) >= 75 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
-                    {{ comp.score ?? '-' }}
-                  </span>
-                </td>
-                <td class="py-3 px-4 text-right text-xs text-gray-500">
-                  {{ formatDate(comp.lastSync) }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-else>
+          <UTable
+            :rows="paginatedComponents"
+            :columns="columns"
+            :empty-state="{ icon: 'i-lucide-file-x', text: 'Tidak ada data komponen yang cocok.' }"
+          >
+            <template #name-data="{ row }">
+              <span class="font-medium text-gray-900 dark:text-white">{{ (row as any).gradeItem?.name || 'Item Penilaian' }}</span>
+            </template>
+
+            <template #category-data="{ row }">
+              <UBadge :color="getCategoryBadgeColor((row as any).gradeItem?.category || 'PH')" variant="subtle" size="sm" class="font-bold">
+                {{ (row as any).gradeItem?.category || 'PH' }}
+              </UBadge>
+            </template>
+
+            <template #type-data="{ row }">
+              <span class="text-xs font-mono text-gray-500 uppercase">{{ (row as any).gradeItem?.itemType || 'ASSIGNMENT' }}</span>
+            </template>
+
+            <template #score-data="{ row }">
+              <div class="text-center font-mono">
+                <UBadge
+                  v-if="(row as any).score !== null && (row as any).score !== undefined"
+                  :color="(row as any).score >= 75 ? 'success' : 'warning'"
+                  variant="subtle"
+                  size="md"
+                  class="font-extrabold text-sm"
+                >
+                  {{ Math.round((row as any).score) }}
+                </UBadge>
+                <span v-else class="text-gray-400 font-mono text-xs">-</span>
+              </div>
+            </template>
+
+            <template #lastSync-data="{ row }">
+              <div class="text-right text-xs text-gray-500 font-mono">
+                {{ formatDate((row as any).lastSync) }}
+              </div>
+            </template>
+          </UTable>
         </div>
+
+        <template v-if="filteredComponents.length > 0" #footer>
+          <div class="flex justify-between items-center text-xs text-gray-500">
+            <span>Menampilkan {{ paginatedComponents.length }} dari {{ filteredComponents.length }} komponen</span>
+            <UPagination v-model="page" :page-count="pageCount" :total="filteredComponents.length" />
+          </div>
+        </template>
       </UCard>
     </template>
   </div>

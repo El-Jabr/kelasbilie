@@ -1,16 +1,18 @@
 <script setup lang="ts">
 definePageMeta({
-  layout: 'admin'
+  layout: 'teacher',
+  middleware: ['auth', 'role'],
+  role: ['TEACHER', 'ADMIN']
 })
 
 useSeoMeta({
-  title: 'AI Analisis Siswa'
+  title: 'AI Analisis Siswa - Wali Kelas'
 })
 
+const route = useRoute()
 const toast = useToast()
 
-const selectedStudent = ref('')
-const selectedSemester = ref('')
+const studentId = route.params.id as string
 const forceRefresh = ref(false)
 
 const isAnalyzing = ref(false)
@@ -18,36 +20,23 @@ const analysisData = ref<any>(null)
 const isCached = ref(false)
 const generatedAt = ref('')
 
-const { data: filterData } = await useAsyncData('siswa-filters', async () => {
-  const [studRes, semRes] = await Promise.all([
-    $fetch<any>('/api/students?limit=1000'), // Ambil semua untuk disederhanakan
-    $fetch<any>('/api/semesters?limit=1000')
-  ])
-  return {
-    students: studRes.data || [],
-    semesters: semRes.data || []
-  }
-})
+const student = ref<any>(null)
 
-const students = computed(() => filterData.value?.students || [])
-const semesters = computed(() => filterData.value?.semesters || [])
+onMounted(async () => {
+  try {
+    // Ambil data siswa
+    const res: any = await $fetch(`/api/students/${studentId}`)
+    if (res.data) student.value = res.data
 
-const studentOptions = computed(() => students.value.map((s: any) => ({ label: `${s.user.fullname} (${s.nis})`, value: s.id })))
-const semesterOptions = computed(() => semesters.value.map((s: any) => ({ label: `${s.type} ${s.academicYear.name}${s.isActive ? ' (Aktif)' : ''}`, value: s.id })))
-
-// Auto select active semester
-watchEffect(() => {
-  if (semesters.value.length && !selectedSemester.value) {
-    const activeSem = semesters.value.find((s: any) => s.isActive)
-    if (activeSem) selectedSemester.value = activeSem.id
+    // Otomatis analisa siswa ketika halaman dimuat
+    analyzeStudent()
+  } catch (err) {
+    console.error(err)
   }
 })
 
 async function analyzeStudent() {
-  if (!selectedStudent.value) {
-    toast.add({ title: 'Validasi', description: 'Pilih siswa terlebih dahulu.', color: 'warning' })
-    return
-  }
+  if (!studentId) return
 
   isAnalyzing.value = true
   analysisData.value = null
@@ -56,8 +45,7 @@ async function analyzeStudent() {
     const res: any = await $fetch('/api/ai/analyze-student', {
       method: 'POST',
       body: {
-        studentId: selectedStudent.value,
-        semesterId: selectedSemester.value || undefined,
+        studentId,
         forceRefresh: forceRefresh.value
       }
     })
@@ -71,7 +59,7 @@ async function analyzeStudent() {
   } catch (error: any) {
     toast.add({ 
       title: 'Analisis Gagal', 
-      description: error.data?.statusMessage || 'Terjadi kesalahan saat memanggil AI.', 
+      description: error.data?.statusMessage || error.data?.message || 'Terjadi kesalahan saat memanggil AI.', 
       color: 'error' 
     })
   } finally {
@@ -80,14 +68,13 @@ async function analyzeStudent() {
 }
 
 import { LazyModalConfirm } from '#components'
-
 const overlay = useOverlay()
 const confirmModal = overlay.create(LazyModalConfirm)
 
 async function handleForceRefresh() {
   const confirmed = await confirmModal.open({
     title: 'Force Refresh AI Analisis',
-    message: 'Anda yakin ingin force refresh? Ini akan memanggil ulang API AI dan mungkin memakan biaya/waktu.',
+    message: 'Anda yakin ingin memuat ulang analisis dari AI? Ini mungkin akan memakan waktu proses tambahan.',
     confirmText: 'Ya, Refresh',
     color: 'warning'
   })
@@ -113,58 +100,33 @@ function getTrenColor(tren: string) {
 
 <template>
   <div class="space-y-6">
+    <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <UIcon name="i-lucide-user-check" class="hidden sm:inline-block text-primary-500" />
-          AI Analisis Siswa
-        </h1>
-        <p class="text-sm text-gray-500">Analisis perkembangan dan performa akademik per siswa.</p>
+      <div class="flex items-center gap-3">
+        <UButton
+          to="/teacher/homeroom"
+          icon="i-lucide-arrow-left"
+          color="neutral"
+          variant="ghost"
+          class="hidden sm:inline-flex"
+        />
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <UIcon name="i-lucide-bot" class="hidden sm:inline-block text-primary-500" />
+            AI Analisis Siswa
+          </h1>
+          <p class="text-sm text-gray-500 mt-1" v-if="student">
+            Siswa: <strong>{{ student.user?.fullname }}</strong> ({{ student.nis }})
+          </p>
+        </div>
       </div>
     </div>
 
-    <!-- Filter Card -->
-    <UCard>
-      <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-end">
-        <div class="w-full md:flex-1">
-          <label class="block text-sm font-medium mb-1">Pilih Siswa</label>
-          <USelectMenu
-            v-model="selectedStudent"
-            :items="studentOptions"
-            label-key="label"
-            value-key="value"
-            searchable
-            placeholder="Cari nama atau NIS..."
-            class="w-full"
-          />
-        </div>
-        <div class="w-full md:flex-1">
-          <label class="block text-sm font-medium mb-1">Pilih Semester</label>
-          <USelect
-            v-model="selectedSemester"
-            :items="semesterOptions"
-            label-key="label"
-            value-key="value"
-            placeholder="-- Pilih Semester --"
-            class="w-full"
-          />
-        </div>
-        <div class="w-full md:w-auto">
-          <UButton
-            color="primary"
-            :loading="isAnalyzing"
-            :disabled="!selectedStudent"
-            class="w-full md:w-auto flex justify-center"
-            @click="analyzeStudent"
-          >
-            <template #leading>
-              <UIcon name="i-lucide-sparkles" class="hidden sm:inline-block" />
-            </template>
-            Analisis Siswa
-          </UButton>
-        </div>
-      </div>
-    </UCard>
+    <!-- Loading State -->
+    <div v-if="isAnalyzing && !analysisData" class="py-16 text-center space-y-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+      <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-primary-500 mx-auto" />
+      <p class="text-sm font-medium text-gray-600 dark:text-gray-300">AI sedang menganalisis data akademik siswa...</p>
+    </div>
 
     <!-- Hasil Analisis -->
     <div v-if="analysisData" class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -248,12 +210,12 @@ function getTrenColor(tren: string) {
       <UCard>
         <h3 class="text-lg font-semibold flex items-center gap-2 mb-4 text-primary-600">
           <UIcon name="i-lucide-target" class="hidden sm:inline-block" />
-          Rekomendasi Tindakan
+          Rekomendasi Tindakan Wali Kelas
         </h3>
         <div class="space-y-3">
           <div v-for="(rek, idx) in analysisData.rekomendasi" :key="idx" class="flex gap-4 items-start p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors border border-gray-100 dark:border-gray-800">
             <UBadge color="primary" variant="subtle">
-              {{ rek.tipe.toUpperCase().replace('ORANG_TUA', 'MUROBBI').replace('ORANG TUA', 'MUROBBI') }}
+              {{ rek.tipe.toUpperCase().replace('ORANG_TUA', 'WALI/MUROBBI').replace('ORANG TUA', 'WALI/MUROBBI') }}
             </UBadge>
             <div>
               <div class="font-medium text-gray-900 dark:text-gray-100">{{ rek.mapel }}</div>

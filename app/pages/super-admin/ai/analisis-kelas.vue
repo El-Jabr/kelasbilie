@@ -103,7 +103,7 @@ async function handleForceRefresh() {
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <UIcon name="i-lucide-brain-circuit" class="text-primary-500" />
+          <UIcon name="i-lucide-brain-circuit" class="hidden sm:inline-block text-primary-500" />
           AI Analisis Kelas
         </h1>
         <p class="text-sm text-gray-500">Analisis otomatis performa akademik kelas menggunakan Google Gemini.</p>
@@ -112,8 +112,8 @@ async function handleForceRefresh() {
 
     <!-- Filter Card -->
     <UCard>
-      <div class="flex flex-col md:flex-row gap-4 items-end">
-        <div class="flex-1">
+      <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-end">
+        <div class="w-full md:flex-1">
           <label class="block text-sm font-medium mb-1">Pilih Kelas</label>
           <USelect
             v-model="selectedClassroom"
@@ -124,7 +124,7 @@ async function handleForceRefresh() {
             class="w-full"
           />
         </div>
-        <div class="flex-1">
+        <div class="w-full md:flex-1">
           <label class="block text-sm font-medium mb-1">Pilih Semester</label>
           <USelect
             v-model="selectedSemester"
@@ -135,14 +135,17 @@ async function handleForceRefresh() {
             class="w-full"
           />
         </div>
-        <div>
+        <div class="w-full md:w-auto">
           <UButton
             color="primary"
-            icon="i-lucide-sparkles"
             :loading="isAnalyzing"
             :disabled="!selectedClassroom"
+            class="w-full md:w-auto flex justify-center"
             @click="analyzeClass"
           >
+            <template #leading>
+              <UIcon name="i-lucide-sparkles" class="hidden sm:inline-block" />
+            </template>
             Analisis Sekarang
           </UButton>
         </div>
@@ -152,13 +155,16 @@ async function handleForceRefresh() {
     <!-- Hasil Analisis -->
     <div v-if="analysisData" class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div class="flex items-center gap-2 text-sm text-gray-500">
-          <UIcon :name="isCached ? 'i-lucide-history' : 'i-lucide-zap'" :class="isCached ? 'text-blue-500' : 'text-green-500'" />
+          <UIcon :name="isCached ? 'i-lucide-history' : 'i-lucide-zap'" :class="['hidden sm:inline-block', isCached ? 'text-blue-500' : 'text-green-500']" />
           <span>{{ isCached ? 'Menampilkan data cache.' : 'Dihasilkan oleh AI langsung.' }}</span>
           <span>Diperbarui: {{ generatedAt }}</span>
         </div>
-        <UButton size="xs" color="neutral" variant="ghost" icon="i-lucide-refresh-cw" @click="handleForceRefresh">
+        <UButton size="xs" color="neutral" variant="ghost" :loading="isAnalyzing" class="w-full sm:w-auto justify-center" @click="handleForceRefresh">
+          <template #leading>
+            <UIcon name="i-lucide-refresh-cw" class="hidden sm:inline-block" />
+          </template>
           Force Refresh
         </UButton>
       </div>
@@ -195,7 +201,7 @@ async function handleForceRefresh() {
       <!-- Narasi -->
       <UCard>
         <h3 class="text-lg font-semibold flex items-center gap-2 mb-3">
-          <UIcon name="i-lucide-file-text" class="text-primary-500" />
+          <UIcon name="i-lucide-file-text" class="hidden sm:inline-block text-primary-500" />
           Evaluasi Umum
         </h3>
         <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
@@ -206,7 +212,7 @@ async function handleForceRefresh() {
       <!-- Siswa Perlu Perhatian -->
       <UCard>
         <h3 class="text-lg font-semibold flex items-center gap-2 mb-4 text-orange-500">
-          <UIcon name="i-lucide-alert-triangle" />
+          <UIcon name="i-lucide-alert-triangle" class="hidden sm:inline-block" />
           Siswa Perlu Perhatian Khusus
         </h3>
         <div v-if="analysisData.siswaPerhatianKhusus?.length" class="space-y-4">
@@ -222,7 +228,7 @@ async function handleForceRefresh() {
       <!-- Rekomendasi Kelas -->
       <UCard>
         <h3 class="text-lg font-semibold flex items-center gap-2 mb-4 text-green-600">
-          <UIcon name="i-lucide-check-circle" />
+          <UIcon name="i-lucide-check-circle" class="hidden sm:inline-block" />
           Rekomendasi Tindakan Kelas
         </h3>
         <div class="space-y-3">

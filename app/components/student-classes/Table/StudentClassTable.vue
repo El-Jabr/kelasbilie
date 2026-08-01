@@ -22,11 +22,19 @@ const { openSingleEditModal } = useStudentClassDialogs()
 const { handleDelete } = useStudentClassActions()
 
 // Multi-select state
-const selectedIds = ref<string[]>([])
-const selectAll = ref(false)
+const selectedItems = ref<any[]>([])
+const selectedIds = computed(() => selectedItems.value.map((i: any) => i.id))
 const targetMoveClassroomId = ref('')
 const isBatchMoving = ref(false)
 const isBatchDeleting = ref(false)
+
+const columns: any[] = [
+  { key: 'student', label: 'Siswa', sortable: true },
+  { key: 'nis', label: 'NIS', sortable: true },
+  { key: 'classroom', label: 'Kelas Target' },
+  { key: 'semester', label: 'Semester' },
+  { key: 'actions', label: 'Aksi', class: 'text-right' }
+]
 
 const debounceSearch = useDebounceFn(() => {
   searchQuery.value = searchInput.value
@@ -36,18 +44,9 @@ const debounceSearch = useDebounceFn(() => {
 watch(searchInput, debounceSearch)
 
 watch([filterSemesterId, filterClassroomId, page, searchQuery], () => {
-  selectedIds.value = []
-  selectAll.value = false
+  selectedItems.value = []
   refreshSC()
 })
-
-function toggleSelectAll() {
-  if (selectAll.value) {
-    selectedIds.value = studentClasses.value.map((item: any) => item.id)
-  } else {
-    selectedIds.value = []
-  }
-}
 
 // Batch Move Selected Students to New Classroom
 async function batchMoveSelected() {
@@ -56,9 +55,9 @@ async function batchMoveSelected() {
     return
   }
 
-  const selectedItems = studentClasses.value.filter((sc: any) => selectedIds.value.includes(sc.id))
-  const studentIds = selectedItems.map((sc: any) => sc.studentId)
-  const activeSemesterId = selectedItems[0]?.semesterId || filterSemesterId.value
+  const selectedStudentItems = studentClasses.value.filter((sc: any) => selectedIds.value.includes(sc.id))
+  const studentIds = selectedStudentItems.map((sc: any) => sc.studentId)
+  const activeSemesterId = selectedItems.value[0]?.semesterId || filterSemesterId.value
 
   if (studentIds.length === 0) return
 
@@ -80,8 +79,7 @@ async function batchMoveSelected() {
       color: 'success'
     })
 
-    selectedIds.value = []
-    selectAll.value = false
+    selectedItems.value = []
     targetMoveClassroomId.value = ''
     await refreshSC()
   } catch (err: any) {
@@ -126,8 +124,7 @@ async function batchDeleteSelected() {
       color: 'success'
     })
 
-    selectedIds.value = []
-    selectAll.value = false
+    selectedItems.value = []
     await refreshSC()
   } catch (err: any) {
     toast.add({
@@ -257,77 +254,59 @@ async function batchDeleteSelected() {
         Belum ada data pembagian kelas yang sesuai dengan filter.
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="w-full text-left text-sm border-collapse">
-          <thead class="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase font-semibold text-gray-500 border-b border-gray-200 dark:border-gray-700">
-            <tr>
-              <th class="py-3 px-4 w-10 text-center">
-                <input
-                  type="checkbox"
-                  v-model="selectAll"
-                  @change="toggleSelectAll"
-                  class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
-                />
-              </th>
-              <th class="py-3 px-4">Siswa</th>
-              <th class="py-3 px-4">NIS</th>
-              <th class="py-3 px-4">Kelas Target</th>
-              <th class="py-3 px-4">Semester</th>
-              <th class="py-3 px-4 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            <tr
-              v-for="item in studentClasses"
-              :key="item.id"
-              class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
-              :class="{ 'bg-emerald-50/30 dark:bg-emerald-950/10': selectedIds.includes(item.id) }"
-            >
-              <td class="py-3 px-4 text-center">
-                <input
-                  type="checkbox"
-                  :value="item.id"
-                  v-model="selectedIds"
-                  class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
-                />
-              </td>
-              <td class="py-3 px-4 font-semibold text-gray-900 dark:text-white">
-                {{ item.student?.user?.fullname || item.studentId }}
-              </td>
-              <td class="py-3 px-4 text-xs font-mono text-gray-500">
-                {{ item.student?.nis || '-' }}
-              </td>
-              <td class="py-3 px-4">
-                <UBadge color="success" variant="subtle" size="xs" class="font-bold">
-                  {{ item.classroom?.name || item.classroomId }}
-                </UBadge>
-              </td>
-              <td class="py-3 px-4 text-xs text-gray-500">
-                Semester {{ item.semester?.type }} ({{ item.semester?.academicYear?.name || '-' }})
-              </td>
-              <td class="py-3 px-4 text-right flex justify-end gap-1">
-                <UButton
-                  type="button"
-                  icon="i-lucide-pencil"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  class="cursor-pointer"
-                  @click="openSingleEditModal(item)"
-                />
-                <UButton
-                  type="button"
-                  icon="i-lucide-trash-2"
-                  color="error"
-                  variant="ghost"
-                  size="xs"
-                  class="cursor-pointer"
-                  @click="handleDelete(item.id)"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-else>
+        <UTable
+          v-model="selectedItems"
+          :rows="studentClasses"
+          :columns="columns"
+        >
+          <template #student-data="{ row }">
+            <span class="font-semibold text-gray-900 dark:text-white">
+              {{ (row as any).student?.user?.fullname || (row as any).studentId }}
+            </span>
+          </template>
+
+          <template #nis-data="{ row }">
+            <span class="text-xs font-mono text-gray-500">
+              {{ (row as any).student?.nis || '-' }}
+            </span>
+          </template>
+
+          <template #classroom-data="{ row }">
+            <UBadge color="success" variant="subtle" size="xs" class="font-bold">
+              {{ (row as any).classroom?.name || (row as any).classroomId }}
+            </UBadge>
+          </template>
+
+          <template #semester-data="{ row }">
+            <span class="text-xs text-gray-500">
+              Semester {{ (row as any).semester?.type }} ({{ (row as any).semester?.academicYear?.name || '-' }})
+            </span>
+          </template>
+
+          <template #actions-data="{ row }">
+            <div class="flex justify-end gap-1">
+              <UButton
+                type="button"
+                icon="i-lucide-pencil"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                class="cursor-pointer"
+                @click="openSingleEditModal(row)"
+              />
+              <UButton
+                type="button"
+                icon="i-lucide-trash-2"
+                color="error"
+                variant="ghost"
+                size="xs"
+                class="cursor-pointer"
+                @click="handleDelete(row.id)"
+              />
+            </div>
+          </template>
+        </UTable>
       </div>
     </UCard>
 

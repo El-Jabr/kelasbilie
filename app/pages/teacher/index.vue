@@ -9,9 +9,7 @@ useSeoMeta({
   title: 'Dashboard Guru'
 })
 
-const { data: meRes } = await useFetch('/api/auth/me')
-const user = computed(() => (meRes.value as any)?.user)
-
+const user = ref<any>(null)
 const activeSemester = ref<any>(null)
 const teacherProfile = ref<any>(null)
 const pending = ref(true)
@@ -19,13 +17,15 @@ const pending = ref(true)
 async function loadData() {
   pending.value = true
   try {
-    const semRes: any = await $fetch('/api/semesters/active')
-    if (semRes?.data) activeSemester.value = semRes.data
+    const [authRes, teacherRes, semRes]: [any, any, any] = await Promise.all([
+      ($fetch as any)('/api/auth/me').catch(() => null),
+      ($fetch as any)('/api/teachers/me').catch(() => null),
+      ($fetch as any)('/api/semesters/active').catch(() => null)
+    ])
 
-    const meData = meRes.value as any
-    if (meData?.user?.teacher) {
-      teacherProfile.value = meData.user.teacher
-    }
+    if (authRes) user.value = authRes
+    if (teacherRes?.data) teacherProfile.value = teacherRes.data
+    if (semRes?.data) activeSemester.value = semRes.data
   } catch (err) {
     console.error('Error loading teacher dashboard data:', err)
   } finally {
@@ -37,7 +37,17 @@ onMounted(() => {
   loadData()
 })
 
-const assignments = computed(() => teacherProfile.value?.teachings ?? [])
+const assignments = computed(() => {
+  const teachings = teacherProfile.value?.teachings ?? []
+  if (!teachings.length) return []
+  // Prefer active semester teachings if active semester exists
+  const activeSemId = activeSemester.value?.id
+  if (activeSemId) {
+    const matched = teachings.filter((t: any) => t.semesterId === activeSemId || t.semester?.isActive)
+    if (matched.length) return matched
+  }
+  return teachings
+})
 </script>
 
 <template>

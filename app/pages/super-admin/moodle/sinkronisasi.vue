@@ -196,13 +196,46 @@ onMounted(() => {
   loadLogs()
   loadClassroomsDropdown()
 })
+
+const searchLog = ref('')
+const pageLog = ref(1)
+const pageCountLog = ref(10)
+
+const columnsLog: any[] = [
+  { key: 'resource', label: 'Resource', sortable: true },
+  { key: 'status', label: 'Status', sortable: true },
+  { key: 'message', label: 'Pesan Log', sortable: true },
+  { key: 'syncedAt', label: 'Waktu Eksekusi', class: 'text-right', sortable: true }
+]
+
+const filteredLogs = computed(() => {
+  let list = logs.value
+  if (searchLog.value) {
+    const kw = searchLog.value.toLowerCase()
+    list = list.filter((r: any) => 
+      (r.details || r.message || '').toLowerCase().includes(kw) ||
+      (r.resource || '').toLowerCase().includes(kw)
+    )
+  }
+  return list
+})
+
+const paginatedLogs = computed(() => {
+  const start = (pageLog.value - 1) * pageCountLog.value
+  const end = start + pageCountLog.value
+  return filteredLogs.value.slice(start, end)
+})
+
+watch(searchLog, () => {
+  pageLog.value = 1
+})
 </script>
 
 <template>
   <div class="space-y-6">
     <div>
       <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-        <UIcon name="i-lucide-refresh-cw" class="w-7 h-7 text-emerald-500" />
+        <UIcon name="i-lucide-refresh-cw" class="hidden sm:inline-block w-7 h-7 text-emerald-500" />
         Sinkronisasi & Integrasi Moodle
       </h1>
       <p class="text-sm text-gray-500 dark:text-gray-400">
@@ -215,8 +248,8 @@ onMounted(() => {
       <template #header>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div class="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
-              <UIcon name="i-lucide-user-plus" class="w-6 h-6" />
+            <div class="hidden sm:inline-block p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+              <UIcon name="i-lucide-user-plus" class="w-6 h-6 " />
             </div>
             <div>
               <h2 class="text-base font-bold text-gray-900 dark:text-white">
@@ -227,7 +260,7 @@ onMounted(() => {
               </p>
             </div>
           </div>
-          <UBadge color="success" variant="subtle" size="sm" class="font-bold">
+          <UBadge color="success" variant="subtle" size="sm" class="font-bold hidden sm:inline-block">
             Pendaftaran Massal
           </UBadge>
         </div>
@@ -320,8 +353,8 @@ onMounted(() => {
       <template #header>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div class="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
-              <UIcon name="i-lucide-key-round" class="w-6 h-6" />
+            <div class="hidden sm:inline-block p-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+              <UIcon name="i-lucide-key-round" class="w-6 h-6 " />
             </div>
             <div>
               <h2 class="text-base font-bold text-gray-900 dark:text-white">
@@ -332,7 +365,7 @@ onMounted(() => {
               </p>
             </div>
           </div>
-          <UBadge color="warning" variant="subtle" size="sm" class="font-bold">
+          <UBadge color="warning" variant="subtle" size="sm" class="font-bold hidden sm:inline-block">
             Manajemen Akses Ujian
           </UBadge>
         </div>
@@ -579,22 +612,25 @@ onMounted(() => {
     <!-- Sync Logs Table -->
     <UCard>
       <template #header>
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div class="flex items-center gap-2 font-semibold">
-            <UIcon name="i-lucide-history" class="w-5 h-5 text-primary-500" />
-            <span>Riwayat Log Sinkronisasi (SyncLog)</span>
+            <UIcon name="i-lucide-history" class="w-5 h-5 text-primary-500 hidden sm:inline-block" />
+            <span>Log Sinkronisasi</span>
           </div>
-          <UButton
-            icon="i-lucide-rotate-cw"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            class="cursor-pointer"
-            :loading="pendingLogs"
-            @click="loadLogs"
-          >
-            Refresh Log
-          </UButton>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <UInput v-model="searchLog" icon="i-lucide-search" placeholder="Cari log..." class="w-full sm:w-64" size="sm" />
+            <UButton
+              icon="i-lucide-rotate-cw"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              class="cursor-pointer whitespace-nowrap"
+              :loading="pendingLogs"
+              @click="loadLogs"
+            >
+              Refresh Log
+            </UButton>
+          </div>
         </div>
       </template>
 
@@ -606,42 +642,48 @@ onMounted(() => {
         Belum ada entri log sinkronisasi.
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="w-full text-left text-sm border-collapse">
-          <thead class="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase font-semibold text-gray-500 border-b border-gray-200 dark:border-gray-700">
-            <tr>
-              <th class="py-3 px-4">Resource</th>
-              <th class="py-3 px-4">Status</th>
-              <th class="py-3 px-4">Pesan Log</th>
-              <th class="py-3 px-4 text-right">Waktu Eksekusi</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            <tr v-for="log in logs" :key="log.id" class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-              <td class="py-3 px-4">
-                <UBadge color="neutral" variant="soft" size="xs">
-                  {{ log.resource }}
-                </UBadge>
-              </td>
-              <td class="py-3 px-4">
-                <UBadge
-                  :color="log.status === 'SUCCESS' ? 'success' : 'error'"
-                  variant="subtle"
-                  size="xs"
-                >
-                  {{ log.status }}
-                </UBadge>
-              </td>
-              <td class="py-3 px-4 text-gray-700 dark:text-gray-300">
-                {{ log.details || log.message || '-' }}
-              </td>
-              <td class="py-3 px-4 text-right text-xs text-gray-400">
-                {{ new Date(log.syncedAt).toLocaleString('id-ID') }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-else>
+        <UTable
+          :rows="paginatedLogs"
+          :columns="columnsLog"
+          :empty-state="{ icon: 'i-lucide-file-x', text: 'Tidak ada data log yang cocok.' }"
+        >
+          <template #resource-data="{ row }">
+            <UBadge color="neutral" variant="soft" size="xs">
+              {{ (row as any).resource }}
+            </UBadge>
+          </template>
+
+          <template #status-data="{ row }">
+            <UBadge
+              :color="(row as any).status === 'SUCCESS' ? 'success' : 'error'"
+              variant="subtle"
+              size="xs"
+            >
+              {{ (row as any).status }}
+            </UBadge>
+          </template>
+
+          <template #message-data="{ row }">
+            <span class="text-gray-700 dark:text-gray-300">
+              {{ (row as any).details || (row as any).message || '-' }}
+            </span>
+          </template>
+
+          <template #syncedAt-data="{ row }">
+            <div class="text-right text-xs text-gray-400">
+              {{ new Date((row as any).syncedAt).toLocaleString('id-ID') }}
+            </div>
+          </template>
+        </UTable>
       </div>
+
+      <template v-if="filteredLogs.length > 0" #footer>
+        <div class="flex justify-between items-center text-xs text-gray-500">
+          <span>Menampilkan {{ paginatedLogs.length }} dari {{ filteredLogs.length }} log</span>
+          <UPagination v-model="pageLog" :page-count="pageCountLog" :total="filteredLogs.length" />
+        </div>
+      </template>
     </UCard>
   </div>
 </template>

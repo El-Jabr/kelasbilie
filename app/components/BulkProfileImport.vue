@@ -56,6 +56,24 @@ const filteredRows = computed(() => {
   return list
 })
 
+const columns = computed<any[]>(() => [
+  { key: 'row', label: '#' },
+  { key: 'username', label: 'Username', sortable: true },
+  { key: 'fullname', label: 'Nama Lengkap', sortable: true },
+  { key: props.identifier, label: props.identifier.toUpperCase(), sortable: true },
+  { key: 'valid', label: 'Status', sortable: true },
+  { key: 'errors', label: 'Keterangan Error' }
+])
+
+const page = ref(1)
+const pageCount = ref(10)
+
+const paginatedRows = computed(() => {
+  const start = (page.value - 1) * pageCount.value
+  const end = start + pageCount.value
+  return filteredRows.value.slice(start, end)
+})
+
 function triggerSelectFile() {
   fileInput.value?.click()
 }
@@ -340,40 +358,49 @@ async function submitImport() {
 
     <!-- Section 4: Data Preview Table -->
     <UCard v-if="preview">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase font-semibold text-gray-500 border-b border-gray-200 dark:border-gray-700">
-            <tr>
-              <th class="py-3 px-4">#</th>
-              <th class="py-3 px-4">Username</th>
-              <th class="py-3 px-4">Nama Lengkap</th>
-              <th class="py-3 px-4">{{ identifier.toUpperCase() }}</th>
-              <th class="py-3 px-4">Status</th>
-              <th class="py-3 px-4">Keterangan Error</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            <tr v-for="r in filteredRows" :key="r.row" class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-              <td class="py-3 px-4 text-xs font-mono text-gray-400">{{ r.row }}</td>
-              <td class="py-3 px-4 font-medium">{{ r.username }}</td>
-              <td class="py-3 px-4">{{ r.fullname }}</td>
-              <td class="py-3 px-4 font-mono text-xs">{{ r[identifier] || '-' }}</td>
-              <td class="py-3 px-4">
-                <UBadge
-                  :color="r.valid ? 'success' : 'error'"
-                  variant="subtle"
-                  size="xs"
-                >
-                  {{ r.valid ? 'Valid' : 'Invalid' }}
-                </UBadge>
-              </td>
-              <td class="py-3 px-4 text-xs text-red-500">
-                {{ r.errors.join(', ') || '-' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <UTable
+        :rows="paginatedRows"
+        :columns="columns"
+        :empty-state="{ icon: 'i-lucide-file-x', text: 'Tidak ada data valid yang ditemukan.' }"
+      >
+        <template #row-data="{ row }">
+          <span class="text-xs font-mono text-gray-400">{{ (row as any).row }}</span>
+        </template>
+        <template #username-data="{ row }">
+          <span class="font-medium">{{ (row as any).username }}</span>
+        </template>
+        <template #fullname-data="{ row }">
+          <span>{{ (row as any).fullname }}</span>
+        </template>
+        <template #[`${props.identifier}-data`]="{ row }">
+          <span class="font-mono text-xs">{{ (row as any)[props.identifier] || '-' }}</span>
+        </template>
+        <template #valid-data="{ row }">
+          <UBadge
+            :color="(row as any).valid ? 'success' : 'error'"
+            variant="subtle"
+            size="xs"
+          >
+            {{ (row as any).valid ? 'Valid' : 'Invalid' }}
+          </UBadge>
+        </template>
+        <template #errors-data="{ row }">
+          <ul v-if="!(row as any).valid && (row as any).errors?.length" class="list-disc list-inside text-xs text-red-500">
+            <li v-for="(err, i) in (row as any).errors" :key="i">{{ err }}</li>
+          </ul>
+          <span v-else class="text-gray-400">-</span>
+        </template>
+      </UTable>
+
+      <template v-if="filteredRows.length > 0" #footer>
+        <div class="flex justify-end">
+          <UPagination
+            v-model="page"
+            :page-count="pageCount"
+            :total="filteredRows.length"
+          />
+        </div>
+      </template>
     </UCard>
 
     <!-- Result Alert Notification -->

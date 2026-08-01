@@ -147,12 +147,12 @@ async function triggerTestBackendError() {
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="p-4 sm:p-6 space-y-6">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <UIcon name="i-lucide-terminal" class="w-7 h-7 text-emerald-500" />
+          <UIcon name="i-lucide-terminal" class="hidden sm:inline-block w-7 h-7 text-emerald-500" />
           System Debugging Log (Pino)
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -161,93 +161,102 @@ async function triggerTestBackendError() {
       </div>
 
       <!-- Action & Auto-refresh status -->
-      <div class="flex flex-wrap items-center gap-3">
-        <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg text-xs font-medium">
-          <span class="relative flex h-2 w-2">
-            <span
-              v-if="isAutoRefresh"
-              class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"
-            ></span>
-            <span
-              class="relative inline-flex rounded-full h-2 w-2"
-              :class="isAutoRefresh ? 'bg-emerald-500' : 'bg-gray-400'"
-            ></span>
-          </span>
-          <span class="text-gray-700 dark:text-gray-300">
-            Auto Refresh (5s)
-          </span>
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+        <div class="flex items-center justify-between gap-2 bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg text-xs font-medium">
+          <div class="flex items-center gap-2">
+            <span class="relative flex h-2 w-2">
+              <span
+                v-if="isAutoRefresh"
+                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"
+              ></span>
+              <span
+                class="relative inline-flex rounded-full h-2 w-2"
+                :class="isAutoRefresh ? 'bg-emerald-500' : 'bg-gray-400'"
+              ></span>
+            </span>
+            <span class="text-gray-700 dark:text-gray-300">
+              Auto Refresh (5s)
+            </span>
+          </div>
           <USwitch v-model="isAutoRefresh" size="xs" />
         </div>
 
-        <UButton
-          icon="i-lucide-refresh-cw"
-          color="neutral"
-          variant="outline"
-          size="sm"
-          :loading="status === 'pending'"
-          @click="refresh()"
-        >
-          Refresh
-        </UButton>
+        <div class="flex items-center gap-2">
+          <UButton
+            color="neutral"
+            variant="outline"
+            size="sm"
+            :loading="status === 'pending'"
+            class="flex-1 sm:flex-none justify-center"
+            @click="refresh()"
+          >
+            <template #leading>
+              <UIcon name="i-lucide-refresh-cw" class="hidden sm:inline-block" />
+            </template>
+            Refresh
+          </UButton>
 
-        <UButton
-          icon="i-lucide-trash-2"
-          color="error"
-          variant="soft"
-          size="sm"
-          class="cursor-pointer font-semibold"
-          :loading="isResettingLog"
-          @click="handleResetLogs"
-        >
-          Reset Log
-        </UButton>
+          <UButton
+            color="error"
+            variant="soft"
+            size="sm"
+            class="flex-1 sm:flex-none justify-center cursor-pointer font-semibold"
+            :loading="isResettingLog"
+            @click="handleResetLogs"
+          >
+            <template #leading>
+              <UIcon name="i-lucide-trash-2" class="hidden sm:inline-block" />
+            </template>
+            Reset Log
+          </UButton>
+        </div>
       </div>
     </div>
 
     <!-- Quick Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-      <div class="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-between">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div class="p-3 sm:p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-between">
         <div>
           <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Total Log</p>
-          <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ stats.total }}</p>
+          <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ stats.total }}</p>
         </div>
-        <UIcon name="i-lucide-layers" class="w-8 h-8 text-gray-400 opacity-50" />
+        <UIcon name="i-lucide-layers" class="hidden sm:block w-8 h-8 text-gray-400 opacity-50" />
       </div>
 
-      <div class="p-4 rounded-xl bg-white dark:bg-gray-900 border border-emerald-200 dark:border-emerald-950/50 flex items-center justify-between">
+      <div class="p-3 sm:p-4 rounded-xl bg-white dark:bg-gray-900 border border-emerald-200 dark:border-emerald-950/50 flex items-center justify-between">
         <div>
           <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Info Level</p>
-          <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{{ stats.info }}</p>
+          <p class="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{{ stats.info }}</p>
         </div>
-        <UIcon name="i-lucide-info" class="w-8 h-8 text-emerald-500 opacity-50" />
+        <UIcon name="i-lucide-info" class="hidden sm:block w-8 h-8 text-emerald-500 opacity-50" />
       </div>
 
-      <div class="p-4 rounded-xl bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-950/50 flex items-center justify-between">
+      <div class="p-3 sm:p-4 rounded-xl bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-950/50 flex items-center justify-between">
         <div>
           <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Warning Level</p>
-          <p class="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{{ stats.warn }}</p>
+          <p class="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{{ stats.warn }}</p>
         </div>
-        <UIcon name="i-lucide-alert-triangle" class="w-8 h-8 text-amber-500 opacity-50" />
+        <UIcon name="i-lucide-alert-triangle" class="hidden sm:block w-8 h-8 text-amber-500 opacity-50" />
       </div>
 
-      <div class="p-4 rounded-xl bg-white dark:bg-gray-900 border border-red-200 dark:border-red-950/50 flex items-center justify-between">
+      <div class="p-3 sm:p-4 rounded-xl bg-white dark:bg-gray-900 border border-red-200 dark:border-red-950/50 flex items-center justify-between">
         <div>
           <p class="text-xs text-red-600 dark:text-red-400 font-medium">Error Level</p>
-          <p class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{{ stats.error }}</p>
+          <p class="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{{ stats.error }}</p>
         </div>
-        <UIcon name="i-lucide-alert-circle" class="w-8 h-8 text-red-500 opacity-50" />
+        <UIcon name="i-lucide-alert-circle" class="hidden sm:block w-8 h-8 text-red-500 opacity-50" />
       </div>
     </div>
 
     <!-- Filters & Search -->
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800">
-      <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
         <USelect
           v-model="selectedLevel"
           :items="levelOptions"
           value-key="value"
           label-key="label"
-          class="w-40"
+          class="w-full sm:w-40"
         />
 
         <UInput
@@ -259,23 +268,29 @@ async function triggerTestBackendError() {
       </div>
 
       <!-- Simulator buttons -->
-      <div class="flex items-center gap-2">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         <UButton
           size="xs"
           color="warning"
           variant="soft"
-          icon="i-lucide-bug"
+          class="w-full sm:w-auto justify-center"
           @click="triggerTestFrontendError"
         >
+          <template #leading>
+            <UIcon name="i-lucide-bug" class="hidden sm:inline-block" />
+          </template>
           Simulasi Error Frontend
         </UButton>
         <UButton
           size="xs"
           color="error"
           variant="soft"
-          icon="i-lucide-server-crash"
+          class="w-full sm:w-auto justify-center"
           @click="triggerTestBackendError"
         >
+          <template #leading>
+            <UIcon name="i-lucide-server-crash" class="hidden sm:inline-block" />
+          </template>
           Simulasi Error Backend
         </UButton>
       </div>
@@ -297,10 +312,10 @@ async function triggerTestBackendError() {
         <div
           v-for="(log, index) in logs"
           :key="index"
-          class="p-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 flex items-start justify-between gap-4 cursor-pointer transition-colors"
+          class="p-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 cursor-pointer transition-colors"
           @click="viewDetails(log)"
         >
-          <div class="flex items-start gap-3 min-w-0">
+          <div class="flex items-start gap-3 min-w-0 w-full sm:w-auto">
             <UBadge
               :color="getLevelBadgeColor(log['level'])"
               variant="solid"
@@ -310,8 +325,8 @@ async function triggerTestBackendError() {
               {{ log['level'] }}
             </UBadge>
 
-            <div class="flex flex-col min-w-0">
-              <div class="flex items-center gap-2">
+            <div class="flex flex-col min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
                 <span v-if="log['type']" class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-600 dark:text-gray-400 font-semibold uppercase">
                   {{ log['type'] }}
                 </span>
@@ -330,7 +345,7 @@ async function triggerTestBackendError() {
             </div>
           </div>
 
-          <div class="flex items-center gap-3 shrink-0 text-right">
+          <div class="flex items-center justify-between sm:justify-end w-full sm:w-auto shrink-0 text-right">
             <span class="text-[11px] text-gray-400 dark:text-gray-500">
               {{ formatDate(log['time']) }}
             </span>

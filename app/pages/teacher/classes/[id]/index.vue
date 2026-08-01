@@ -76,7 +76,7 @@ const columns = [
         </UButton>
         <UButton
           :to="`/teacher/classes/${teachingId}/ai-analysis`"
-          color="purple"
+          color="primary"
           variant="solid"
           icon="i-lucide-brain-circuit"
         >

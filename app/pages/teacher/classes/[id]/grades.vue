@@ -206,7 +206,7 @@ function updateScore(key: string, val: any) {
         />
         <div>
           <h1 class="text-2xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
-            <UIcon name="i-lucide-calculator" class="w-7 h-7 text-emerald-500" />
+            <UIcon name="i-lucide-calculator" class="hidden sm:inline-block w-7 h-7 text-emerald-500" />
             Tabel Inspeksi Nilai Siswa
           </h1>
           <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -245,7 +245,7 @@ function updateScore(key: string, val: any) {
       <template #header>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-table" class="w-5 h-5 text-emerald-500" />
+            <UIcon name="i-lucide-table" class="hidden sm:inline-block w-5 h-5 text-emerald-500" />
             <h2 class="text-base font-bold text-gray-900 dark:text-white">
               Tabel Input Nilai (Formula: 50% Rata PH + 25% STS + 25% SAS)
             </h2>
