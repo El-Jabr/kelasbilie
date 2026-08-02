@@ -20,7 +20,7 @@ const generatedAt = ref('')
 
 const { data: filterData } = await useAsyncData('siswa-filters', async () => {
   const [studRes, semRes] = await Promise.all([
-    $fetch<any>('/api/students?limit=1000'), // Ambil semua untuk disederhanakan
+    $fetch<any>('/api/students?limit=1000'),
     $fetch<any>('/api/semesters?limit=1000')
   ])
   return {
@@ -98,36 +98,40 @@ async function handleForceRefresh() {
 }
 
 function getStatusColor(status: string) {
-  if (status === 'baik') return 'green'
-  if (status === 'perlu_perhatian') return 'orange'
-  if (status === 'kritis') return 'red'
-  return 'gray'
+  if (status === 'baik') return 'emerald'
+  if (status === 'perlu_perhatian') return 'amber'
+  if (status === 'kritis') return 'rose'
+  return 'neutral'
 }
+
 function getTrenColor(tren: string) {
-  if (tren === 'meningkat') return 'green'
+  if (tren === 'meningkat') return 'emerald'
   if (tren === 'stabil') return 'blue'
-  if (tren === 'menurun') return 'red'
-  return 'gray'
+  if (tren === 'menurun') return 'rose'
+  return 'neutral'
 }
 </script>
 
 <template>
   <div class="space-y-6">
+    <!-- Header Page Banner -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <UIcon name="i-lucide-user-check" class="hidden sm:inline-block text-primary-500" />
-          AI Analisis Siswa
+        <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2 text-gray-900 dark:text-white">
+          <UIcon name="i-lucide-user-check" class="w-8 h-8 text-primary-500" />
+          AI Analisis Performa Siswa
         </h1>
-        <p class="text-sm text-gray-500">Analisis perkembangan dan performa akademik per siswa.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Laporan perkembangan individual siswa, keunggulan, area evaluasi, dan rekomendasi khusus AI Gemini.
+        </p>
       </div>
     </div>
 
     <!-- Filter Card -->
-    <UCard>
+    <UCard class="shadow-sm border border-gray-200 dark:border-gray-800">
       <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-end">
         <div class="w-full md:flex-1">
-          <label class="block text-sm font-medium mb-1">Pilih Siswa</label>
+          <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Pilih Siswa</label>
           <USelectMenu
             v-model="selectedStudent"
             :items="studentOptions"
@@ -139,7 +143,7 @@ function getTrenColor(tren: string) {
           />
         </div>
         <div class="w-full md:flex-1">
-          <label class="block text-sm font-medium mb-1">Pilih Semester</label>
+          <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Pilih Semester</label>
           <USelect
             v-model="selectedSemester"
             :items="semesterOptions"
@@ -152,13 +156,14 @@ function getTrenColor(tren: string) {
         <div class="w-full md:w-auto">
           <UButton
             color="primary"
+            size="md"
             :loading="isAnalyzing"
             :disabled="!selectedStudent"
-            class="w-full md:w-auto flex justify-center"
+            class="w-full md:w-auto flex justify-center font-bold cursor-pointer"
             @click="analyzeStudent"
           >
             <template #leading>
-              <UIcon name="i-lucide-sparkles" class="hidden sm:inline-block" />
+              <UIcon name="i-lucide-sparkles" class="w-4 h-4" />
             </template>
             Analisis Siswa
           </UButton>
@@ -166,102 +171,160 @@ function getTrenColor(tren: string) {
       </div>
     </UCard>
 
+    <!-- Empty/Loading State -->
+    <div v-if="isAnalyzing" class="py-16 text-center space-y-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <UIcon name="i-lucide-loader-2" class="w-10 h-10 animate-spin text-primary-500 mx-auto" />
+      <div class="space-y-1">
+        <h3 class="font-bold text-gray-900 dark:text-white">AI Sedang Menganalisis Performa Siswa...</h3>
+        <p class="text-xs text-gray-500">Mengevaluasi tren nilai, kekuatan, kelemahan, dan menyusun rekomendasi.</p>
+      </div>
+    </div>
+
     <!-- Hasil Analisis -->
-    <div v-if="analysisData" class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div v-else-if="analysisData" class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div class="flex items-center gap-2 text-sm text-gray-500">
-          <UIcon :name="isCached ? 'i-lucide-history' : 'i-lucide-zap'" :class="['hidden sm:inline-block', isCached ? 'text-blue-500' : 'text-green-500']" />
-          <span>{{ isCached ? 'Data dari cache.' : 'Dihasilkan oleh AI langsung.' }}</span>
-          <span>Diperbarui: {{ generatedAt }}</span>
+      <!-- Metadata Cache Banner -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+          <UIcon :name="isCached ? 'i-lucide-history' : 'i-lucide-zap'" :class="['w-4 h-4', isCached ? 'text-blue-500' : 'text-emerald-500']" />
+          <span>Status AI: <strong>{{ isCached ? 'Data dari Cache' : 'Generasi Baru' }}</strong></span>
+          <span class="text-gray-400">•</span>
+          <span>Waktu Diperbarui: {{ generatedAt }}</span>
         </div>
-        <UButton size="xs" color="neutral" variant="ghost" :loading="isAnalyzing" class="w-full sm:w-auto justify-center" @click="handleForceRefresh">
+        <UButton size="xs" color="neutral" variant="outline" :loading="isAnalyzing" class="w-full sm:w-auto justify-center font-semibold cursor-pointer" @click="handleForceRefresh">
           <template #leading>
-            <UIcon name="i-lucide-refresh-cw" class="hidden sm:inline-block" />
+            <UIcon name="i-lucide-refresh-cw" class="w-3.5 h-3.5" />
           </template>
-          Force Refresh
+          Force Refresh AI
         </UButton>
       </div>
 
-      <!-- Ringkasan Status -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UCard :class="`bg-${getStatusColor(analysisData.statusUmum)}-50 dark:bg-${getStatusColor(analysisData.statusUmum)}-950/20 ring-1 ring-${getStatusColor(analysisData.statusUmum)}-200`">
+      <!-- Ringkasan Status & Tren Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Status Umum Card -->
+        <UCard class="border border-gray-200 dark:border-gray-700 shadow-sm relative overflow-hidden">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Status Umum Akademik</p>
-              <p :class="`text-2xl font-bold uppercase mt-1 text-${getStatusColor(analysisData.statusUmum)}-700`">
+              <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Status Akademik Umum</span>
+              <p class="text-3xl font-extrabold uppercase mt-1 font-mono" :class="getStatusColor(analysisData.statusUmum) === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : (getStatusColor(analysisData.statusUmum) === 'amber' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400')">
                 {{ (analysisData.statusUmum || '').replace('_', ' ') }}
               </p>
             </div>
-            <UIcon name="i-lucide-activity" class="hidden sm:block w-12 h-12 opacity-50" :class="`text-${getStatusColor(analysisData.statusUmum)}-500`" />
+            <div class="p-3 rounded-2xl" :class="getStatusColor(analysisData.statusUmum) === 'emerald' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400' : (getStatusColor(analysisData.statusUmum) === 'amber' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400')">
+              <UIcon name="i-lucide-activity" class="w-8 h-8" />
+            </div>
           </div>
         </UCard>
-        
-        <UCard :class="`bg-${getTrenColor(analysisData.tren)}-50 dark:bg-${getTrenColor(analysisData.tren)}-950/20 ring-1 ring-${getTrenColor(analysisData.tren)}-200`">
+
+        <!-- Tren Card -->
+        <UCard class="border border-gray-200 dark:border-gray-700 shadow-sm relative overflow-hidden">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Tren Nilai Semester Ini</p>
-              <p :class="`text-2xl font-bold uppercase mt-1 text-${getTrenColor(analysisData.tren)}-700`">
+              <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tren Nilai Semester Ini</span>
+              <p class="text-3xl font-extrabold uppercase mt-1 font-mono" :class="getTrenColor(analysisData.tren) === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : (getTrenColor(analysisData.tren) === 'blue' ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400')">
                 {{ analysisData.tren || '-' }}
               </p>
             </div>
-            <UIcon :name="analysisData.tren === 'meningkat' ? 'i-lucide-trending-up' : (analysisData.tren === 'menurun' ? 'i-lucide-trending-down' : 'i-lucide-minus')" class="hidden sm:block w-12 h-12 opacity-50" :class="`text-${getTrenColor(analysisData.tren)}-500`" />
+            <div class="p-3 rounded-2xl" :class="getTrenColor(analysisData.tren) === 'emerald' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400' : (getTrenColor(analysisData.tren) === 'blue' ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400')">
+              <UIcon :name="analysisData.tren === 'meningkat' ? 'i-lucide-trending-up' : (analysisData.tren === 'menurun' ? 'i-lucide-trending-down' : 'i-lucide-minus')" class="w-8 h-8" />
+            </div>
           </div>
         </UCard>
       </div>
 
-      <!-- Narasi -->
-      <UCard>
-        <h3 class="text-lg font-semibold flex items-center gap-2 mb-3">
-          <UIcon name="i-lucide-user" class="hidden sm:inline-block text-primary-500" />
-          Evaluasi Siswa
-        </h3>
-        <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
-          {{ analysisData.narasi || 'Tidak ada narasi.' }}
+      <!-- Evaluasi Siswa / Narasi AI -->
+      <UCard class="border border-primary-200/70 dark:border-primary-900/60 bg-white dark:bg-gray-800 shadow-sm">
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-sparkles" class="w-5 h-5 text-primary-500" />
+            <h3 class="text-base font-bold text-gray-900 dark:text-white">
+              Evaluasi & Narasi Kualitatif AI Siswa
+            </h3>
+          </div>
+        </template>
+        <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-sans">
+          {{ analysisData.narasi || 'Tidak ada narasi evaluasi.' }}
         </p>
       </UCard>
 
-      <!-- Kekuatan & Kelemahan -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UCard>
-          <h3 class="text-lg font-semibold flex items-center gap-2 mb-4 text-green-600">
-            <UIcon name="i-lucide-thumbs-up" class="hidden sm:inline-block" />
-            Kekuatan
-          </h3>
-          <ul class="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-            <li v-for="(k, idx) in analysisData.kekuatan" :key="idx">{{ k }}</li>
-          </ul>
+      <!-- Kekuatan & Area Pengembangan -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Card Kekuatan -->
+        <UCard class="border border-emerald-200/70 dark:border-emerald-900/60 bg-emerald-50/20 dark:bg-emerald-950/10 shadow-sm">
+          <template #header>
+            <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+              <UIcon name="i-lucide-thumbs-up" class="w-5 h-5 text-emerald-500" />
+              <h3 class="text-base font-bold">Kekuatan & Keunggulan Akademik</h3>
+            </div>
+          </template>
+          <div v-if="analysisData.kekuatan?.length" class="space-y-2.5">
+            <div v-for="(k, idx) in analysisData.kekuatan" :key="idx" class="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
+              <UIcon name="i-lucide-check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <span class="leading-relaxed">{{ k }}</span>
+            </div>
+          </div>
+          <p v-else class="text-xs text-gray-500 italic">Belum ada catatan kekuatan terdeteksi.</p>
         </UCard>
-        
-        <UCard>
-          <h3 class="text-lg font-semibold flex items-center gap-2 mb-4 text-red-600">
-            <UIcon name="i-lucide-thumbs-down" class="hidden sm:inline-block" />
-            Area Pengembangan (Kelemahan)
-          </h3>
-          <ul class="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-            <li v-for="(k, idx) in analysisData.kelemahan" :key="idx">{{ k }}</li>
-          </ul>
+
+        <!-- Card Area Pengembangan -->
+        <UCard class="border border-rose-200/70 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/10 shadow-sm">
+          <template #header>
+            <div class="flex items-center gap-2 text-rose-700 dark:text-rose-300">
+              <UIcon name="i-lucide-alert-circle" class="w-5 h-5 text-rose-500" />
+              <h3 class="text-base font-bold">Area Pengembangan (Kelemahan)</h3>
+            </div>
+          </template>
+          <div v-if="analysisData.kelemahan?.length" class="space-y-2.5">
+            <div v-for="(k, idx) in analysisData.kelemahan" :key="idx" class="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
+              <UIcon name="i-lucide-x-circle" class="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+              <span class="leading-relaxed">{{ k }}</span>
+            </div>
+          </div>
+          <p v-else class="text-xs text-gray-500 italic">Tidak ada area kelemahan kritis yang terdeteksi.</p>
         </UCard>
       </div>
 
       <!-- Rekomendasi Tindakan -->
-      <UCard>
-        <h3 class="text-lg font-semibold flex items-center gap-2 mb-4 text-primary-600">
-          <UIcon name="i-lucide-target" class="hidden sm:inline-block" />
-          Rekomendasi Tindakan
-        </h3>
-        <div class="space-y-3">
-          <div v-for="(rek, idx) in analysisData.rekomendasi" :key="idx" class="flex gap-4 items-start p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors border border-gray-100 dark:border-gray-800">
-            <UBadge color="primary" variant="subtle">
-              {{ rek.tipe.toUpperCase().replace('ORANG_TUA', 'MUROBBI').replace('ORANG TUA', 'MUROBBI') }}
+      <UCard class="border border-gray-200 dark:border-gray-800 shadow-sm">
+        <template #header>
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <UIcon name="i-lucide-target" class="w-5 h-5 text-primary-500" />
+              Rekomendasi Tindakan Spesifik
+            </h3>
+            <UBadge color="primary" variant="subtle" size="xs" class="font-bold">
+              {{ analysisData.rekomendasi?.length || 0 }} Rekomendasi
             </UBadge>
-            <div>
-              <div class="font-medium text-gray-900 dark:text-gray-100">{{ rek.mapel }}</div>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ rek.tindakan }}</p>
+          </div>
+        </template>
+
+        <div v-if="analysisData.rekomendasi?.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
+          <div
+            v-for="(rek, idx) in analysisData.rekomendasi"
+            :key="idx"
+            class="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+          >
+            <div class="w-28 shrink-0">
+              <UBadge
+                color="primary"
+                variant="subtle"
+                size="sm"
+                class="w-full justify-center font-bold text-center font-mono uppercase"
+              >
+                {{ rek.tipe.toUpperCase().replace('ORANG_TUA', 'MUROBBI').replace('ORANG TUA', 'MUROBBI') }}
+              </UBadge>
+            </div>
+            <div class="flex-1 space-y-1">
+              <div v-if="rek.mapel" class="font-bold text-gray-900 dark:text-white text-sm">
+                {{ rek.mapel }}
+              </div>
+              <p class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{{ rek.tindakan }}</p>
             </div>
           </div>
         </div>
+        <p v-else class="text-xs text-gray-500 italic text-center py-4">Belum ada rekomendasi tindakan.</p>
       </UCard>
+
     </div>
   </div>
 </template>

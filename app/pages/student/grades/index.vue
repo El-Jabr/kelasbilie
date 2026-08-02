@@ -11,10 +11,13 @@ const studentId = computed(() => studentRes.value?.data?.id)
 const { data: gradesRes, status: gradesStatus, refresh } = await useAsyncData<any>(
   'student-grades',
   async () => {
-    if (!studentId.value) return null
-    return await $fetch(`/api/grades/student/${studentId.value}`, {
-      credentials: 'include'
-    })
+    let sId = studentId.value
+    if (!sId) {
+      const meRes: any = await ($fetch as any)('/api/students/me')
+      sId = meRes?.data?.id
+    }
+    if (!sId) return null
+    return await ($fetch as any)(`/api/grades/student/${sId}`)
   },
   {
     watch: [studentId]
@@ -23,26 +26,9 @@ const { data: gradesRes, status: gradesStatus, refresh } = await useAsyncData<an
 
 const gradesList = computed(() => gradesRes.value?.data ?? [])
 
-function getScoreBadgeColor(score: number | null) {
-  if (score === null) return 'neutral'
-  if (score >= 75) return 'success'
-  if (score >= 60) return 'warning'
-  return 'error'
-}
-
 const search = ref('')
 const page = ref(1)
 const pageCount = ref(10)
-
-const columns: any[] = [
-  { key: 'subject', label: 'Mata Pelajaran', sortable: true },
-  { key: 'teacher', label: 'Guru Pengampu', sortable: true },
-  { key: 'ph', label: 'AVERAGE PH', class: 'bg-blue-50/30 dark:bg-blue-950/10 text-center text-blue-600 dark:text-blue-400 font-mono', sortable: true },
-  { key: 'sts', label: 'STS', class: 'bg-amber-50/30 dark:bg-amber-950/10 text-center text-amber-600 dark:text-amber-400 font-mono', sortable: true },
-  { key: 'sas', label: 'SAS', class: 'bg-emerald-50/30 dark:bg-emerald-950/10 text-center text-emerald-600 dark:text-emerald-400 font-mono', sortable: true },
-  { key: 'final', label: 'NILAI AKHIR', class: 'bg-gray-50 dark:bg-gray-800/40 text-center font-mono', sortable: true },
-  { key: 'actions', label: 'Aksi', class: 'text-center' }
-]
 
 const filteredGrades = computed(() => {
   let list = gradesList.value
@@ -119,90 +105,91 @@ watch(search, () => {
           Belum ada data nilai mata pelajaran untuk semester aktif ini.
         </div>
 
-        <div v-else>
-          <UTable
-            :rows="paginatedGrades"
-            :columns="columns"
-            :empty-state="{ icon: 'i-lucide-file-x', text: 'Tidak ada data nilai yang cocok.' }"
-          >
-            <template #ph-header="{ column }">
-              <div class="font-bold text-blue-800 dark:text-blue-200">{{ (column as any).label }}</div>
-              <div class="text-[10px] text-blue-600 dark:text-blue-400 font-normal">Bobot 50%</div>
-            </template>
-            <template #sts-header="{ column }">
-              <div class="font-bold text-amber-800 dark:text-amber-200">{{ (column as any).label }}</div>
-              <div class="text-[10px] text-amber-600 dark:text-amber-400 font-normal">Bobot 25%</div>
-            </template>
-            <template #sas-header="{ column }">
-              <div class="font-bold text-emerald-800 dark:text-emerald-200">{{ (column as any).label }}</div>
-              <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">Bobot 25%</div>
-            </template>
-            <template #final-header="{ column }">
-              <div class="font-extrabold text-gray-900 dark:text-white">{{ (column as any).label }}</div>
-            </template>
-
-            <template #subject-data="{ row }">
-              <span class="font-bold text-gray-900 dark:text-white block">{{ (row as any).subjectName }}</span>
-              <span class="text-xs text-gray-500 font-mono">{{ (row as any).subjectCode }} ({{ (row as any).classroomName }})</span>
-            </template>
-
-            <template #teacher-data="{ row }">
-              <span class="text-gray-700 dark:text-gray-300 font-medium">{{ (row as any).teacherName || '-' }}</span>
-            </template>
-
-            <template #ph-data="{ row }">
-              <span class="font-bold">
-                {{ (row as any).grades?.PH !== null && (row as any).grades?.PH !== undefined ? Math.round((row as any).grades.PH) : '-' }}
-              </span>
-            </template>
-            
-            <template #sts-data="{ row }">
-              <span class="font-bold">
-                {{ (row as any).grades?.STS !== null && (row as any).grades?.STS !== undefined ? Math.round((row as any).grades.STS) : '-' }}
-              </span>
-            </template>
-            
-            <template #sas-data="{ row }">
-              <span class="font-bold">
-                {{ (row as any).grades?.SAS !== null && (row as any).grades?.SAS !== undefined ? Math.round((row as any).grades.SAS) : '-' }}
-              </span>
-            </template>
-
-            <template #final-data="{ row }">
-              <UBadge
-                v-if="(row as any).finalScore !== null"
-                :color="(row as any).finalScore >= 75 ? 'success' : 'warning'"
-                variant="solid"
-                size="md"
-                class="font-extrabold"
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr class="bg-gray-50 dark:bg-gray-800/60 text-xs font-semibold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+                <th class="py-3 px-4 w-12 text-center">No</th>
+                <th class="py-3 px-4 min-w-[200px]">Mata Pelajaran</th>
+                <th class="py-3 px-4 min-w-[160px]">Guru Pengampu</th>
+                <th class="py-3 px-4 text-center min-w-[120px] bg-blue-100/50 dark:bg-blue-900/30 border-x border-gray-200 dark:border-gray-800">
+                  <div class="font-bold text-blue-800 dark:text-blue-200">AVERAGE PH</div>
+                  <div class="text-[10px] text-blue-600 dark:text-blue-400 font-normal">Bobot 50%</div>
+                </th>
+                <th class="py-3 px-4 text-center min-w-[100px] bg-amber-100/50 dark:bg-amber-900/30 border-r border-gray-200 dark:border-gray-800">
+                  <div class="font-bold text-amber-800 dark:text-amber-200">STS</div>
+                  <div class="text-[10px] text-amber-600 dark:text-amber-400 font-normal">Bobot 25%</div>
+                </th>
+                <th class="py-3 px-4 text-center min-w-[100px] bg-emerald-100/50 dark:bg-emerald-900/30 border-r border-gray-200 dark:border-gray-800">
+                  <div class="font-bold text-emerald-800 dark:text-emerald-200">SAS</div>
+                  <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">Bobot 25%</div>
+                </th>
+                <th class="py-3 px-4 text-center min-w-[120px] bg-gray-200 dark:bg-gray-700">
+                  <div class="font-extrabold text-gray-900 dark:text-white">NILAI AKHIR</div>
+                </th>
+                <th class="py-3 px-4 text-center w-24">Aksi</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+              <tr
+                v-for="(row, idx) in paginatedGrades"
+                :key="row.teachingId"
+                class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition-colors"
               >
-                {{ Math.round((row as any).finalScore) }}
-              </UBadge>
-              <span v-else class="text-gray-400 text-xs font-mono">-</span>
-            </template>
+                <td class="py-3 px-4 text-center text-xs text-gray-400">
+                  {{ (page - 1) * pageCount + Number(idx) + 1 }}
+                </td>
+                <td class="py-3 px-4">
+                  <span class="font-bold text-gray-900 dark:text-white block">{{ row.subjectName }}</span>
+                  <span class="text-xs text-gray-500 font-mono">{{ row.subjectCode }} ({{ row.classroomName }})</span>
+                </td>
+                <td class="py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
+                  {{ row.teacherName || '-' }}
+                </td>
 
-            <template #actions-data="{ row }">
-              <div class="text-center">
-                <UButton
-                  :to="`/student/grades/${(row as any).teachingId}`"
-                  color="primary"
-                  variant="ghost"
-                  size="xs"
-                  class="font-semibold"
-                >
-                  <template #leading>
-                    <UIcon name="i-lucide-eye" class="hidden sm:inline-block" />
-                  </template>
-                  Detail Rincian
-                </UButton>
-              </div>
-            </template>
-          </UTable>
+                <td class="py-3 px-4 text-center bg-blue-50/30 dark:bg-blue-950/10 font-bold text-blue-600 dark:text-blue-400 font-mono">
+                  {{ row.grades?.PH !== null && row.grades?.PH !== undefined ? Math.round(row.grades.PH) : '-' }}
+                </td>
+
+                <td class="py-3 px-4 text-center bg-amber-50/30 dark:bg-amber-950/10 font-bold text-amber-600 dark:text-amber-400 font-mono">
+                  {{ row.grades?.STS !== null && row.grades?.STS !== undefined ? Math.round(row.grades.STS) : '-' }}
+                </td>
+
+                <td class="py-3 px-4 text-center bg-emerald-50/30 dark:bg-emerald-950/10 font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                  {{ row.grades?.SAS !== null && row.grades?.SAS !== undefined ? Math.round(row.grades.SAS) : '-' }}
+                </td>
+
+                <td class="py-3 px-4 text-center bg-gray-50 dark:bg-gray-800/40 font-mono">
+                  <UBadge
+                    v-if="row.finalScore !== null && row.finalScore !== undefined"
+                    :color="row.finalScore >= 75 ? 'success' : 'warning'"
+                    variant="solid"
+                    size="md"
+                    class="font-extrabold"
+                  >
+                    {{ Math.round(row.finalScore) }}
+                  </UBadge>
+                  <span v-else class="text-gray-400 text-xs font-mono">-</span>
+                </td>
+
+                <td class="py-3 px-4 text-center">
+                  <UTooltip text="Detail Rincian Nilai Komponen">
+                    <UButton
+                      :to="`/student/grades/${row.teachingId}`"
+                      icon="i-lucide-eye"
+                      color="primary"
+                      variant="ghost"
+                      size="sm"
+                    />
+                  </UTooltip>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <template v-if="filteredGrades.length > 0" #footer>
-          <div class="flex justify-between items-center text-xs text-gray-500">
-            <span>Menampilkan {{ paginatedGrades.length }} dari {{ filteredGrades.length }} mapel</span>
+          <div class="flex justify-end items-center text-xs text-gray-500">
             <UPagination v-model="page" :page-count="pageCount" :total="filteredGrades.length" />
           </div>
         </template>

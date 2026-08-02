@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     if (!setting) {
       setting = await prisma.schoolSetting.create({
         data: {
-          schoolName: 'Kelasbilie School',
+          schoolName: 'Kelas Bilie School',
           syncEnabled: true,
           syncInterval: 30
         }

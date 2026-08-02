@@ -48,7 +48,7 @@ onMounted(() => {
           Dashboard Utama
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          Selamat datang di Sistem Informasi Manajemen Akademik Kelasbilie.
+          Selamat datang di Sistem Informasi Manajemen Akademik Kelas Bilie.
         </p>
       </div>
 

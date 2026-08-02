@@ -57,7 +57,7 @@ const assignments = computed(() => {
       <div class="relative z-10 space-y-2">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-medium text-emerald-100 border border-white/20">
           <UIcon name="i-lucide-sparkles" class="w-3.5 h-3.5 text-amber-300" />
-          <span>Portal Pengajar • Kelasbilie</span>
+          <span>Portal Pengajar • Kelas Bilie</span>
         </div>
         <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
           Selamat Datang, {{ user?.fullname || 'Bapak/Ibu Guru' }}! 👋
@@ -177,8 +177,8 @@ const assignments = computed(() => {
                   {{ item.subject?.name }}
                 </h3>
               </div>
-              <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex flex-col items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-800/50">
-                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">KLS</span>
+              <div class="my-auto w-auto px-3 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex flex-col items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-800/50">
+                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">KELAS</span>
                 <span class="text-sm font-black text-gray-900 dark:text-white leading-none mt-0.5">{{ item.classroom?.name.split(' ').pop() || item.classroom?.name }}</span>
               </div>
             </div>

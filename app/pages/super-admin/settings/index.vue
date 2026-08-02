@@ -142,7 +142,7 @@ async function handleTestConnection() {
               </label>
               <UInput
                 v-model="formState.schoolName"
-                placeholder="Contoh: SMA Negeri 1 Kelasbilie"
+                placeholder="Contoh: SMA Negeri 1 Kelas Bilie"
                 class="w-full lg:w-1/3"
               />
             </div>

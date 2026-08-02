@@ -16,20 +16,24 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Jika semesterId tidak dikirim, ambil semester yang sedang aktif
-    if (!semesterId) {
-      const activeSemester = await prisma.semester.findFirst({
-        where: { isActive: true }
+    const teaching = await prisma.teachingAssignment.findUnique({
+      where: { id: teachingId }
+    })
+
+    if (!teaching) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Penugasan mengajar tidak ditemukan.'
       })
-      if (activeSemester) {
-        semesterId = activeSemester.id
-      }
     }
 
-    const summaries = await prisma.gradeSummary.findMany({
+    const targetSemesterId = semesterId || teaching.semesterId
+
+    // 1. Ambil seluruh siswa di kelas penugasan ini
+    const studentClasses = await prisma.studentClass.findMany({
       where: {
-        teachingId,
-        ...(semesterId && { semesterId })
+        classroomId: teaching.classroomId,
+        semesterId: targetSemesterId
       },
       include: {
         student: {
@@ -46,43 +50,47 @@ export default defineEventHandler(async (event) => {
       },
       orderBy: {
         student: {
-          nis: 'asc'
+          user: {
+            fullname: 'asc'
+          }
         }
       }
     })
 
-    // Kelompokkan nilai per siswa agar format JSON lebih rapi bagi frontend
-    const groupedMap = new Map<string, any>()
-
-    for (const item of summaries) {
-      if (!groupedMap.has(item.studentId)) {
-        groupedMap.set(item.studentId, {
-          studentId: item.studentId,
-          nis: item.student.nis,
-          fullname: item.student.user.fullname,
-          username: item.student.user.username,
-          grades: {}
-        })
+    // 2. Ambil ringkasan nilai yang tersimpan
+    const summaries = await prisma.gradeSummary.findMany({
+      where: {
+        teachingId,
+        semesterId: targetSemesterId
       }
+    })
 
-      const studentRecord = groupedMap.get(item.studentId)
-      studentRecord.grades[item.category] = item.score
-    }
+    // 3. Gabungkan seluruh siswa dengan nilai rekapnya
+    const resultList = studentClasses.map((sc) => {
+      const studentSummaries = summaries.filter(s => s.studentId === sc.studentId)
+      const summaryPH = studentSummaries.find(s => s.category === 'PH')
+      const summarySTS = studentSummaries.find(s => s.category === 'STS')
+      const summarySAS = studentSummaries.find(s => s.category === 'SAS')
 
-    const resultList = Array.from(groupedMap.values()).map((studentData) => {
-      const ph = studentData.grades.PH ?? null
-      const sts = studentData.grades.STS ?? null
-      const sas = studentData.grades.SAS ?? null
+      const ph = summaryPH?.score ?? null
+      const sts = summarySTS?.score ?? null
+      const sas = summarySAS?.score ?? null
 
-      // Hitung rata-rata akhir jika nilai tersedia
       const validScores = [ph, sts, sas].filter((val) => val !== null) as number[]
-      const finalScore =
-        validScores.length > 0
-          ? Number((validScores.reduce((a, b) => a + b, 0) / validScores.length).toFixed(2))
-          : null
+      const finalScore = validScores.length > 0
+        ? Number((validScores.reduce((a, b) => a + b, 0) / validScores.length).toFixed(2))
+        : null
 
       return {
-        ...studentData,
+        studentId: sc.student.id,
+        nis: sc.student.nis,
+        fullname: sc.student.user?.fullname || '-',
+        username: sc.student.user?.username || '-',
+        grades: {
+          PH: ph,
+          STS: sts,
+          SAS: sas
+        },
         finalScore
       }
     })

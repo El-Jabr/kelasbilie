@@ -94,7 +94,7 @@ async function handleLogout() {
     <div class="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
       <NuxtLink to="/teacher" class="flex items-center gap-3">
         <div class="flex flex-col">
-          <span class="font-bold text-base leading-none text-gray-900 dark:text-white">KelasBilie</span>
+          <span class="font-bold text-base leading-none text-gray-900 dark:text-white">Kelas Bilie</span>
           <span class="text-[10px] font-semibold tracking-wider uppercase text-emerald-600 dark:text-emerald-400 mt-0.5">
             Portal Guru / Pengajar
           </span>

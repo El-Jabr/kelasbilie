@@ -7,11 +7,12 @@ useSeoMeta({ title: 'Import Siswa' })
 </script>
 
 <template>
-  <UContainer class="space-y-6 py-6">
+  <div class="space-y-6">
     <div>
       <h1 class="text-2xl font-bold">
         Import Siswa
-      </h1><p class="text-muted">
+      </h1>
+      <p class="text-muted text-sm text-gray-500">
         Preview data sebelum mengimport siswa.
       </p>
     </div>
@@ -20,5 +21,5 @@ useSeoMeta({ title: 'Import Siswa' })
       label="Siswa"
       identifier="nis"
     />
-  </UContainer>
+  </div>
 </template>

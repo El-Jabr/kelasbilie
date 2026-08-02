@@ -4,8 +4,7 @@ const { pagination, changePage, changeLimit } = useHomerooms()
 
 <template>
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-    <div class="flex items-center gap-2 text-sm text-gray-500">
-      <span>Tampilkan</span>
+    <div class="flex w-full justify-between items-center gap-2 text-sm text-gray-500">
       <USelect
         :model-value="pagination.limit"
         :items="[
@@ -19,15 +18,14 @@ const { pagination, changePage, changeLimit } = useHomerooms()
         class="w-20"
         @update:model-value="changeLimit(Number($event))"
       />
-      <span>data</span>
+      <UPagination
+        v-if="pagination.total > 0"
+        :model-value="pagination.page"
+        :total="pagination.total"
+        :page-count="pagination.limit"
+        @update:model-value="changePage"
+      />
     </div>
 
-    <UPagination
-      v-if="pagination.total > 0"
-      :model-value="pagination.page"
-      :total="pagination.total"
-      :page-count="pagination.limit"
-      @update:model-value="changePage"
-    />
   </div>
 </template>

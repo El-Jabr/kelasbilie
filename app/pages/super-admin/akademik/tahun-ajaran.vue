@@ -15,13 +15,13 @@ await fetchAcademicYears()
 </script>
 
 <template>
-  <UContainer class="space-y-6 py-6">
+  <div class="space-y-6">
     <div>
       <h1 class="text-2xl font-bold">
         Tahun Ajaran
       </h1>
 
-      <p class="text-muted">
+      <p class="text-muted text-sm text-gray-500">
         Kelola tahun ajaran sekolah.
       </p>
     </div>
@@ -39,5 +39,5 @@ await fetchAcademicYears()
     <AcademicYearsDialogsAcademicYearDeleteDialog />
 
     <AcademicYearsDialogsAcademicYearStatusDialog />
-  </UContainer>
+  </div>
 </template>

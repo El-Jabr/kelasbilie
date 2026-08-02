@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     if (!setting) {
       setting = await prisma.schoolSetting.create({
         data: {
-          schoolName: parsed.data.schoolName ?? 'Kelasbilie School',
+          schoolName: parsed.data.schoolName ?? 'Kelas Bilie School',
           moodleUrl: parsed.data.moodleUrl || null,
           moodleToken: parsed.data.moodleToken || null,
           syncEnabled: parsed.data.syncEnabled ?? true,

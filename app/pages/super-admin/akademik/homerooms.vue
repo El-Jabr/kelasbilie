@@ -17,13 +17,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <UContainer class="space-y-6 py-6">
+  <div class="space-y-6">
     <div>
       <h1 class="text-2xl font-bold">
         Penetapan Wali Kelas (Homeroom)
       </h1>
 
-      <p class="text-muted">
+      <p class="text-muted text-sm text-gray-500">
         Kelola wali kelas untuk masing-masing rombongan belajar pada semester aktif.
       </p>
     </div>
@@ -35,5 +35,5 @@ onMounted(() => {
     <HomeroomsDialogsHomeroomCreateDialog />
     <HomeroomsDialogsHomeroomEditDialog />
     <HomeroomsDialogsHomeroomDeleteDialog />
-  </UContainer>
+  </div>
 </template>

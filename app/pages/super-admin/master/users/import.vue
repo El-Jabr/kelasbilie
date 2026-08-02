@@ -25,13 +25,13 @@ async function handleImport() {
 </script>
 
 <template>
-  <UContainer class="py-6 space-y-6">
+  <div class="space-y-6">
     <div class="flex flex-col-reverse gap-4 md:flex-row md:items-start md:justify-between">
       <div class="max-w-4xl">
         <h1 class="text-2xl font-bold">
           Import Users
         </h1>
-        <p class="text-muted">
+        <p class="text-muted text-sm text-gray-500">
           Import data user menggunakan file Excel atau CSV.
         </p>
       </div>
@@ -98,5 +98,5 @@ async function handleImport() {
     <!-- <UsersImportResultDialog
       v-model="showResult"
     /> -->
-  </UContainer>
+  </div>
 </template>

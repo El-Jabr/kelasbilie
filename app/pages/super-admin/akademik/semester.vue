@@ -15,13 +15,13 @@ await fetchSemesters()
 </script>
 
 <template>
-  <UContainer class="space-y-6 py-6">
+  <div class="space-y-6">
     <div>
       <h1 class="text-2xl font-bold">
         Semester
       </h1>
 
-      <p class="text-muted">
+      <p class="text-muted text-sm text-gray-500">
         Kelola semester sekolah.
       </p>
     </div>
@@ -39,5 +39,5 @@ await fetchSemesters()
     <SemestersDialogsSemesterDeleteDialog />
 
     <SemestersDialogsSemesterStatusDialog />
-  </UContainer>
+  </div>
 </template>

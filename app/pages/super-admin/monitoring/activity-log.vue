@@ -164,8 +164,7 @@ watch([search, selectedStatus], () => {
       </div>
 
       <template v-if="filteredLogs.length > 0" #footer>
-        <div class="flex justify-between items-center text-xs text-gray-500">
-          <span>Menampilkan {{ paginatedLogs.length }} dari {{ filteredLogs.length }} log</span>
+        <div class="flex justify-end items-center text-xs text-gray-500">
           <UPagination v-model="page" :page-count="pageCount" :total="filteredLogs.length" />
         </div>
       </template>

@@ -14,10 +14,8 @@ const teaching = computed(() => teachingRes.value?.data)
 
 const { data: summaryRes, pending: pendingSummary, refresh } = await useFetch('/api/grades/summary', {
   query: computed(() => ({
-    teachingId,
-    semesterId: teaching.value?.semesterId
-  })),
-  immediate: !!teaching.value?.semesterId
+    teachingId
+  }))
 })
 
 const studentSummaries = computed<any[]>(() => summaryRes.value?.data ?? [])
@@ -28,13 +26,13 @@ const currentPage = ref(1)
 const itemsPerPage = ref(10)
 
 const columns: any[] = [
-  { key: 'no', label: 'No', class: 'w-12 text-center' },
-  { key: 'nis', label: 'NIS', class: 'w-32', sortable: true },
-  { key: 'fullname', label: 'Nama Siswa', sortable: true },
-  { key: 'ph', label: 'AVERAGE PH', class: 'bg-blue-50/30 dark:bg-blue-950/10 text-center text-blue-600 dark:text-blue-400 font-mono', sortable: true },
-  { key: 'sts', label: 'STS', class: 'bg-amber-50/30 dark:bg-amber-950/10 text-center text-amber-600 dark:text-amber-400 font-mono', sortable: true },
-  { key: 'sas', label: 'SAS', class: 'bg-emerald-50/30 dark:bg-emerald-950/10 text-center text-emerald-600 dark:text-emerald-400 font-mono', sortable: true },
-  { key: 'final', label: 'NILAI AKHIR', class: 'bg-gray-50 dark:bg-gray-800/40 text-center font-mono', sortable: true }
+  { accessorKey: 'no', header: 'No' },
+  { accessorKey: 'nis', header: 'NIS' },
+  { accessorKey: 'fullname', header: 'Nama Siswa' },
+  { accessorKey: 'ph', header: 'AVERAGE PH' },
+  { accessorKey: 'sts', header: 'STS' },
+  { accessorKey: 'sas', header: 'SAS' },
+  { accessorKey: 'final', header: 'NILAI AKHIR' }
 ]
 
 const filteredStudents = computed(() => {
@@ -119,29 +117,36 @@ function getScoreBadgeColor(score: number | null, kkm = 75) {
         </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+        <div class="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
+          <UButton
+            :to="`/teacher/classes/${teachingId}/grades`"
+            color="success"
+            variant="soft"
+            icon="i-lucide-edit-3"
+            class="justify-center font-semibold text-xs sm:text-sm w-full sm:w-auto"
+          >
+            Input Nilai
+          </UButton>
+          <UButton
+            color="primary"
+            variant="soft"
+            icon="i-lucide-refresh-cw"
+            :loading="isCalculating"
+            class="justify-center font-bold text-xs sm:text-sm cursor-pointer w-full sm:w-auto"
+            @click="triggerCalculate"
+          >
+            Kalkulasi Ulang
+          </UButton>
+        </div>
         <UButton
-          :to="`/teacher/classes/${teachingId}/grades`"
-          color="success"
-          variant="soft"
-          class="flex-1 sm:flex-none justify-center font-semibold"
-        >
-          <template #leading>
-            <UIcon name="i-lucide-edit-3" class="hidden sm:inline-block" />
-          </template>
-          Input Nilai
-        </UButton>
-        <UButton
+          :to="`/teacher/classes/${teachingId}/ai-analysis`"
           color="primary"
           variant="solid"
-          :loading="isCalculating"
-          class="flex-1 sm:flex-none justify-center font-bold"
-          @click="triggerCalculate"
+          icon="i-lucide-brain-circuit"
+          class="justify-center font-semibold text-xs sm:text-sm w-full sm:w-auto"
         >
-          <template #leading>
-            <UIcon name="i-lucide-refresh-cw" class="hidden sm:inline-block" />
-          </template>
-          Kalkulasi Ulang
+          Analisis AI Kelas
         </UButton>
       </div>
     </div>
@@ -167,7 +172,7 @@ function getScoreBadgeColor(score: number | null, kkm = 75) {
 
           <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <UInput v-model="search" icon="i-lucide-search" placeholder="Cari nama atau NIS..." class="w-full sm:w-64" size="sm" />
-            <div class="flex items-center gap-2">
+            <div class="flex items-center justify-end w-full sm:w-auto gap-2">
               <UBadge color="info" variant="subtle" size="sm" class="font-bold">
                 KKM: {{ (teaching?.subject as any)?.kkm || 75 }}
               </UBadge>
@@ -183,82 +188,90 @@ function getScoreBadgeColor(score: number | null, kkm = 75) {
         Belum ada data nilai terdaftar untuk siswa di kelas ini.
       </div>
 
-      <div v-else>
-        <UTable
-          :rows="paginatedStudents"
-          :columns="columns"
-          :empty-state="{ icon: 'i-lucide-file-x', text: 'Tidak ada data siswa yang cocok.' }"
-        >
-          <template #ph-header="{ column }">
-            <div class="font-bold text-blue-800 dark:text-blue-200">{{ (column as any).label }}</div>
-            <div class="text-[10px] text-blue-600 dark:text-blue-400 font-normal">Bobot 50%</div>
-          </template>
-          <template #sts-header="{ column }">
-            <div class="font-bold text-amber-800 dark:text-amber-200">{{ (column as any).label }}</div>
-            <div class="text-[10px] text-amber-600 dark:text-amber-400 font-normal">Bobot 25%</div>
-          </template>
-          <template #sas-header="{ column }">
-            <div class="font-bold text-emerald-800 dark:text-emerald-200">{{ (column as any).label }}</div>
-            <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">Bobot 25%</div>
-          </template>
-          <template #final-header="{ column }">
-            <div class="font-extrabold text-gray-900 dark:text-white">{{ (column as any).label }}</div>
-          </template>
-
-          <template #no-data="{ row }">
-            <div class="text-center text-xs text-gray-400 font-mono">
-              {{ (currentPage - 1) * itemsPerPage + ((row as any)?.index ?? 0) + 1 }}
-            </div>
-          </template>
-
-          <template #nis-data="{ row }">
-            <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ (row as any).nis || '-' }}</span>
-          </template>
-
-          <template #fullname-data="{ row }">
-            <span class="font-medium text-gray-900 dark:text-white">{{ (row as any).fullname }}</span>
-          </template>
-
-          <template #ph-data="{ row }">
-            <span class="font-bold">
-              {{ (row as any).grades?.PH !== null && (row as any).grades?.PH !== undefined ? Math.round((row as any).grades.PH) : '-' }}
-            </span>
-          </template>
-          
-          <template #sts-data="{ row }">
-            <span class="font-bold">
-              {{ (row as any).grades?.STS !== null && (row as any).grades?.STS !== undefined ? Math.round((row as any).grades.STS) : '-' }}
-            </span>
-          </template>
-          
-          <template #sas-data="{ row }">
-            <span class="font-bold">
-              {{ (row as any).grades?.SAS !== null && (row as any).grades?.SAS !== undefined ? Math.round((row as any).grades.SAS) : '-' }}
-            </span>
-          </template>
-
-          <template #final-data="{ row }">
-            <UBadge
-              v-if="(row as any).finalScore !== null && (row as any).finalScore !== undefined"
-              :color="(row as any).finalScore >= ((teaching?.subject as any)?.kkm || 75) ? 'success' : 'warning'"
-              variant="solid"
-              size="md"
-              class="font-extrabold"
+      <div v-else class="overflow-x-auto">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr class="bg-gray-50 dark:bg-gray-800/60 text-xs font-semibold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+              <th class="py-3 px-4 w-12 text-center">No</th>
+              <th class="py-3 px-4 w-32">NIS</th>
+              <th class="py-3 px-4 min-w-[180px]">Nama Siswa</th>
+              <th class="py-3 px-4 text-center min-w-[120px] bg-blue-100/50 dark:bg-blue-900/30 border-x border-gray-200 dark:border-gray-800">
+                <div class="font-bold text-blue-800 dark:text-blue-200">AVERAGE PH</div>
+                <div class="text-[10px] text-blue-600 dark:text-blue-400 font-normal">Bobot 50%</div>
+              </th>
+              <th class="py-3 px-4 text-center min-w-[100px] bg-amber-100/50 dark:bg-amber-900/30 border-r border-gray-200 dark:border-gray-800">
+                <div class="font-bold text-amber-800 dark:text-amber-200">STS</div>
+                <div class="text-[10px] text-amber-600 dark:text-amber-400 font-normal">Bobot 25%</div>
+              </th>
+              <th class="py-3 px-4 text-center min-w-[100px] bg-emerald-100/50 dark:bg-emerald-900/30 border-r border-gray-200 dark:border-gray-800">
+                <div class="font-bold text-emerald-800 dark:text-emerald-200">SAS</div>
+                <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">Bobot 25%</div>
+              </th>
+              <th class="py-3 px-4 text-center min-w-[120px] bg-gray-200 dark:bg-gray-700">
+                <div class="font-extrabold text-gray-900 dark:text-white">NILAI AKHIR</div>
+              </th>
+              <th class="py-3 px-4 text-center w-24">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+            <tr
+              v-for="(st, idx) in paginatedStudents"
+              :key="st.studentId"
+              class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition-colors"
             >
-              {{ Math.round((row as any).finalScore) }}
-            </UBadge>
-            <span v-else class="text-gray-400 text-xs font-mono">-</span>
-          </template>
-        </UTable>
+              <td class="py-3 px-4 text-center text-xs text-gray-400">
+                {{ (currentPage - 1) * itemsPerPage + Number(idx) + 1 }}
+              </td>
+              <td class="py-3 px-4 font-mono text-xs text-gray-500 dark:text-gray-400">{{ st.nis || '-' }}</td>
+              <td class="py-3 px-4 font-medium text-gray-900 dark:text-white">{{ st.fullname }}</td>
+
+              <td class="py-3 px-4 text-center bg-blue-50/30 dark:bg-blue-950/10 font-bold text-blue-600 dark:text-blue-400 font-mono">
+                {{ st.grades?.PH !== null && st.grades?.PH !== undefined ? Math.round(st.grades.PH) : '-' }}
+              </td>
+
+              <td class="py-3 px-4 text-center bg-amber-50/30 dark:bg-amber-950/10 font-bold text-amber-600 dark:text-amber-400 font-mono">
+                {{ st.grades?.STS !== null && st.grades?.STS !== undefined ? Math.round(st.grades.STS) : '-' }}
+              </td>
+
+              <td class="py-3 px-4 text-center bg-emerald-50/30 dark:bg-emerald-950/10 font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                {{ st.grades?.SAS !== null && st.grades?.SAS !== undefined ? Math.round(st.grades.SAS) : '-' }}
+              </td>
+
+              <td class="py-3 px-4 text-center bg-gray-50 dark:bg-gray-800/40 font-mono">
+                <UBadge
+                  v-if="st.finalScore !== null && st.finalScore !== undefined"
+                  :color="st.finalScore >= ((teaching?.subject as any)?.kkm || 75) ? 'success' : 'warning'"
+                  variant="solid"
+                  size="md"
+                  class="font-extrabold"
+                >
+                  {{ Math.round(st.finalScore) }}
+                </UBadge>
+                <span v-else class="text-gray-400 text-xs font-mono">-</span>
+              </td>
+
+              <td class="py-3 px-4 text-center">
+                <UTooltip text="Detail Rincian Nilai Siswa">
+                  <UButton
+                    :to="`/teacher/classes/${teachingId}/students/${st.studentId}`"
+                    icon="i-lucide-eye"
+                    color="primary"
+                    variant="ghost"
+                    size="sm"
+                  />
+                </UTooltip>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <template v-if="totalFilteredStudents > 0" #footer>
-        <div class="flex justify-between items-center text-xs text-gray-500">
-          <span>Menampilkan {{ paginatedStudents.length }} dari {{ totalFilteredStudents }} siswa</span>
+        <div class="flex justify-end items-center text-xs text-gray-500">
           <UPagination
-            v-model="currentPage"
-            :page-count="itemsPerPage"
+            v-model:page="currentPage"
             :total="totalFilteredStudents"
+            :items-per-page="itemsPerPage"
           />
         </div>
       </template>

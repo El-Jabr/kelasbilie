@@ -103,49 +103,64 @@ async function save() {
 </script>
 
 <template>
-  <UCard>
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-      <div class="flex flex-1 flex-col gap-3 md:flex-row">
+  <UCard :ui="{ body: 'p-4 sm:p-5' }">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <!-- Left Side: Search Input -->
+      <div class="w-full lg:w-80">
         <UInput
           v-model="search"
           icon="i-lucide-search"
           placeholder="Cari NIS atau nama siswa..."
-          class="flex-1"
+          class="w-full"
+          size="md"
         />
       </div>
 
-      <div class="flex flex-wrap gap-2">
-        <UButton
-          :loading="loading"
-          icon="i-lucide-refresh-cw"
-          variant="soft"
-          color="neutral"
-          @click="refresh"
-        >
-          Refresh
-        </UButton>
+      <!-- Right Side: Action Buttons -->
+      <div class="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full lg:w-auto justify-end">
+        <!-- 50:50 Row on mobile for Refresh & Reset -->
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <UButton
+            color="neutral"
+            variant="subtle"
+            icon="i-lucide-refresh-cw"
+            size="md"
+            :loading="loading"
+            class="flex-1 sm:flex-initial justify-center"
+            @click="refresh"
+          >
+            Refresh
+          </UButton>
 
-        <UButton
-          icon="i-lucide-filter-x"
-          variant="soft"
-          color="neutral"
-          @click="resetFilter"
-        >
-          Reset
-        </UButton>
+          <UButton
+            color="neutral"
+            variant="subtle"
+            icon="i-lucide-filter-x"
+            size="md"
+            class="flex-1 sm:flex-initial justify-center"
+            @click="resetFilter"
+          >
+            Reset
+          </UButton>
+        </div>
 
+        <!-- Full width on mobile for Import Siswa -->
         <UButton
-          icon="i-lucide-upload"
           color="primary"
+          icon="i-lucide-upload"
+          size="md"
           to="/super-admin/master/siswa/import"
+          class="w-full sm:w-auto justify-center font-semibold"
         >
           Import Siswa
         </UButton>
 
+        <!-- Full width on mobile for Tambah Siswa -->
         <UButton
-          icon="i-lucide-plus"
           color="primary"
-          variant="outline"
+          icon="i-lucide-plus"
+          size="md"
+          class="w-full sm:w-auto justify-center font-semibold"
           @click="dialogs.openCreateDialog"
         >
           Tambah Siswa

@@ -360,7 +360,7 @@ onMounted(() => {
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div class="flex items-center gap-2">
-                <UBadge color="primary" variant="subtle" size="sm" class="font-mono">
+                <UBadge color="primary" variant="subtle" size="sm" class="font-mono hidden sm:inline-flex">
                   {{ inspectionData.teaching?.subject?.code }}
                 </UBadge>
                 <h2 class="text-lg font-bold text-gray-900 dark:text-white">
@@ -373,26 +373,28 @@ onMounted(() => {
               </p>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               <UButton
                 v-if="inspectionData.teaching?.courseId"
                 icon="i-lucide-refresh-cw"
                 color="success"
                 variant="soft"
-                size="xs"
-                class="cursor-pointer font-bold"
+                size="md"
+                class="cursor-pointer font-bold w-full sm:w-auto justify-center"
                 :loading="isSyncingMoodle"
                 @click="handleToolbarSyncMoodle"
               >
                 Sync Nilai Mapel Ini
               </UButton>
 
-              <UBadge color="success" variant="subtle" size="sm" class="font-bold">
-                Formula: 50% Avg PH + 25% STS + 25% SAS
-              </UBadge>
-              <UBadge color="neutral" variant="subtle" size="sm">
-                {{ totalStudents }} Siswa
-              </UBadge>
+              <div class="flex items-center justify-between w-full sm:w-auto gap-2">
+                <UBadge color="neutral" variant="subtle" size="sm" class="shrink-0">
+                  Formula: 50% Avg PH + 25% STS + 25% SAS
+                </UBadge>
+                <UBadge color="neutral" variant="subtle" size="sm" class="shrink-0">
+                  {{ totalStudents }} Siswa
+                </UBadge>
+              </div>
             </div>
           </div>
         </template>
@@ -529,30 +531,36 @@ onMounted(() => {
     <div v-else-if="inspectionData?.mode === 'CLASSROOM_OVERVIEW'" class="space-y-4">
       <UCard>
         <template #header>
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="text-lg font-bold text-gray-900 dark:text-white">
-                Rekap Nilai Akhir Seluruh Mata Pelajaran
-              </h2>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Menampilkan hasil kalkulasi Nilai Akhir (50% Avg PH + 25% STS + 25% SAS) per mata pelajaran.
-              </p>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center justify-between w-full sm:w-auto gap-4">
+              <div>
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+                  Rekap Nilai Akhir Seluruh Mata Pelajaran
+                </h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Menampilkan hasil kalkulasi Nilai Akhir (50% Avg PH + 25% STS + 25% SAS) per mata pelajaran.
+                </p>
+              </div>
+
+              <UBadge color="neutral" variant="subtle" size="sm" class="shrink-0 sm:hidden">
+                {{ inspectionData.teachings?.length || 0 }} Mata Pelajaran
+              </UBadge>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               <UButton
                 icon="i-lucide-refresh-cw"
                 color="success"
                 variant="soft"
-                size="xs"
-                class="cursor-pointer font-bold"
+                size="md"
+                class="cursor-pointer font-bold w-full sm:w-auto justify-center"
                 :loading="isSyncingMoodle"
                 @click="handleToolbarSyncMoodle"
               >
                 Sync Seluruh Mapel Kelas Ini
               </UButton>
 
-              <UBadge color="primary" variant="subtle" size="sm">
+              <UBadge color="neutral" variant="subtle" size="sm" class="hidden sm:inline-flex shrink-0">
                 {{ inspectionData.teachings?.length || 0 }} Mata Pelajaran
               </UBadge>
             </div>
@@ -572,16 +580,13 @@ onMounted(() => {
                 <th class="py-3 px-4 w-32">NIS</th>
                 <th class="py-3 px-4 min-w-[180px]">Nama Siswa</th>
 
-                <!-- Dynamic Subject Columns -->
+                <!-- Dynamic Subject Columns (Header Singkat Kode Mapel) -->
                 <th
                   v-for="t in inspectionData.teachings"
                   :key="t.id"
-                  class="py-3 px-4 text-center min-w-[140px]"
+                  class="py-3 px-4 text-center min-w-[100px]"
                 >
-                  <div class="font-bold text-gray-900 dark:text-white truncate max-w-[140px] mx-auto" :title="t.subjectName">
-                    {{ t.subjectName }}
-                  </div>
-                  <div class="text-[10px] text-gray-400 font-mono">
+                  <div class="font-bold text-gray-900 dark:text-white font-mono uppercase text-xs" :title="t.subjectName">
                     {{ t.subjectCode }}
                   </div>
                 </th>
@@ -599,20 +604,20 @@ onMounted(() => {
                 <td class="py-3 px-4 font-mono text-xs text-gray-500 dark:text-gray-400">{{ st.nis || '-' }}</td>
                 <td class="py-3 px-4 font-medium text-gray-900 dark:text-white">{{ st.fullname }}</td>
 
-                <!-- Subject Final Scores (Rounded Integer without decimal) -->
+                <!-- Subject Final Scores (Highlight Warna jika di bawah KKM 75) -->
                 <td
                   v-for="t in inspectionData.teachings"
                   :key="t.id"
                   class="py-3 px-4 text-center font-mono"
                 >
-                  <template v-if="st.subjectGrades?.[t.id]?.final !== null">
+                  <template v-if="st.subjectGrades?.[t.id]?.final !== null && st.subjectGrades?.[t.id]?.final !== undefined">
                     <UBadge
-                      color="success"
-                      variant="subtle"
+                      :color="(st.subjectGrades[t.id].isPassed === false || Number(st.subjectGrades[t.id].final) < 75) ? 'error' : 'success'"
+                      variant="solid"
                       size="md"
-                      class="font-extrabold text-sm"
+                      class="font-extrabold text-xs font-mono"
                     >
-                      {{ st.subjectGrades[t.id].final }}
+                      {{ Math.round(st.subjectGrades[t.id].final) }}
                     </UBadge>
                   </template>
                   <span v-else class="text-gray-300 dark:text-gray-600 text-xs">-</span>

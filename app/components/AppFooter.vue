@@ -60,7 +60,7 @@ const footerData = {
         <div>
           <h4 class="text-base font-semibold text-white mb-4">Akses Sistem & Medsos</h4>
           <p class="text-sm text-gray-400 mb-4">
-            Portal Sistem Informasi Manajemen Akademik dan Pembelajaran Kelasbilie.
+            Portal Sistem Informasi Manajemen Akademik dan Pembelajaran Kelas Bilie.
           </p>
           <div class="flex flex-wrap gap-2 mb-4">
             <UButton to="/login" color="primary" size="sm">Login Sistem</UButton>

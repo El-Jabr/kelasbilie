@@ -192,8 +192,7 @@ function getActionItems(row: any): DropdownMenuItem[][] {
     </div>
 
     <template v-if="filteredRows.length > 0" #footer>
-      <div class="flex justify-between items-center text-xs text-gray-500">
-        <span>Menampilkan {{ paginatedRows.length }} dari {{ filteredRows.length }} penugasan</span>
+      <div class="flex justify-end items-center text-xs text-gray-500">
         <UPagination
           v-model:page="page"
           :total="filteredRows.length"

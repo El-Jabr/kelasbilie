@@ -1,16 +1,15 @@
 <script setup lang="ts">
 definePageMeta({
-  layout: 'admin'
+  layout: 'teacher',
+  middleware: ['auth', 'role'],
+  role: ['TEACHER', 'ADMIN']
 })
 
 useSeoMeta({
-  title: 'AI Analisis Kelas'
+  title: 'AI Analisis Kelas - Wali Kelas'
 })
 
 const toast = useToast()
-
-const selectedClassroom = ref('')
-const selectedSemester = ref('')
 const forceRefresh = ref(false)
 
 const isAnalyzing = ref(false)
@@ -18,36 +17,22 @@ const analysisData = ref<any>(null)
 const isCached = ref(false)
 const generatedAt = ref('')
 
-const { data: filterData } = await useAsyncData('kelas-filters', async () => {
-  const [classRes, semRes] = await Promise.all([
-    $fetch<any>('/api/classes?limit=1000'),
-    $fetch<any>('/api/semesters?limit=1000')
-  ])
-  return {
-    classes: classRes.data || [],
-    semesters: semRes.data || []
-  }
-})
+const homeroom = ref<any>(null)
 
-const classrooms = computed(() => filterData.value?.classes || [])
-const semesters = computed(() => filterData.value?.semesters || [])
-
-const classroomOptions = computed(() => classrooms.value.map((c: any) => ({ label: c.name, value: c.id })))
-const semesterOptions = computed(() => semesters.value.map((s: any) => ({ label: `${s.type} ${s.academicYear.name}${s.isActive ? ' (Aktif)' : ''}`, value: s.id })))
-
-// Auto select active semester
-watchEffect(() => {
-  if (semesters.value.length && !selectedSemester.value) {
-    const activeSem = semesters.value.find((s: any) => s.isActive)
-    if (activeSem) selectedSemester.value = activeSem.id
+onMounted(async () => {
+  try {
+    const res: any = await $fetch('/api/homerooms/my')
+    if (res.data) {
+      homeroom.value = res.data
+      analyzeClass()
+    }
+  } catch (err) {
+    console.error(err)
   }
 })
 
 async function analyzeClass() {
-  if (!selectedClassroom.value) {
-    toast.add({ title: 'Validasi', description: 'Pilih kelas terlebih dahulu.', color: 'warning' })
-    return
-  }
+  if (!homeroom.value?.classroomId) return
 
   isAnalyzing.value = true
   analysisData.value = null
@@ -56,8 +41,7 @@ async function analyzeClass() {
     const res: any = await $fetch('/api/ai/analyze-class', {
       method: 'POST',
       body: {
-        classroomId: selectedClassroom.value,
-        semesterId: selectedSemester.value || undefined,
+        classroomId: homeroom.value.classroomId,
         forceRefresh: forceRefresh.value
       }
     })
@@ -124,59 +108,29 @@ const persentaseRemidi = computed(() => {
       <div>
         <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2 text-gray-900 dark:text-white">
           <UIcon name="i-lucide-brain-circuit" class="w-8 h-8 text-primary-500" />
-          AI Analisis Performa Kelas
+          AI Analisis Performa Kelas (Wali Kelas)
         </h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Laporan cerdas performa akademik kelas, analisis ketuntasan, dan rekomendasi AI Google Gemini.
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" v-if="homeroom">
+          Kelas Binaan: <strong class="text-gray-800 dark:text-gray-200">{{ homeroom.classroom?.name }}</strong> • Laporan cerdas performa akademik & rekomendasi AI.
         </p>
+      </div>
+      <div class="w-full md:w-auto">
+        <UButton
+          to="/teacher/homeroom"
+          color="neutral"
+          variant="outline"
+          class="w-full md:w-auto flex justify-center font-semibold cursor-pointer"
+        >
+          <template #leading>
+            <UIcon name="i-lucide-arrow-left" class="w-4 h-4" />
+          </template>
+          Kembali ke Rekap Nilai
+        </UButton>
       </div>
     </div>
 
-    <!-- Filter Card -->
-    <UCard class="shadow-sm border border-gray-200 dark:border-gray-800">
-      <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-end">
-        <div class="w-full md:flex-1">
-          <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Pilih Kelas</label>
-          <USelect
-            v-model="selectedClassroom"
-            :items="classroomOptions"
-            label-key="label"
-            value-key="value"
-            placeholder="-- Pilih Kelas --"
-            class="w-full"
-          />
-        </div>
-        <div class="w-full md:flex-1">
-          <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">Pilih Semester</label>
-          <USelect
-            v-model="selectedSemester"
-            :items="semesterOptions"
-            label-key="label"
-            value-key="value"
-            placeholder="-- Pilih Semester --"
-            class="w-full"
-          />
-        </div>
-        <div class="w-full md:w-auto">
-          <UButton
-            color="primary"
-            size="md"
-            :loading="isAnalyzing"
-            :disabled="!selectedClassroom"
-            class="w-full md:w-auto flex justify-center font-bold cursor-pointer"
-            @click="analyzeClass"
-          >
-            <template #leading>
-              <UIcon name="i-lucide-sparkles" class="w-4 h-4" />
-            </template>
-            Analisis Sekarang
-          </UButton>
-        </div>
-      </div>
-    </UCard>
-
-    <!-- Empty/Loading State -->
-    <div v-if="isAnalyzing" class="py-16 text-center space-y-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+    <!-- Empty / Loading State -->
+    <div v-if="isAnalyzing && !analysisData" class="py-16 text-center space-y-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
       <UIcon name="i-lucide-loader-2" class="w-10 h-10 animate-spin text-primary-500 mx-auto" />
       <div class="space-y-1">
         <h3 class="font-bold text-gray-900 dark:text-white">AI Sedang Menganalisis Performa Kelas...</h3>
@@ -184,9 +138,21 @@ const persentaseRemidi = computed(() => {
       </div>
     </div>
 
+    <!-- Not Homeroom State -->
+    <div v-else-if="!homeroom" class="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div class="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center mx-auto mb-4">
+        <UIcon name="i-lucide-alert-circle" class="w-8 h-8" />
+      </div>
+      <h3 class="text-lg font-bold text-gray-900 dark:text-white">Bukan Wali Kelas</h3>
+      <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto mt-1">
+        Anda tidak terdaftar sebagai wali kelas untuk semester aktif ini.
+      </p>
+    </div>
+
     <!-- Hasil Analisis -->
     <div v-else-if="analysisData" class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
+      <!-- Metadata Cache Banner -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
         <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
           <UIcon :name="isCached ? 'i-lucide-history' : 'i-lucide-zap'" :class="['w-4 h-4', isCached ? 'text-blue-500' : 'text-emerald-500']" />

@@ -1,37 +1,33 @@
 <script setup lang="ts">
 definePageMeta({
-  layout: 'student',
+  layout: 'teacher',
   middleware: ['auth', 'role'],
-  role: 'STUDENT'
+  role: ['TEACHER', 'ADMIN']
 })
 
 const route = useRoute()
-const teachingId = route.params.teachingId as string
+const teachingId = route.params.id as string
+const studentId = route.params.studentId as string
 
-const { data: studentRes } = await useFetch<any>('/api/students/me')
-const studentId = computed(() => studentRes.value?.data?.id)
-
+// Fetch teaching assignment detail
 const { data: teachingRes, status: teachingStatus } = await useFetch<any>(`/api/teaching-assignments/${teachingId}`)
 const teaching = computed(() => teachingRes.value?.data ?? null)
 
+// Fetch student detail
+const { data: studentRes } = await useFetch<any>(`/api/students/${studentId}`)
+const student = computed(() => studentRes.value?.data ?? null)
+
+// Fetch student components
 const { data: componentsRes, status: componentsStatus, refresh } = await useAsyncData<any>(
-  `components-${teachingId}`,
+  `teacher-student-components-${teachingId}-${studentId}`,
   async () => {
-    let sId = studentId.value
-    if (!sId) {
-      const meRes: any = await ($fetch as any)('/api/students/me')
-      sId = meRes?.data?.id
-    }
-    if (!sId || !teachingId) return null
+    if (!studentId || !teachingId) return null
     return await ($fetch as any)('/api/grades/components', {
       query: {
-        studentId: sId,
+        studentId,
         teachingId
       }
     })
-  },
-  {
-    watch: [studentId]
   }
 )
 
@@ -84,37 +80,37 @@ watch(search, () => {
 
 <template>
   <div class="space-y-6">
-    <!-- Back Button & Page Title Banner -->
+    <!-- Back Button & Student Header Banner -->
     <div>
       <UButton
-        to="/student/grades"
+        :to="`/teacher/classes/${teachingId}/summary`"
         icon="i-lucide-arrow-left"
         color="neutral"
         variant="ghost"
-        label="Kembali ke Rekap Nilai"
-        class="mb-3"
+        label="Kembali ke Ringkasan Nilai Kelas"
+        class="mb-3 cursor-pointer"
       />
       
-      <div v-if="teaching" class="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-800 rounded-2xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div v-if="teaching && student" class="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-800 rounded-2xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="absolute -right-10 -bottom-10 opacity-15 pointer-events-none">
-          <UIcon name="i-lucide-book-open" class="w-64 h-64 text-white" />
+          <UIcon name="i-lucide-user-check" class="w-64 h-64 text-white" />
         </div>
 
         <div class="relative z-10 space-y-2">
           <div class="flex items-center gap-2">
-            <span class="px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur uppercase tracking-wider text-emerald-100 border border-white/20 font-mono">
-              {{ teaching.subject?.code }}
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur uppercase tracking-wider text-blue-100 border border-white/20 font-mono">
+              NIS: {{ student.nis || '-' }}
             </span>
-            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-950/40 text-emerald-200 border border-emerald-500/30">
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-950/40 text-blue-200 border border-blue-500/30">
               Kelas {{ teaching.classroom?.name }}
             </span>
           </div>
           <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
-            {{ teaching.subject?.name }}
+            {{ student.user?.fullname }}
           </h1>
-          <p class="text-emerald-100 text-sm flex items-center gap-2">
-            <UIcon name="i-lucide-user" class="w-4 h-4 text-emerald-200" />
-            Guru Pengampu: <strong class="text-white font-semibold">{{ teaching.teacher?.user?.fullname }}</strong>
+          <p class="text-blue-100 text-sm flex items-center gap-2">
+            <UIcon name="i-lucide-book-open" class="w-4 h-4 text-blue-200" />
+            Mata Pelajaran: <strong class="text-white font-semibold">{{ teaching.subject?.name }} ({{ teaching.subject?.code }})</strong>
           </p>
         </div>
 
@@ -135,7 +131,7 @@ watch(search, () => {
     <!-- Loading State -->
     <div v-if="teachingStatus === 'pending' || componentsStatus === 'pending'" class="flex items-center justify-center py-16">
       <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-primary-500" />
-      <span class="ml-2 text-gray-500">Memuat rincian komponen nilai...</span>
+      <span class="ml-2 text-gray-500">Memuat rincian komponen nilai siswa...</span>
     </div>
 
     <template v-else>
@@ -145,7 +141,7 @@ watch(search, () => {
             <div class="flex items-center justify-between w-full sm:w-auto">
               <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <UIcon name="i-lucide-list-checks" class="hidden sm:inline-block w-5 h-5 text-primary-500" />
-                Rincian Skor Per Komponen Tugas / Ujian
+                Rincian Skor Per Komponen Tugas / Ujian Siswa
               </h3>
             </div>
             <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -159,7 +155,7 @@ watch(search, () => {
           <UIcon name="i-lucide-file-x" class="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
           <h3 class="text-base font-semibold text-gray-900 dark:text-white">Tidak Ada Rincian Komponen</h3>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-sm mx-auto">
-            Belum ada rincian tugas atau kuis yang di-sync atau diinputkan untuk mata pelajaran ini.
+            Belum ada rincian tugas atau kuis yang di-sync atau diinputkan untuk siswa ini.
           </p>
         </div>
 

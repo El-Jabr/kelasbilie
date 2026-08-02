@@ -183,8 +183,7 @@ watch(search, () => {
       </div>
 
       <template v-if="filteredCourses.length > 0" #footer>
-        <div class="flex justify-between items-center text-xs text-gray-500">
-          <span>Menampilkan {{ paginatedCourses.length }} dari {{ filteredCourses.length }} course</span>
+        <div class="flex justify-end items-center text-xs text-gray-500">
           <UPagination v-model="page" :page-count="pageCount" :total="filteredCourses.length" />
         </div>
       </template>
