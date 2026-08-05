@@ -14,8 +14,8 @@ const { data: homeroomRes, pending: pendingHomeroom } = await useFetch<any>('/ap
 const homeroom = computed(() => homeroomRes.value?.data)
 const classroomId = computed(() => homeroom.value?.classroomId || '')
 
-// 2. Selected Teaching Assignment filter (empty string = Rekap Seluruh Mapel)
-const selectedTeachingId = ref('')
+// 2. Selected Teaching Assignment filter ('ALL' = Rekap Seluruh Mapel)
+const selectedTeachingId = ref('ALL')
 
 // 3. Fetch all teaching assignments in classroom for subject dropdown
 const { data: teachingsRes } = await useFetch<any>(
@@ -31,7 +31,7 @@ const { data: teachingsRes } = await useFetch<any>(
 
 const subjectOptions = computed(() => {
   const options = [
-    { label: 'Semua Mata Pelajaran (Rekap Kelas)', value: '' }
+    { label: 'Semua Mata Pelajaran (Rekap Kelas)', value: 'ALL' }
   ]
   const list = teachingsRes.value?.data || inspectionData.value?.teachings || []
   for (const t of list) {
@@ -52,7 +52,7 @@ const { data: inspectionRes, pending: pendingGrades, refresh: refreshGrades } = 
   {
     query: computed(() => ({
       classroomId: classroomId.value,
-      teachingId: selectedTeachingId.value || undefined
+      teachingId: (selectedTeachingId.value && selectedTeachingId.value !== 'ALL') ? selectedTeachingId.value : undefined
     })),
     immediate: !!classroomId.value
   }

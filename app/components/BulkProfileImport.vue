@@ -57,12 +57,12 @@ const filteredRows = computed(() => {
 })
 
 const columns = computed<any[]>(() => [
-  { key: 'row', label: '#' },
-  { key: 'username', label: 'Username', sortable: true },
-  { key: 'fullname', label: 'Nama Lengkap', sortable: true },
-  { key: props.identifier, label: props.identifier.toUpperCase(), sortable: true },
-  { key: 'valid', label: 'Status', sortable: true },
-  { key: 'errors', label: 'Keterangan Error' }
+  { accessorKey: 'row', header: '#' },
+  { accessorKey: 'username', header: 'Username' },
+  { accessorKey: 'fullname', header: 'Nama Lengkap' },
+  { accessorKey: props.identifier, header: props.identifier.toUpperCase() },
+  { accessorKey: 'valid', header: 'Status' },
+  { accessorKey: 'errors', header: 'Keterangan Error' }
 ])
 
 const page = ref(1)
@@ -359,34 +359,34 @@ async function submitImport() {
     <!-- Section 4: Data Preview Table -->
     <UCard v-if="preview">
       <UTable
-        :rows="paginatedRows"
+        :data="paginatedRows"
         :columns="columns"
-        :empty-state="{ icon: 'i-lucide-file-x', text: 'Tidak ada data valid yang ditemukan.' }"
+        class="w-full"
       >
-        <template #row-data="{ row }">
-          <span class="text-xs font-mono text-gray-400">{{ (row as any).row }}</span>
+        <template #row-cell="{ row }">
+          <span class="text-xs font-mono text-gray-400">{{ (row as any).original.row }}</span>
         </template>
-        <template #username-data="{ row }">
-          <span class="font-medium">{{ (row as any).username }}</span>
+        <template #username-cell="{ row }">
+          <span class="font-medium">{{ (row as any).original.username }}</span>
         </template>
-        <template #fullname-data="{ row }">
-          <span>{{ (row as any).fullname }}</span>
+        <template #fullname-cell="{ row }">
+          <span>{{ (row as any).original.fullname }}</span>
         </template>
-        <template #[`${props.identifier}-data`]="{ row }">
-          <span class="font-mono text-xs">{{ (row as any)[props.identifier] || '-' }}</span>
+        <template #[`${props.identifier}-cell`]="{ row }">
+          <span class="font-mono text-xs">{{ (row as any).original[props.identifier] || '-' }}</span>
         </template>
-        <template #valid-data="{ row }">
+        <template #valid-cell="{ row }">
           <UBadge
-            :color="(row as any).valid ? 'success' : 'error'"
+            :color="(row as any).original.valid ? 'success' : 'error'"
             variant="subtle"
             size="xs"
           >
-            {{ (row as any).valid ? 'Valid' : 'Invalid' }}
+            {{ (row as any).original.valid ? 'Valid' : 'Invalid' }}
           </UBadge>
         </template>
-        <template #errors-data="{ row }">
-          <ul v-if="!(row as any).valid && (row as any).errors?.length" class="list-disc list-inside text-xs text-red-500">
-            <li v-for="(err, i) in (row as any).errors" :key="i">{{ err }}</li>
+        <template #errors-cell="{ row }">
+          <ul v-if="!(row as any).original.valid && (row as any).original.errors?.length" class="list-disc list-inside text-xs text-red-500">
+            <li v-for="(err, i) in (row as any).original.errors" :key="i">{{ err }}</li>
           </ul>
           <span v-else class="text-gray-400">-</span>
         </template>
@@ -395,8 +395,8 @@ async function submitImport() {
       <template v-if="filteredRows.length > 0" #footer>
         <div class="flex justify-end">
           <UPagination
-            v-model="page"
-            :page-count="pageCount"
+            v-model:page="page"
+            :items-per-page="pageCount"
             :total="filteredRows.length"
           />
         </div>

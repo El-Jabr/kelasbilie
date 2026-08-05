@@ -20,10 +20,10 @@ const { pagination, changePage, changeLimit } = useHomerooms()
       />
       <UPagination
         v-if="pagination.total > 0"
-        :model-value="pagination.page"
+        :page="pagination.page"
         :total="pagination.total"
-        :page-count="pagination.limit"
-        @update:model-value="changePage"
+        :items-per-page="pagination.limit"
+        @update:page="changePage"
       />
     </div>
 

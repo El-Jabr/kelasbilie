@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '../../utils/db'
 import { userSchema } from '~~/shared/schemas/user'
 import { requireRole } from '../../utils/auth'
+import { logActivity } from '../../utils/logger'
 
 export default defineEventHandler(async (event) => {
   requireRole(event, ['SUPER_ADMIN'])
@@ -32,6 +33,14 @@ export default defineEventHandler(async (event) => {
         createdAt: true
       }
     })
+    await logActivity({
+      event,
+      category: 'USER',
+      action: 'CREATE_USER',
+      description: `Membuat user baru: ${user.fullname} (${user.username}, Role: ${user.role})`,
+      status: 'SUCCESS'
+    })
+
     return {
       success: true,
       message: 'User berhasil dibuat.',

@@ -1,5 +1,5 @@
 import { prisma } from '../../utils/db'
-import { logger } from '../../utils/logger'
+import { logger, logActivity } from '../../utils/logger'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
@@ -13,12 +13,31 @@ export default defineEventHandler(async (event) => {
 
   if (!user) {
     logger.warn({ email: body.email }, '[AUTH] Login gagal: Email tidak ditemukan')
+    await logActivity({
+      event,
+      userName: body.email || 'Unknown User',
+      category: 'AUTH',
+      action: 'LOGIN',
+      description: `Login gagal: Email ${body.email} tidak ditemukan`,
+      status: 'FAILED',
+      errorMessage: 'Email tidak ditemukan'
+    })
     throw createError({ statusCode: 401, message: 'Email tidak ditemukan' })
   }
 
   const valid = await bcrypt.compare(body.password, user.password)
   if (!valid) {
     logger.warn({ email: body.email, userId: user.id }, '[AUTH] Login gagal: Password salah')
+    await logActivity({
+      event,
+      userId: user.id,
+      userName: user.fullname,
+      category: 'AUTH',
+      action: 'LOGIN',
+      description: `Login gagal: Password salah`,
+      status: 'FAILED',
+      errorMessage: 'Password salah'
+    })
     throw createError({ statusCode: 401, message: 'Password salah' })
   }
 
@@ -48,6 +67,16 @@ export default defineEventHandler(async (event) => {
   })
 
   logger.info({ email: user.email, userId: user.id, role: user.role }, `[AUTH] Login berhasil untuk ${user.email}`)
+
+  await logActivity({
+    event,
+    userId: user.id,
+    userName: user.fullname,
+    category: 'AUTH',
+    action: 'LOGIN',
+    description: `User ${user.fullname} berhasil login (${user.role})`,
+    status: 'SUCCESS'
+  })
 
   return {
     success: true,

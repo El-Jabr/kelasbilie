@@ -29,11 +29,11 @@ const isBatchMoving = ref(false)
 const isBatchDeleting = ref(false)
 
 const columns: any[] = [
-  { key: 'student', label: 'Siswa', sortable: true },
-  { key: 'nis', label: 'NIS', sortable: true },
-  { key: 'classroom', label: 'Kelas Target' },
-  { key: 'semester', label: 'Semester' },
-  { key: 'actions', label: 'Aksi', class: 'text-right' }
+  { accessorKey: 'student', header: 'Siswa' },
+  { accessorKey: 'nis', header: 'NIS' },
+  { accessorKey: 'classroom', header: 'Kelas Target' },
+  { accessorKey: 'semester', header: 'Semester' },
+  { accessorKey: 'actions', header: 'Aksi' }
 ]
 
 const debounceSearch = useDebounceFn(() => {
@@ -256,35 +256,35 @@ async function batchDeleteSelected() {
 
       <div v-else>
         <UTable
-          v-model="selectedItems"
-          :rows="studentClasses"
+          :data="studentClasses"
           :columns="columns"
+          class="w-full"
         >
-          <template #student-data="{ row }">
+          <template #student-cell="{ row }">
             <span class="font-semibold text-gray-900 dark:text-white">
-              {{ (row as any).student?.user?.fullname || (row as any).studentId }}
+              {{ (row as any).original.student?.user?.fullname || (row as any).original.studentId }}
             </span>
           </template>
 
-          <template #nis-data="{ row }">
+          <template #nis-cell="{ row }">
             <span class="text-xs font-mono text-gray-500">
-              {{ (row as any).student?.nis || '-' }}
+              {{ (row as any).original.student?.nis || '-' }}
             </span>
           </template>
 
-          <template #classroom-data="{ row }">
+          <template #classroom-cell="{ row }">
             <UBadge color="success" variant="subtle" size="xs" class="font-bold">
-              {{ (row as any).classroom?.name || (row as any).classroomId }}
+              {{ (row as any).original.classroom?.name || (row as any).original.classroomId }}
             </UBadge>
           </template>
 
-          <template #semester-data="{ row }">
+          <template #semester-cell="{ row }">
             <span class="text-xs text-gray-500">
-              Semester {{ (row as any).semester?.type }} ({{ (row as any).semester?.academicYear?.name || '-' }})
+              Semester {{ (row as any).original.semester?.type }} ({{ (row as any).original.semester?.academicYear?.name || '-' }})
             </span>
           </template>
 
-          <template #actions-data="{ row }">
+          <template #actions-cell="{ row }">
             <div class="flex justify-end gap-1">
               <UButton
                 type="button"
@@ -293,7 +293,7 @@ async function batchDeleteSelected() {
                 variant="ghost"
                 size="xs"
                 class="cursor-pointer"
-                @click="openSingleEditModal(row)"
+                @click="openSingleEditModal((row as any).original)"
               />
               <UButton
                 type="button"
@@ -302,7 +302,7 @@ async function batchDeleteSelected() {
                 variant="ghost"
                 size="xs"
                 class="cursor-pointer"
-                @click="handleDelete(row.id)"
+                @click="handleDelete((row as any).original.id)"
               />
             </div>
           </template>

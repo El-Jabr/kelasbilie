@@ -7,15 +7,8 @@ const {
 </script>
 
 <template>
-  <div class="flex items-center justify-between">
+  <div class="flex items-center justify-end">
     <div class="flex items-center gap-4">
-      <USelect
-        :model-value="pagination.limit"
-        :items="[10, 25, 50, 100]"
-        class="w-24"
-        @update:model-value="changeLimit"
-      />
-
       <UPagination
         :page="pagination.page"
         :items-per-page="pagination.limit"

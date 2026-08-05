@@ -202,10 +202,10 @@ const pageLog = ref(1)
 const pageCountLog = ref(10)
 
 const columnsLog: any[] = [
-  { key: 'resource', label: 'Resource', sortable: true },
-  { key: 'status', label: 'Status', sortable: true },
-  { key: 'message', label: 'Pesan Log', sortable: true },
-  { key: 'syncedAt', label: 'Waktu Eksekusi', class: 'text-right', sortable: true }
+  { accessorKey: 'resource', header: 'Resource' },
+  { accessorKey: 'status', header: 'Status' },
+  { accessorKey: 'message', header: 'Pesan Log' },
+  { accessorKey: 'syncedAt', header: 'Waktu Eksekusi' }
 ]
 
 const filteredLogs = computed(() => {
@@ -644,35 +644,35 @@ watch(searchLog, () => {
 
       <div v-else>
         <UTable
-          :rows="paginatedLogs"
+          :data="paginatedLogs"
           :columns="columnsLog"
-          :empty-state="{ icon: 'i-lucide-file-x', text: 'Tidak ada data log yang cocok.' }"
+          class="w-full"
         >
-          <template #resource-data="{ row }">
+          <template #resource-cell="{ row }">
             <UBadge color="neutral" variant="soft" size="xs">
-              {{ (row as any).resource }}
+              {{ (row as any).original.resource }}
             </UBadge>
           </template>
 
-          <template #status-data="{ row }">
+          <template #status-cell="{ row }">
             <UBadge
-              :color="(row as any).status === 'SUCCESS' ? 'success' : 'error'"
+              :color="(row as any).original.status === 'SUCCESS' ? 'success' : 'error'"
               variant="subtle"
               size="xs"
             >
-              {{ (row as any).status }}
+              {{ (row as any).original.status }}
             </UBadge>
           </template>
 
-          <template #message-data="{ row }">
+          <template #message-cell="{ row }">
             <span class="text-gray-700 dark:text-gray-300">
-              {{ (row as any).details || (row as any).message || '-' }}
+              {{ (row as any).original.details || (row as any).original.message || '-' }}
             </span>
           </template>
 
-          <template #syncedAt-data="{ row }">
+          <template #syncedAt-cell="{ row }">
             <div class="text-right text-xs text-gray-400">
-              {{ new Date((row as any).syncedAt).toLocaleString('id-ID') }}
+              {{ (row as any).original.syncedAt ? new Date((row as any).original.syncedAt).toLocaleString('id-ID') : '-' }}
             </div>
           </template>
         </UTable>
@@ -681,7 +681,7 @@ watch(searchLog, () => {
       <template v-if="filteredLogs.length > 0" #footer>
         <div class="flex justify-between items-center text-xs text-gray-500">
           <span>Menampilkan {{ paginatedLogs.length }} dari {{ filteredLogs.length }} log</span>
-          <UPagination v-model="pageLog" :page-count="pageCountLog" :total="filteredLogs.length" />
+          <UPagination v-model:page="pageLog" :total="filteredLogs.length" :items-per-page="pageCountLog" />
         </div>
       </template>
     </UCard>

@@ -61,22 +61,22 @@ const page = ref(1)
 const pageCount = ref(10)
 
 const columns: any[] = [
-  { key: 'id', label: 'ID Moodle', sortable: true },
-  { key: 'fullname', label: 'Nama Course', sortable: true },
-  { key: 'shortname', label: 'Nama Singkat', sortable: true },
-  { key: 'category', label: 'Kategori ID' },
-  { key: 'visible', label: 'Status Visible', sortable: true },
-  { key: 'lastSync', label: 'Terakhir Sync', class: 'text-right', sortable: true }
+  { accessorKey: 'id', header: 'ID Moodle' },
+  { accessorKey: 'fullname', header: 'Nama Course' },
+  { accessorKey: 'shortname', header: 'Nama Singkat' },
+  { accessorKey: 'category', header: 'Kategori ID' },
+  { accessorKey: 'visible', header: 'Status Visible' },
+  { accessorKey: 'lastSync', header: 'Terakhir Sync' }
 ]
 
 const filteredCourses = computed(() => {
   let list = courses.value
   if (search.value) {
     const kw = search.value.toLowerCase()
-    list = list.filter((r: any) => 
-      (r.fullname || '').toLowerCase().includes(kw) ||
-      (r.shortname || '').toLowerCase().includes(kw) ||
-      String(r.id).includes(kw)
+    list = list.filter((c: any) =>
+      c.fullname?.toLowerCase().includes(kw) ||
+      c.shortname?.toLowerCase().includes(kw) ||
+      String(c.id).includes(kw)
     )
   }
   return list
@@ -98,35 +98,34 @@ watch(search, () => {
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-          <UIcon name="i-lucide-book-open" class="hidden sm:inline-block w-7 h-7 text-emerald-500" />
-          Daftar Course Moodle
+          <UIcon name="i-lucide-book-open" class="hidden sm:inline-block w-7 h-7 text-primary-500" />
+          Master Course Moodle
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Kelola data kursus pembelajaran yang disinkronkan dari LMS Moodle.
+          Daftar seluruh course yang ada di LMS Moodle beserta status terhubungnya.
         </p>
       </div>
 
       <UButton
         color="primary"
-        variant="solid"
         icon="i-lucide-refresh-cw"
         :loading="isSyncing"
         class="w-full sm:w-auto flex justify-center"
         @click="handleSync"
       >
-        Sinkronkan Course Sekarang
+        Sync dari Moodle
       </UButton>
     </div>
 
-    <!-- Main Card -->
+    <!-- Filters & Course Table -->
     <UCard>
       <template #header>
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
           <UInput
             v-model="search"
             icon="i-lucide-search"
-            placeholder="Cari ID, nama course, atau shortname..."
-            class="w-full sm:w-80"
+            placeholder="Cari nama atau ID course..."
+            class="w-full sm:w-72"
             size="sm"
           />
 
@@ -136,47 +135,47 @@ watch(search, () => {
         </div>
       </template>
 
-      <div v-if="pending" class="py-12 text-center text-sm text-gray-400">
-        Memuat data course Moodle...
+      <div v-if="pending" class="py-8 text-center text-sm text-gray-400">
+        Memuat daftar course...
       </div>
 
-      <div v-else-if="filteredCourses.length === 0" class="py-12 text-center text-sm text-gray-400">
-        Belum ada data course Moodle tersimpan. Silakan lakukan sinkronisasi terlebih dahulu.
+      <div v-else-if="filteredCourses.length === 0" class="py-8 text-center text-sm text-gray-400">
+        Tidak ada data course yang cocok.
       </div>
 
       <div v-else>
         <UTable
-          :rows="paginatedCourses"
+          :data="paginatedCourses"
           :columns="columns"
-          :empty-state="{ icon: 'i-lucide-file-x', text: 'Tidak ada data course yang cocok.' }"
+          class="w-full"
         >
-          <template #id-data="{ row }">
-            <span class="font-mono font-medium text-xs">{{ (row as any).id }}</span>
+          <template #id-cell="{ row }">
+            <span class="font-mono font-medium text-xs">{{ (row as any).original.id }}</span>
           </template>
 
-          <template #fullname-data="{ row }">
-            <span class="font-medium">{{ (row as any).fullname }}</span>
+          <template #fullname-cell="{ row }">
+            <span class="font-medium">{{ (row as any).original.fullname }}</span>
           </template>
 
-          <template #shortname-data="{ row }">
-            <span class="text-gray-500">{{ (row as any).shortname }}</span>
+          <template #shortname-cell="{ row }">
+            <span class="text-gray-500">{{ (row as any).original.shortname }}</span>
           </template>
 
-          <template #category-data="{ row }">
+          <template #category-cell="{ row }">
             <UBadge color="neutral" variant="soft" size="xs">
-              {{ (row as any).category?.name || `ID: ${(row as any).categoryId}` }}
+              {{ (row as any).original.category?.name || `ID: ${(row as any).original.categoryId}` }}
             </UBadge>
           </template>
 
-          <template #visible-data="{ row }">
-            <UBadge :color="(row as any).visible ? 'success' : 'error'" variant="subtle" size="xs">
-              {{ (row as any).visible ? 'Visible' : 'Hidden' }}
+          <template #visible-cell="{ row }">
+            <UBadge :color="(row as any).original.visible ? 'success' : 'error'" variant="subtle" size="xs">
+              {{ (row as any).original.visible ? 'Visible' : 'Hidden' }}
             </UBadge>
           </template>
 
-          <template #lastSync-data="{ row }">
-            <div class="text-right text-xs text-gray-400">
-              {{ (row as any).lastSync ? new Date((row as any).lastSync).toLocaleString('id-ID') : '-' }}
+          <template #lastSync-cell="{ row }">
+            <div class="text-left text-xs text-gray-400">
+              {{ (row as any).original.lastSync ? new Date((row as any).original.lastSync).toLocaleString('id-ID') : '-' }}
             </div>
           </template>
         </UTable>
@@ -184,7 +183,7 @@ watch(search, () => {
 
       <template v-if="filteredCourses.length > 0" #footer>
         <div class="flex justify-end items-center text-xs text-gray-500">
-          <UPagination v-model="page" :page-count="pageCount" :total="filteredCourses.length" />
+          <UPagination v-model:page="page" :total="filteredCourses.length" :items-per-page="pageCount" />
         </div>
       </template>
     </UCard>

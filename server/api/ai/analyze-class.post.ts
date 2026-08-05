@@ -1,9 +1,10 @@
 import { prisma } from '../../utils/db'
 import { callGeminiApi, generateDataHash } from '../../utils/ai'
 import { requireRole } from '../../utils/auth'
+import { logActivity } from '../../utils/logger'
 
 export default defineEventHandler(async (event) => {
-  requireRole(event, ['SUPER_ADMIN', 'ADMIN', 'TEACHER'])
+  const user = requireRole(event, ['SUPER_ADMIN', 'ADMIN', 'TEACHER'])
 
   const body = await readBody(event)
   const { classroomId, semesterId, forceRefresh } = body
@@ -192,6 +193,16 @@ Berikan analisis dalam format JSON berikut (HANYA JSON, tanpa markdown code bloc
       result: JSON.stringify(aiResultJson),
       expiresAt
     }
+  })
+
+  await logActivity({
+    event,
+    userId: user.id,
+    userName: user.fullname,
+    category: 'SYSTEM',
+    action: 'AI_ANALYZE_CLASS',
+    description: `Analisis AI Performa Kelas ${dataForAi.class} (${dataForAi.semester})`,
+    status: 'SUCCESS'
   })
 
   return {

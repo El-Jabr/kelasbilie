@@ -51,6 +51,7 @@ model User {
 
   student Student?
   teacher Teacher?
+  activityLogs ActivityLog[]
 }
 
 model Student {
@@ -310,3 +311,38 @@ model AiAnalysisCache {
   @@index([type, refId])
   @@index([expiresAt])
 }
+
+enum ActivityCategory {
+  AUTH
+  USER
+  ACADEMIC
+  COURSE
+  GRADE
+  SYSTEM
+}
+
+enum ActivityStatus {
+  SUCCESS
+  FAILED
+}
+
+model ActivityLog {
+  id           String           @id @default(uuid())
+  userId       String?
+  userName     String?
+  category     ActivityCategory
+  action       String
+  description  String?
+  status       ActivityStatus   @default(SUCCESS)
+  errorMessage String?          @db.Text
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime         @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([category])
+  @@index([createdAt])
+}
+
