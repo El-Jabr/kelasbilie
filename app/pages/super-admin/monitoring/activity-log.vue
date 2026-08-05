@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { TableColumn } from '@nuxt/ui'
-
 definePageMeta({
   layout: 'admin'
 })
@@ -49,12 +47,17 @@ async function refresh() {
     if (selectedStatus.value !== 'ALL') params.append('status', selectedStatus.value)
 
     const res: any = await $fetch(`/api/logs/activity?${params.toString()}`, { credentials: 'include' })
-    if (res?.data) {
+    if (res?.data && Array.isArray(res.data)) {
       logs.value = res.data
       totalLogs.value = res.pagination?.total || res.data.length
+    } else {
+      logs.value = []
+      totalLogs.value = 0
     }
   } catch (err) {
     console.error('Failed to fetch activity logs:', err)
+    logs.value = []
+    totalLogs.value = 0
   } finally {
     pending.value = false
   }
@@ -73,13 +76,13 @@ onMounted(() => {
   refresh()
 })
 
-const columns: TableColumn<any>[] = [
-  { accessorKey: 'createdAt', header: 'Waktu' },
-  { accessorKey: 'userName', header: 'Pengguna' },
-  { accessorKey: 'category', header: 'Kategori' },
-  { accessorKey: 'action', header: 'Aksi' },
-  { accessorKey: 'description', header: 'Deskripsi' },
-  { accessorKey: 'status', header: 'Status' }
+const columns = [
+  { id: 'createdAt', accessorKey: 'createdAt', header: 'Waktu' },
+  { id: 'userName', accessorKey: 'userName', header: 'Pengguna' },
+  { id: 'category', accessorKey: 'category', header: 'Kategori' },
+  { id: 'action', accessorKey: 'action', header: 'Aksi' },
+  { id: 'description', accessorKey: 'description', header: 'Deskripsi' },
+  { id: 'status', accessorKey: 'status', header: 'Status' }
 ]
 </script>
 
@@ -101,7 +104,7 @@ const columns: TableColumn<any>[] = [
         variant="outline"
         icon="i-lucide-refresh-cw"
         :loading="pending"
-        class="w-full sm:w-auto flex justify-center"
+        class="w-full sm:w-auto flex justify-center cursor-pointer"
         @click="refresh"
       >
         Refresh Log
@@ -148,7 +151,7 @@ const columns: TableColumn<any>[] = [
         Memuat data log aktivitas...
       </div>
 
-      <div v-else-if="logs.length === 0" class="py-8 text-center text-sm text-gray-400">
+      <div v-else-if="!logs || logs.length === 0" class="py-8 text-center text-sm text-gray-400">
         Tidak ada catatan aktivitas yang sesuai.
       </div>
 
@@ -160,51 +163,51 @@ const columns: TableColumn<any>[] = [
         >
           <template #createdAt-cell="{ row }">
             <div class="text-xs text-gray-500 whitespace-nowrap">
-              {{ row.original.createdAt ? new Date(row.original.createdAt).toLocaleString('id-ID') : '-' }}
+              {{ (row as any)?.original?.createdAt ? new Date((row as any).original.createdAt).toLocaleString('id-ID') : '-' }}
             </div>
           </template>
 
           <template #userName-cell="{ row }">
             <div class="flex flex-col">
               <span class="text-sm font-semibold text-gray-900 dark:text-white">
-                {{ row.original.userName || row.original.user?.fullname || 'Sistem / Anonim' }}
+                {{ (row as any)?.original?.userName || (row as any)?.original?.user?.fullname || 'Sistem / Anonim' }}
               </span>
-              <span v-if="row.original.user?.role" class="text-xs text-gray-400">
-                {{ row.original.user.role }}
+              <span v-if="(row as any)?.original?.user?.role" class="text-xs text-gray-400">
+                {{ (row as any).original.user.role }}
               </span>
             </div>
           </template>
 
           <template #category-cell="{ row }">
             <UBadge color="primary" variant="subtle" size="xs">
-              {{ row.original.category }}
+              {{ (row as any)?.original?.category || '-' }}
             </UBadge>
           </template>
 
           <template #action-cell="{ row }">
             <span class="text-xs font-mono font-semibold px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
-              {{ row.original.action }}
+              {{ (row as any)?.original?.action || '-' }}
             </span>
           </template>
 
           <template #description-cell="{ row }">
             <div class="max-w-md">
               <p class="text-xs text-gray-700 dark:text-gray-300">
-                {{ row.original.description || '-' }}
+                {{ (row as any)?.original?.description || '-' }}
               </p>
-              <p v-if="row.original.errorMessage" class="text-xs text-red-500 mt-0.5 font-mono">
-                Error: {{ row.original.errorMessage }}
+              <p v-if="(row as any)?.original?.errorMessage" class="text-xs text-red-500 mt-0.5 font-mono">
+                Error: {{ (row as any).original.errorMessage }}
               </p>
             </div>
           </template>
 
           <template #status-cell="{ row }">
             <UBadge
-              :color="row.original.status === 'SUCCESS' ? 'success' : 'error'"
+              :color="(row as any)?.original?.status === 'SUCCESS' ? 'success' : 'error'"
               variant="subtle"
               size="xs"
             >
-              {{ row.original.status }}
+              {{ (row as any)?.original?.status || 'SUCCESS' }}
             </UBadge>
           </template>
         </UTable>
