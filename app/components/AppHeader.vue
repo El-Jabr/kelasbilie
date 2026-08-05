@@ -64,13 +64,13 @@ async function logout() {
 </script>
 
 <template>
-  <UHeader>
+  <UHeader :toggle="false">
     <template #left>
       <NuxtLink :to="homeLink">
         <img
           src="/logo.png"
           alt="Kelas Bilie"
-          class="w-auto h-16 shrink-0"
+          class="w-auto h-12 sm:h-16 shrink-0"
         >
       </NuxtLink>
     </template>
@@ -103,20 +103,12 @@ async function logout() {
         />
 
         <UButton
-          class="cursor-pointer lg:hidden"
-          icon="i-lucide-log-out"
-          color="neutral"
-          variant="ghost"
-          title="Logout"
-          @click="logout"
-        />
-
-        <UButton
-          class="cursor-pointer hidden lg:inline-flex"
+          class="cursor-pointer"
           label="Logout"
           icon="i-lucide-log-out"
           color="neutral"
           variant="outline"
+          size="sm"
           @click="logout"
         />
       </div>
@@ -126,51 +118,13 @@ async function logout() {
         class="flex items-center gap-2"
       >
         <UButton
+          label="Login"
           icon="i-lucide-log-in"
-          color="neutral"
-          variant="ghost"
-          to="/login"
-          class="lg:hidden"
-        />
-
-        <UButton
-          label="Sign in"
-          color="neutral"
-          variant="outline"
-          to="/login"
-          class="hidden lg:inline-flex"
-        />
-      </div>
-    </template>
-
-    <template #body>
-      <div
-        v-if="authStore.isAuthenticated"
-        class="space-y-3"
-      >
-        <UButton
-          :to="homeLink"
-          label="Ke Dashboard"
-          icon="i-lucide-layout-dashboard"
           color="primary"
-          block
-        />
-        <UButton
-          label="Logout"
-          color="neutral"
-          variant="subtle"
-          block
-          icon="i-lucide-log-out"
-          @click="logout"
-        />
-      </div>
-      <div v-else>
-        <UButton
-          label="Sign in"
-          color="neutral"
-          variant="subtle"
+          variant="solid"
           to="/login"
-          block
+          size="sm"
+          class="font-semibold cursor-pointer"
         />
       </div>
     </template>
