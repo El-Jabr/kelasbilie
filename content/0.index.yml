@@ -14,11 +14,11 @@ hero:
       trailing: true
       to: /login
       size: xl
-    - label: Pelajari Fitur
+    - label: Login LMS
       icon: i-lucide-book-open
       color: neutral
       variant: subtle
-      to: "#features"
+      to: "https://lms.kelasbilie.id"
       size: xl
 sections:
   - title: Mengapa Memilih Kelas Bilie?

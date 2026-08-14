@@ -330,7 +330,7 @@ async function triggerTestBackendError() {
                 <span v-if="log['type']" class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-600 dark:text-gray-400 font-semibold uppercase">
                   {{ log['type'] }}
                 </span>
-                <span class="text-gray-900 dark:text-gray-100 font-medium break-all">
+                <span class="text-gray-900 dark:text-gray-100 font-medium break-words text-wrap">
                   {{ log['msg'] || log['message'] || 'No message' }}
                 </span>
               </div>

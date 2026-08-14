@@ -1,4 +1,34 @@
 <script setup lang="ts">
+import { LazyModalConfirm } from '#components'
+
+interface Student {
+  id: string
+  nis: string
+  user: { fullname: string }
+}
+
+interface Semester {
+  id: string
+  type: string
+  isActive: boolean
+  academicYear: { name: string }
+}
+
+interface AIRecommendation {
+  tipe: string
+  mapel?: string
+  tindakan: string
+}
+
+interface AIAnalysisData {
+  statusUmum: string
+  tren: string
+  narasi: string
+  kekuatan: string[]
+  kelemahan: string[]
+  rekomendasi: AIRecommendation[]
+}
+
 definePageMeta({
   layout: 'admin'
 })
@@ -14,14 +44,14 @@ const selectedSemester = ref('')
 const forceRefresh = ref(false)
 
 const isAnalyzing = ref(false)
-const analysisData = ref<any>(null)
+const analysisData = ref<AIAnalysisData | null>(null)
 const isCached = ref(false)
 const generatedAt = ref('')
 
 const { data: filterData } = await useAsyncData('siswa-filters', async () => {
   const [studRes, semRes] = await Promise.all([
-    $fetch<any>('/api/students?limit=1000'),
-    $fetch<any>('/api/semesters?limit=1000')
+    $fetch<{ data: Student[] }>('/api/students?limit=1000'),
+    $fetch<{ data: Semester[] }>('/api/semesters?limit=1000')
   ])
   return {
     students: studRes.data || [],
@@ -32,13 +62,13 @@ const { data: filterData } = await useAsyncData('siswa-filters', async () => {
 const students = computed(() => filterData.value?.students || [])
 const semesters = computed(() => filterData.value?.semesters || [])
 
-const studentOptions = computed(() => students.value.map((s: any) => ({ label: `${s.user.fullname} (${s.nis})`, value: s.id })))
-const semesterOptions = computed(() => semesters.value.map((s: any) => ({ label: `${s.type} ${s.academicYear.name}${s.isActive ? ' (Aktif)' : ''}`, value: s.id })))
+const studentOptions = computed(() => students.value.map((s: Student) => ({ label: `${s.user.fullname} (${s.nis})`, value: s.id })))
+const semesterOptions = computed(() => semesters.value.map((s: Semester) => ({ label: `${s.type} ${s.academicYear.name}${s.isActive ? ' (Aktif)' : ''}`, value: s.id })))
 
 // Auto select active semester
 watchEffect(() => {
   if (semesters.value.length && !selectedSemester.value) {
-    const activeSem = semesters.value.find((s: any) => s.isActive)
+    const activeSem = semesters.value.find((s: Semester) => s.isActive)
     if (activeSem) selectedSemester.value = activeSem.id
   }
 })
@@ -51,9 +81,9 @@ async function analyzeStudent() {
 
   isAnalyzing.value = true
   analysisData.value = null
-  
+
   try {
-    const res: any = await $fetch('/api/ai/analyze-student', {
+    const res = await $fetch<{ data: AIAnalysisData, cached: boolean, generatedAt: string }>('/api/ai/analyze-student', {
       method: 'POST',
       body: {
         studentId: selectedStudent.value,
@@ -61,25 +91,24 @@ async function analyzeStudent() {
         forceRefresh: forceRefresh.value
       }
     })
-    
+
     analysisData.value = res.data
     isCached.value = res.cached
     generatedAt.value = new Date(res.generatedAt).toLocaleString('id-ID')
     forceRefresh.value = false
-    
+
     toast.add({ title: 'Analisis Berhasil', color: 'success' })
-  } catch (error: any) {
-    toast.add({ 
-      title: 'Analisis Gagal', 
-      description: error.data?.statusMessage || 'Terjadi kesalahan saat memanggil AI.', 
-      color: 'error' 
+  } catch (error: unknown) {
+    const err = error as { data?: { statusMessage?: string } }
+    toast.add({
+      title: 'Analisis Gagal',
+      description: err.data?.statusMessage || 'Terjadi kesalahan saat memanggil AI.',
+      color: 'error'
     })
   } finally {
     isAnalyzing.value = false
   }
 }
-
-import { LazyModalConfirm } from '#components'
 
 const overlay = useOverlay()
 const confirmModal = overlay.create(LazyModalConfirm)
@@ -118,7 +147,10 @@ function getTrenColor(tren: string) {
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2 text-gray-900 dark:text-white">
-          <UIcon name="i-lucide-user-check" class="w-8 h-8 text-primary-500" />
+          <UIcon
+            name="i-lucide-user-check"
+            class="w-8 h-8 text-primary-500"
+          />
           AI Analisis Performa Siswa
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -163,7 +195,10 @@ function getTrenColor(tren: string) {
             @click="analyzeStudent"
           >
             <template #leading>
-              <UIcon name="i-lucide-sparkles" class="w-4 h-4" />
+              <UIcon
+                name="i-lucide-sparkles"
+                class="w-4 h-4"
+              />
             </template>
             Analisis Siswa
           </UButton>
@@ -172,28 +207,53 @@ function getTrenColor(tren: string) {
     </UCard>
 
     <!-- Empty/Loading State -->
-    <div v-if="isAnalyzing" class="py-16 text-center space-y-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
-      <UIcon name="i-lucide-loader-2" class="w-10 h-10 animate-spin text-primary-500 mx-auto" />
+    <div
+      v-if="isAnalyzing"
+      class="py-16 text-center space-y-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm"
+    >
+      <UIcon
+        name="i-lucide-loader-2"
+        class="w-10 h-10 animate-spin text-primary-500 mx-auto"
+      />
       <div class="space-y-1">
-        <h3 class="font-bold text-gray-900 dark:text-white">AI Sedang Menganalisis Performa Siswa...</h3>
-        <p class="text-xs text-gray-500">Mengevaluasi tren nilai, kekuatan, kelemahan, dan menyusun rekomendasi.</p>
+        <h3 class="font-bold text-gray-900 dark:text-white">
+          AI Sedang Menganalisis Performa Siswa...
+        </h3>
+        <p class="text-xs text-gray-500">
+          Mengevaluasi tren nilai, kekuatan, kelemahan, dan menyusun rekomendasi.
+        </p>
       </div>
     </div>
 
     <!-- Hasil Analisis -->
-    <div v-else-if="analysisData" class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
+    <div
+      v-else-if="analysisData"
+      class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
+    >
       <!-- Metadata Cache Banner -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
         <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-          <UIcon :name="isCached ? 'i-lucide-history' : 'i-lucide-zap'" :class="['w-4 h-4', isCached ? 'text-blue-500' : 'text-emerald-500']" />
+          <UIcon
+            :name="isCached ? 'i-lucide-history' : 'i-lucide-zap'"
+            :class="['w-4 h-4', isCached ? 'text-blue-500' : 'text-emerald-500']"
+          />
           <span>Status AI: <strong>{{ isCached ? 'Data dari Cache' : 'Generasi Baru' }}</strong></span>
           <span class="text-gray-400">•</span>
           <span>Waktu Diperbarui: {{ generatedAt }}</span>
         </div>
-        <UButton size="xs" color="neutral" variant="outline" :loading="isAnalyzing" class="w-full sm:w-auto justify-center font-semibold cursor-pointer" @click="handleForceRefresh">
+        <UButton
+          size="xs"
+          color="neutral"
+          variant="outline"
+          :loading="isAnalyzing"
+          class="w-full sm:w-auto justify-center font-semibold cursor-pointer"
+          @click="handleForceRefresh"
+        >
           <template #leading>
-            <UIcon name="i-lucide-refresh-cw" class="w-3.5 h-3.5" />
+            <UIcon
+              name="i-lucide-refresh-cw"
+              class="w-3.5 h-3.5"
+            />
           </template>
           Force Refresh AI
         </UButton>
@@ -206,12 +266,21 @@ function getTrenColor(tren: string) {
           <div class="flex items-center justify-between">
             <div>
               <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Status Akademik Umum</span>
-              <p class="text-3xl font-extrabold uppercase mt-1 font-mono" :class="getStatusColor(analysisData.statusUmum) === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : (getStatusColor(analysisData.statusUmum) === 'amber' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400')">
+              <p
+                class="text-3xl font-extrabold uppercase mt-1 font-mono"
+                :class="getStatusColor(analysisData.statusUmum) === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : (getStatusColor(analysisData.statusUmum) === 'amber' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400')"
+              >
                 {{ (analysisData.statusUmum || '').replace('_', ' ') }}
               </p>
             </div>
-            <div class="p-3 rounded-2xl" :class="getStatusColor(analysisData.statusUmum) === 'emerald' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400' : (getStatusColor(analysisData.statusUmum) === 'amber' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400')">
-              <UIcon name="i-lucide-activity" class="w-8 h-8" />
+            <div
+              class="p-3 rounded-2xl"
+              :class="getStatusColor(analysisData.statusUmum) === 'emerald' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400' : (getStatusColor(analysisData.statusUmum) === 'amber' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400')"
+            >
+              <UIcon
+                name="i-lucide-activity"
+                class="w-8 h-8"
+              />
             </div>
           </div>
         </UCard>
@@ -221,12 +290,21 @@ function getTrenColor(tren: string) {
           <div class="flex items-center justify-between">
             <div>
               <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tren Nilai Semester Ini</span>
-              <p class="text-3xl font-extrabold uppercase mt-1 font-mono" :class="getTrenColor(analysisData.tren) === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : (getTrenColor(analysisData.tren) === 'blue' ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400')">
+              <p
+                class="text-3xl font-extrabold uppercase mt-1 font-mono"
+                :class="getTrenColor(analysisData.tren) === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : (getTrenColor(analysisData.tren) === 'blue' ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400')"
+              >
                 {{ analysisData.tren || '-' }}
               </p>
             </div>
-            <div class="p-3 rounded-2xl" :class="getTrenColor(analysisData.tren) === 'emerald' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400' : (getTrenColor(analysisData.tren) === 'blue' ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400')">
-              <UIcon :name="analysisData.tren === 'meningkat' ? 'i-lucide-trending-up' : (analysisData.tren === 'menurun' ? 'i-lucide-trending-down' : 'i-lucide-minus')" class="w-8 h-8" />
+            <div
+              class="p-3 rounded-2xl"
+              :class="getTrenColor(analysisData.tren) === 'emerald' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400' : (getTrenColor(analysisData.tren) === 'blue' ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400')"
+            >
+              <UIcon
+                :name="analysisData.tren === 'meningkat' ? 'i-lucide-trending-up' : (analysisData.tren === 'menurun' ? 'i-lucide-trending-down' : 'i-lucide-minus')"
+                class="w-8 h-8"
+              />
             </div>
           </div>
         </UCard>
@@ -236,7 +314,10 @@ function getTrenColor(tren: string) {
       <UCard class="border border-primary-200/70 dark:border-primary-900/60 bg-white dark:bg-gray-800 shadow-sm">
         <template #header>
           <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-sparkles" class="w-5 h-5 text-primary-500" />
+            <UIcon
+              name="i-lucide-sparkles"
+              class="w-5 h-5 text-primary-500"
+            />
             <h3 class="text-base font-bold text-gray-900 dark:text-white">
               Evaluasi & Narasi Kualitatif AI Siswa
             </h3>
@@ -253,34 +334,74 @@ function getTrenColor(tren: string) {
         <UCard class="border border-emerald-200/70 dark:border-emerald-900/60 bg-emerald-50/20 dark:bg-emerald-950/10 shadow-sm">
           <template #header>
             <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-              <UIcon name="i-lucide-thumbs-up" class="w-5 h-5 text-emerald-500" />
-              <h3 class="text-base font-bold">Kekuatan & Keunggulan Akademik</h3>
+              <UIcon
+                name="i-lucide-thumbs-up"
+                class="w-5 h-5 text-emerald-500"
+              />
+              <h3 class="text-base font-bold">
+                Kekuatan & Keunggulan Akademik
+              </h3>
             </div>
           </template>
-          <div v-if="analysisData.kekuatan?.length" class="space-y-2.5">
-            <div v-for="(k, idx) in analysisData.kekuatan" :key="idx" class="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
-              <UIcon name="i-lucide-check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+          <div
+            v-if="analysisData.kekuatan?.length"
+            class="space-y-2.5"
+          >
+            <div
+              v-for="(k, idx) in analysisData.kekuatan"
+              :key="idx"
+              class="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300"
+            >
+              <UIcon
+                name="i-lucide-check-circle-2"
+                class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"
+              />
               <span class="leading-relaxed">{{ k }}</span>
             </div>
           </div>
-          <p v-else class="text-xs text-gray-500 italic">Belum ada catatan kekuatan terdeteksi.</p>
+          <p
+            v-else
+            class="text-xs text-gray-500 italic"
+          >
+            Belum ada catatan kekuatan terdeteksi.
+          </p>
         </UCard>
 
         <!-- Card Area Pengembangan -->
         <UCard class="border border-rose-200/70 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/10 shadow-sm">
           <template #header>
             <div class="flex items-center gap-2 text-rose-700 dark:text-rose-300">
-              <UIcon name="i-lucide-alert-circle" class="w-5 h-5 text-rose-500" />
-              <h3 class="text-base font-bold">Area Pengembangan (Kelemahan)</h3>
+              <UIcon
+                name="i-lucide-alert-circle"
+                class="w-5 h-5 text-rose-500"
+              />
+              <h3 class="text-base font-bold">
+                Area Pengembangan (Kelemahan)
+              </h3>
             </div>
           </template>
-          <div v-if="analysisData.kelemahan?.length" class="space-y-2.5">
-            <div v-for="(k, idx) in analysisData.kelemahan" :key="idx" class="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
-              <UIcon name="i-lucide-x-circle" class="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+          <div
+            v-if="analysisData.kelemahan?.length"
+            class="space-y-2.5"
+          >
+            <div
+              v-for="(k, idx) in analysisData.kelemahan"
+              :key="idx"
+              class="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300"
+            >
+              <UIcon
+                name="i-lucide-x-circle"
+                class="w-4 h-4 text-rose-500 shrink-0 mt-0.5"
+              />
               <span class="leading-relaxed">{{ k }}</span>
             </div>
           </div>
-          <p v-else class="text-xs text-gray-500 italic">Tidak ada area kelemahan kritis yang terdeteksi.</p>
+          <p
+            v-else
+            class="text-xs text-gray-500 italic"
+          >
+            Tidak ada area kelemahan kritis yang terdeteksi.
+          </p>
         </UCard>
       </div>
 
@@ -289,16 +410,27 @@ function getTrenColor(tren: string) {
         <template #header>
           <div class="flex items-center justify-between">
             <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <UIcon name="i-lucide-target" class="w-5 h-5 text-primary-500" />
+              <UIcon
+                name="i-lucide-target"
+                class="w-5 h-5 text-primary-500"
+              />
               Rekomendasi Tindakan Spesifik
             </h3>
-            <UBadge color="primary" variant="subtle" size="xs" class="font-bold">
+            <UBadge
+              color="primary"
+              variant="subtle"
+              size="xs"
+              class="font-bold"
+            >
               {{ analysisData.rekomendasi?.length || 0 }} Rekomendasi
             </UBadge>
           </div>
         </template>
 
-        <div v-if="analysisData.rekomendasi?.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
+        <div
+          v-if="analysisData.rekomendasi?.length"
+          class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden"
+        >
           <div
             v-for="(rek, idx) in analysisData.rekomendasi"
             :key="idx"
@@ -315,16 +447,25 @@ function getTrenColor(tren: string) {
               </UBadge>
             </div>
             <div class="flex-1 space-y-1">
-              <div v-if="rek.mapel" class="font-bold text-gray-900 dark:text-white text-sm">
+              <div
+                v-if="rek.mapel"
+                class="font-bold text-gray-900 dark:text-white text-sm"
+              >
                 {{ rek.mapel }}
               </div>
-              <p class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{{ rek.tindakan }}</p>
+              <p class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                {{ rek.tindakan }}
+              </p>
             </div>
           </div>
         </div>
-        <p v-else class="text-xs text-gray-500 italic text-center py-4">Belum ada rekomendasi tindakan.</p>
+        <p
+          v-else
+          class="text-xs text-gray-500 italic text-center py-4"
+        >
+          Belum ada rekomendasi tindakan.
+        </p>
       </UCard>
-
     </div>
   </div>
 </template>

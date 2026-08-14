@@ -1,5 +1,87 @@
 <script setup lang="ts">
-const { data: page } = await useAsyncData<any>('index', () => (queryCollection as any)('index').first())
+type ButtonColor = 'info' | 'error' | 'success' | 'primary' | 'secondary' | 'warning' | 'neutral'
+type ButtonVariant = 'solid' | 'outline' | 'soft' | 'ghost' | 'link' | 'subtle'
+type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+
+interface PageLink {
+  label: string
+  to: string
+  icon?: string
+  size?: ButtonSize
+  trailing?: boolean
+  color?: ButtonColor
+  variant?: ButtonVariant
+}
+
+interface PageSectionFeature {
+  name?: string
+  description?: string
+  icon?: string
+}
+
+interface PageSection {
+  title?: string
+  description?: string
+  orientation?: 'vertical' | 'horizontal'
+  reverse?: boolean
+  image?: string
+  features?: PageSectionFeature[]
+}
+
+interface PageFeatureItem {
+  title?: string
+  description?: string
+  icon?: string
+  to?: string
+}
+
+interface TestimonialUser {
+  name: string
+  description?: string
+  avatar?: { src: string }
+}
+
+interface TestimonialItem {
+  quote: string
+  user: TestimonialUser
+}
+
+interface PageCTA {
+  title?: string
+  description?: string
+  links?: PageLink[]
+}
+
+interface PageData {
+  title: string
+  description: string
+  seo?: {
+    title?: string
+    description?: string
+  }
+  hero?: {
+    title?: string
+    description?: string
+    links?: PageLink[]
+  }
+  sections?: PageSection[]
+  features?: {
+    title?: string
+    description?: string
+    items?: PageFeatureItem[]
+  }
+  testimonials?: {
+    headline?: string
+    title?: string
+    description?: string
+    items?: TestimonialItem[]
+  }
+  cta?: PageCTA
+}
+
+type QueryCollection = (key: string) => { first: () => Promise<PageData> }
+
+const { data: page } = await useAsyncData<PageData>('index', () => (queryCollection as QueryCollection)('index').first())
 
 const title = page.value?.seo?.title || page.value?.title
 const description = page.value?.seo?.description || page.value?.description

@@ -58,9 +58,35 @@ export async function logActivity(params: LogActivityParams) {
   }
 }
 
-export const logger = {
-  info: (...args: any[]) => console.log('[INFO]', ...args),
-  warn: (...args: any[]) => console.warn('[WARN]', ...args),
-  error: (...args: any[]) => console.error('[ERROR]', ...args)
+import pino from 'pino'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const logDir = path.resolve(process.cwd(), 'logs')
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true })
 }
 
+const transport = pino.transport({
+  targets: [
+    {
+      target: 'pino-pretty',
+      level: 'info',
+      options: {
+        colorize: true,
+        translateTime: 'SYS:standard',
+        ignore: 'pid,hostname'
+      }
+    },
+    {
+      target: 'pino/file',
+      level: 'info',
+      options: {
+        destination: path.join(logDir, 'debug.log'),
+        mkdir: true
+      }
+    }
+  ]
+})
+
+export const logger = pino(transport)
