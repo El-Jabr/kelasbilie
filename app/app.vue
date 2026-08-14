@@ -7,6 +7,9 @@ useHead({
   meta: [
     { charset: 'utf-8' },
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+    { name: 'keywords', content: 'lms, manajemen kelas, moodle, ai, sekolah, akademik, pendidikan, rapor' },
+    { name: 'author', content: 'Kelas Bilie' },
+    { name: 'robots', content: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' },
     { name: 'google-site-verification', content: 'fy66n-SOYpTS_qBFw115cXQ651jsEJZeqP9zvMQWU20' },
     { key: 'theme-color', name: 'theme-color', content: color }
   ],
@@ -19,8 +22,17 @@ useHead({
 })
 
 useSeoMeta({
+  title: 'Beranda',
   titleTemplate: 'Kelas Bilie - %s',
-  twitterCard: 'summary_large_image'
+  description: 'Platform manajemen kelas, rapor, sinkronisasi Moodle, dan analisis belajar berbasis Artificial Intelligence (AI) terlengkap.',
+  ogTitle: 'Kelas Bilie - Platform Manajemen Akademik & AI',
+  ogDescription: 'Platform manajemen kelas, rapor, sinkronisasi Moodle, dan analisis belajar berbasis Artificial Intelligence (AI) terlengkap.',
+  ogUrl: 'https://kelasbilie.id',
+  ogSiteName: 'Kelas Bilie',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'Kelas Bilie - Platform Manajemen Akademik & AI',
+  twitterDescription: 'Platform manajemen kelas, rapor, sinkronisasi Moodle, dan analisis belajar berbasis Artificial Intelligence (AI) terlengkap.'
 })
 
 const navigation = ref([])
