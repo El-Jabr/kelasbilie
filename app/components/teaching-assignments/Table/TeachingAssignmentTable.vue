@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DropdownMenuItem } from '@nuxt/ui'
+import { LazyModalConfirm } from '#components'
 
 const toast = useToast()
 const { teachingAssignments, loading } = useTeachingAssignments()
@@ -12,7 +12,7 @@ const search = ref('')
 const page = ref(1)
 const pageCount = ref(10)
 
-const columns: any[] = [
+const columns: { accessorKey: string, header: string, class?: string }[] = [
   { accessorKey: 'teacher', header: 'Guru' },
   { accessorKey: 'subject', header: 'Mata Pelajaran' },
   { accessorKey: 'classroom', header: 'Kelas' },
@@ -25,10 +25,10 @@ const filteredRows = computed(() => {
   let list = teachingAssignments.value
   if (search.value) {
     const kw = search.value.toLowerCase()
-    list = list.filter((r: any) => 
-      (r.teacher?.user?.fullname || '').toLowerCase().includes(kw) ||
-      (r.subject?.name || '').toLowerCase().includes(kw) ||
-      (r.classroom?.name || '').toLowerCase().includes(kw)
+    list = list.filter((r: { teacher?: { user?: { fullname?: string } }, subject?: { name?: string }, classroom?: { name?: string } }) =>
+      (r.teacher?.user?.fullname || '').toLowerCase().includes(kw)
+      || (r.subject?.name || '').toLowerCase().includes(kw)
+      || (r.classroom?.name || '').toLowerCase().includes(kw)
     )
   }
   return list
@@ -43,8 +43,6 @@ const paginatedRows = computed(() => {
 watch(search, () => {
   page.value = 1
 })
-
-import { LazyModalConfirm } from '#components'
 
 const overlay = useOverlay()
 const confirmModal = overlay.create(LazyModalConfirm)
@@ -64,7 +62,7 @@ async function handleDelete(id: string) {
 async function syncCourseGrades(courseId: number, subjectName?: string, className?: string) {
   syncingCourseId.value = courseId
   try {
-    const res: any = await $fetch('/api/moodle/grades/sync-course', {
+    const res = await $fetch<{ message?: string }>('/api/moodle/grades/sync-course', {
       method: 'POST',
       body: { courseId },
       credentials: 'include'
@@ -75,7 +73,8 @@ async function syncCourseGrades(courseId: number, subjectName?: string, classNam
       description: res.message || `Berhasil menyingkronkan nilai Moodle untuk ${subjectName || 'Course'} (${className || ''}).`,
       color: 'success'
     })
-  } catch (err: any) {
+  } catch (e) {
+    const err = e as { data?: { statusMessage?: string, message?: string }, message?: string }
     const errorMsg = err.data?.statusMessage || err.data?.message || err.message || 'Gagal menyingkronkan nilai course.'
     toast.add({
       title: 'Sync Nilai Gagal',
@@ -87,16 +86,22 @@ async function syncCourseGrades(courseId: number, subjectName?: string, classNam
   }
 }
 
-function getActionItems(row: any): DropdownMenuItem[][] {
-  const mainGroup: DropdownMenuItem[] = []
+function getActionItems(row: Record<string, unknown>): Record<string, unknown>[][] {
+  const mainGroup: Record<string, unknown>[] = []
 
   if (row.courseId) {
     mainGroup.push({
       label: 'Sync Nilai Moodle',
       icon: 'i-lucide-refresh-cw',
-      onSelect: () => syncCourseGrades(row.courseId, row.subject?.name, row.classroom?.name)
+      click: () => syncCourseGrades(row.courseId as number, (row.subject as { name?: string })?.name, (row.classroom as { name?: string })?.name)
     })
   }
+
+  mainGroup.push({
+    label: 'Lihat Detail',
+    icon: 'i-lucide-eye',
+    to: `/super-admin/akademik/teaching-assignments/${row.id as string}`
+  })
 
   mainGroup.push({
     label: 'Edit Penugasan',
@@ -104,12 +109,12 @@ function getActionItems(row: any): DropdownMenuItem[][] {
     onSelect: () => openEditDialog(row)
   })
 
-  const dangerGroup: DropdownMenuItem[] = [
+  const dangerGroup: Record<string, unknown>[] = [
     {
       label: 'Hapus Penugasan',
       icon: 'i-lucide-trash-2',
       color: 'error',
-      onSelect: () => handleDelete(row.id)
+      onSelect: () => handleDelete(row.id as string)
     }
   ]
 
@@ -121,16 +126,30 @@ function getActionItems(row: any): DropdownMenuItem[][] {
   <UCard>
     <template #header>
       <div class="flex justify-between items-center gap-4">
-        <h3 class="font-bold text-gray-900 dark:text-white">Daftar Penugasan</h3>
-        <UInput v-model="search" icon="i-lucide-search" placeholder="Cari guru, mapel, kelas..." class="w-full sm:w-64" size="sm" />
+        <h3 class="font-bold text-gray-900 dark:text-white">
+          Daftar Penugasan
+        </h3>
+        <UInput
+          v-model="search"
+          icon="i-lucide-search"
+          placeholder="Cari guru, mapel, kelas..."
+          class="w-full sm:w-64"
+          size="sm"
+        />
       </div>
     </template>
 
-    <div v-if="loading && teachingAssignments.length === 0" class="py-8 text-center text-sm text-gray-400">
+    <div
+      v-if="loading && teachingAssignments.length === 0"
+      class="py-8 text-center text-sm text-gray-400"
+    >
       Memuat data penugasan mengajar...
     </div>
 
-    <div v-else-if="!loading && teachingAssignments.length === 0" class="py-8 text-center text-sm text-gray-400">
+    <div
+      v-else-if="!loading && teachingAssignments.length === 0"
+      class="py-8 text-center text-sm text-gray-400"
+    >
       Belum ada penugasan mengajar. Klik tombol "Tambah Penugasan" untuk membuat baru.
     </div>
 
@@ -145,37 +164,54 @@ function getActionItems(row: any): DropdownMenuItem[][] {
             {{ (row as any).original.teacher?.user?.fullname || (row as any).original.teacherId }}
           </span>
         </template>
-        
+
         <template #subject-cell="{ row }">
-          <UBadge color="info" variant="soft" size="xs">
+          <UBadge
+            color="info"
+            variant="soft"
+            size="xs"
+          >
             {{ (row as any).original.subject?.name || (row as any).original.subjectId }}
           </UBadge>
         </template>
-        
+
         <template #classroom-cell="{ row }">
-          <UBadge color="neutral" variant="soft" size="xs">
+          <UBadge
+            color="neutral"
+            variant="soft"
+            size="xs"
+          >
             {{ (row as any).original.classroom?.name || (row as any).original.classroomId }}
           </UBadge>
         </template>
-        
+
         <template #semester-cell="{ row }">
           <span class="text-xs text-gray-500">
             {{ (row as any).original.semester?.type }} ({{ (row as any).original.semester?.academicYear?.name || '-' }})
           </span>
         </template>
-        
+
         <template #course-cell="{ row }">
-          <span v-if="(row as any).original.course" class="text-emerald-600 dark:text-emerald-400 font-semibold text-xs font-mono">
+          <span
+            v-if="(row as any).original.course"
+            class="text-emerald-600 dark:text-emerald-400 font-semibold text-xs font-mono"
+          >
             {{ (row as any).original.course.fullname }}
           </span>
-          <span v-else-if="(row as any).original.courseId" class="text-gray-600 dark:text-gray-400 text-xs font-mono">
+          <span
+            v-else-if="(row as any).original.courseId"
+            class="text-gray-600 dark:text-gray-400 text-xs font-mono"
+          >
             ID: {{ (row as any).original.courseId }}
           </span>
-          <span v-else class="text-amber-500 italic text-xs">
+          <span
+            v-else
+            class="text-amber-500 italic text-xs"
+          >
             Belum terhubung
           </span>
         </template>
-        
+
         <template #actions-cell="{ row }">
           <div class="flex items-center">
             <UDropdownMenu :items="getActionItems((row as any).original)">
@@ -191,7 +227,10 @@ function getActionItems(row: any): DropdownMenuItem[][] {
       </UTable>
     </div>
 
-    <template v-if="filteredRows.length > 0" #footer>
+    <template
+      v-if="filteredRows.length > 0"
+      #footer
+    >
       <div class="flex justify-end items-center text-xs text-gray-500">
         <UPagination
           v-model:page="page"

@@ -18,7 +18,7 @@ watch(isSingleModalOpen, (open) => {
     } else {
       singleForm.studentId = ''
       singleForm.classroomId = ''
-      const activeSem = semesters.value.find((s: any) => s.isActive)?.id
+      const activeSem = semesters.value.find((s: { isActive?: boolean, id?: string }) => s.isActive)?.id
       singleForm.semesterId = activeSem || semesters.value[0]?.id || ''
     }
   }
@@ -52,7 +52,10 @@ async function onSubmit() {
 
         <form @submit.prevent="onSubmit">
           <div class="space-y-4">
-            <UFormField label="Siswa" required>
+            <UFormField
+              label="Siswa"
+              required
+            >
               <USelect
                 v-model="singleForm.studentId"
                 :items="studentOptions"
@@ -63,7 +66,10 @@ async function onSubmit() {
               />
             </UFormField>
 
-            <UFormField label="Kelas Target" required>
+            <UFormField
+              label="Kelas Target"
+              required
+            >
               <USelect
                 v-model="singleForm.classroomId"
                 :items="classOptions"
@@ -74,7 +80,10 @@ async function onSubmit() {
               />
             </UFormField>
 
-            <UFormField label="Semester Target" required>
+            <UFormField
+              label="Semester Target"
+              required
+            >
               <USelect
                 v-model="singleForm.semesterId"
                 :items="semesterOptions"

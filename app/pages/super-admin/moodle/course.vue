@@ -10,12 +10,23 @@ useSeoMeta({
 const toast = useToast()
 const pending = ref(true)
 const isSyncing = ref(false)
-const courses = ref<any[]>([])
+interface Course {
+  id: number | string
+  fullname?: string
+  shortname?: string
+  categoryId?: number | string
+  category?: { name?: string }
+  visible?: boolean
+  lastSync?: string
+  [key: string]: unknown
+}
+
+const courses = ref<Course[]>([])
 
 async function loadCourses() {
   pending.value = true
   try {
-    const res: any = await $fetch('/api/moodle', {
+    const res = await $fetch<{ data: Course[] }>('/api/moodle', {
       credentials: 'include'
     })
     if (res?.data) {
@@ -31,7 +42,7 @@ async function loadCourses() {
 async function handleSync() {
   isSyncing.value = true
   try {
-    const res: any = await $fetch('/api/moodle?resource=COURSE', {
+    const res = await $fetch<{ message?: string }>('/api/moodle?resource=COURSE', {
       method: 'POST',
       credentials: 'include'
     })
@@ -41,7 +52,8 @@ async function handleSync() {
       color: 'success'
     })
     await loadCourses()
-  } catch (error: any) {
+  } catch (e) {
+    const error = e as { data?: { statusMessage?: string }, message?: string }
     toast.add({
       title: 'Sinkronisasi Gagal',
       description: error.data?.statusMessage || error.message || 'Terjadi kesalahan saat sync.',
@@ -60,7 +72,7 @@ const search = ref('')
 const page = ref(1)
 const pageCount = ref(10)
 
-const columns: any[] = [
+const columns: { accessorKey: string, header: string }[] = [
   { accessorKey: 'id', header: 'ID Moodle' },
   { accessorKey: 'fullname', header: 'Nama Course' },
   { accessorKey: 'shortname', header: 'Nama Singkat' },
@@ -73,10 +85,10 @@ const filteredCourses = computed(() => {
   let list = courses.value
   if (search.value) {
     const kw = search.value.toLowerCase()
-    list = list.filter((c: any) =>
-      c.fullname?.toLowerCase().includes(kw) ||
-      c.shortname?.toLowerCase().includes(kw) ||
-      String(c.id).includes(kw)
+    list = list.filter((c: Course) =>
+      c.fullname?.toLowerCase().includes(kw)
+      || c.shortname?.toLowerCase().includes(kw)
+      || String(c.id).includes(kw)
     )
   }
   return list
@@ -98,7 +110,10 @@ watch(search, () => {
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-          <UIcon name="i-lucide-book-open" class="hidden sm:inline-block w-7 h-7 text-primary-500" />
+          <UIcon
+            name="i-lucide-book-open"
+            class="hidden sm:inline-block w-7 h-7 text-primary-500"
+          />
           Master Course Moodle
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -129,17 +144,28 @@ watch(search, () => {
             size="sm"
           />
 
-          <UBadge color="neutral" variant="subtle" size="sm" class="font-bold">
+          <UBadge
+            color="neutral"
+            variant="subtle"
+            size="sm"
+            class="font-bold"
+          >
             Total: {{ filteredCourses.length }} Course
           </UBadge>
         </div>
       </template>
 
-      <div v-if="pending" class="py-8 text-center text-sm text-gray-400">
+      <div
+        v-if="pending"
+        class="py-8 text-center text-sm text-gray-400"
+      >
         Memuat daftar course...
       </div>
 
-      <div v-else-if="filteredCourses.length === 0" class="py-8 text-center text-sm text-gray-400">
+      <div
+        v-else-if="filteredCourses.length === 0"
+        class="py-8 text-center text-sm text-gray-400"
+      >
         Tidak ada data course yang cocok.
       </div>
 
@@ -162,13 +188,21 @@ watch(search, () => {
           </template>
 
           <template #category-cell="{ row }">
-            <UBadge color="neutral" variant="soft" size="xs">
+            <UBadge
+              color="neutral"
+              variant="soft"
+              size="xs"
+            >
               {{ (row as any).original.category?.name || `ID: ${(row as any).original.categoryId}` }}
             </UBadge>
           </template>
 
           <template #visible-cell="{ row }">
-            <UBadge :color="(row as any).original.visible ? 'success' : 'error'" variant="subtle" size="xs">
+            <UBadge
+              :color="(row as any).original.visible ? 'success' : 'error'"
+              variant="subtle"
+              size="xs"
+            >
               {{ (row as any).original.visible ? 'Visible' : 'Hidden' }}
             </UBadge>
           </template>
@@ -181,9 +215,16 @@ watch(search, () => {
         </UTable>
       </div>
 
-      <template v-if="filteredCourses.length > 0" #footer>
+      <template
+        v-if="filteredCourses.length > 0"
+        #footer
+      >
         <div class="flex justify-end items-center text-xs text-gray-500">
-          <UPagination v-model:page="page" :total="filteredCourses.length" :items-per-page="pageCount" />
+          <UPagination
+            v-model:page="page"
+            :total="filteredCourses.length"
+            :items-per-page="pageCount"
+          />
         </div>
       </template>
     </UCard>

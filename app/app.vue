@@ -7,6 +7,7 @@ useHead({
   meta: [
     { charset: 'utf-8' },
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+    { name: 'google-site-verification', content: 'fy66n-SOYpTS_qBFw115cXQ651jsEJZeqP9zvMQWU20' },
     { key: 'theme-color', name: 'theme-color', content: color }
   ],
   link: [

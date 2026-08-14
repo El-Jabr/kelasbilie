@@ -12,14 +12,14 @@ useSeoMeta({
 const toast = useToast()
 const syncingResource = ref<string | null>(null)
 const pendingLogs = ref(false)
-const logs = ref<any[]>([])
+const logs = ref<Record<string, unknown>[]>([])
 
 // Export Users State
 const isExportingUsers = ref(false)
 const exportTargetRole = ref<'ALL' | 'TEACHER' | 'STUDENT'>('ALL')
 const autoEnrollCourses = ref(true)
 const defaultPassword = ref('Password123!')
-const exportSummary = ref<any>(null)
+const exportSummary = ref<Record<string, unknown> | null>(null)
 
 // Password Mode & CSV Export State
 const isUpdatingPasswords = ref(false)
@@ -27,7 +27,7 @@ const isExportingCsv = ref(false)
 const passwordMode = ref<'HARIAN' | 'EXAM_STS_SAS'>('HARIAN')
 const passwordClassroomId = ref('ALL')
 const classroomOptions = ref<{ value: string, label: string }[]>([])
-const passwordUpdateSummary = ref<any>(null)
+const passwordUpdateSummary = ref<Record<string, unknown> | null>(null)
 
 const roleOptions = [
   { value: 'ALL', label: 'Semua User (Guru & Siswa)' },
@@ -37,11 +37,11 @@ const roleOptions = [
 
 async function loadClassroomsDropdown() {
   try {
-    const res: any = await $fetch('/api/classes', { credentials: 'include' })
+    const res = await $fetch<{ data?: { id: string, name: string, level: string | number }[] }>('/api/classes', { credentials: 'include' })
     if (res?.data) {
       classroomOptions.value = [
         { value: 'ALL', label: 'Semua Kelas' },
-        ...res.data.map((c: any) => ({
+        ...(res.data || []).map((c: { id: string, name: string, level: string | number }) => ({
           value: c.id,
           label: `${c.name} (Tingkat ${c.level})`
         }))
@@ -55,7 +55,7 @@ async function loadClassroomsDropdown() {
 async function loadLogs() {
   pendingLogs.value = true
   try {
-    const res: any = await $fetch('/api/moodle/logs?limit=15', {
+    const res = await $fetch<{ data?: Record<string, unknown>[] }>('/api/moodle/logs?limit=15', {
       credentials: 'include'
     })
     if (res?.data) {
@@ -71,7 +71,7 @@ async function loadLogs() {
 async function triggerSync(resource: string) {
   syncingResource.value = resource
   try {
-    const res: any = await $fetch(`/api/moodle?resource=${resource}`, {
+    const res = await $fetch<{ message?: string }>(`/api/moodle?resource=${resource}`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -81,7 +81,8 @@ async function triggerSync(resource: string) {
       color: 'success'
     })
     await loadLogs()
-  } catch (err: any) {
+  } catch (e) {
+    const err = e as { data?: { statusMessage?: string, message?: string }, message?: string }
     const errorMsg = err.data?.statusMessage || err.data?.message || err.message || 'Gagal menjalankan sinkronisasi.'
     toast.add({
       title: 'Sinkronisasi Gagal',
@@ -98,7 +99,7 @@ async function handleExportUsers() {
   isExportingUsers.value = true
   exportSummary.value = null
   try {
-    const res: any = await $fetch('/api/moodle/export-users', {
+    const res = await $fetch<{ message?: string, summary?: Record<string, unknown> }>('/api/moodle/export-users', {
       method: 'POST',
       body: {
         targetRole: exportTargetRole.value,
@@ -119,7 +120,8 @@ async function handleExportUsers() {
     }
 
     await loadLogs()
-  } catch (err: any) {
+  } catch (e) {
+    const err = e as { data?: { statusMessage?: string, message?: string }, message?: string }
     const errorMsg = err.data?.statusMessage || err.data?.message || err.message || 'Gagal mengekspor user ke Moodle.'
     toast.add({
       title: 'Ekspor User Gagal',
@@ -136,7 +138,7 @@ async function handleUpdatePasswords() {
   isUpdatingPasswords.value = true
   passwordUpdateSummary.value = null
   try {
-    const res: any = await $fetch('/api/moodle/update-passwords', {
+    const res = await $fetch<{ message?: string, summary?: Record<string, unknown> }>('/api/moodle/update-passwords', {
       method: 'POST',
       body: {
         mode: passwordMode.value,
@@ -156,7 +158,8 @@ async function handleUpdatePasswords() {
     }
 
     await loadLogs()
-  } catch (err: any) {
+  } catch (e) {
+    const err = e as { data?: { statusMessage?: string, message?: string }, message?: string }
     const errorMsg = err.data?.statusMessage || err.data?.message || err.message || 'Gagal memperbarui password Moodle.'
     toast.add({
       title: 'Update Password Gagal',
@@ -201,7 +204,7 @@ const searchLog = ref('')
 const pageLog = ref(1)
 const pageCountLog = ref(10)
 
-const columnsLog: any[] = [
+const columnsLog: { accessorKey: string, header: string, class?: string }[] = [
   { accessorKey: 'resource', header: 'Resource' },
   { accessorKey: 'status', header: 'Status' },
   { accessorKey: 'message', header: 'Pesan Log' },
@@ -212,10 +215,13 @@ const filteredLogs = computed(() => {
   let list = logs.value
   if (searchLog.value) {
     const kw = searchLog.value.toLowerCase()
-    list = list.filter((r: any) => 
-      (r.details || r.message || '').toLowerCase().includes(kw) ||
-      (r.resource || '').toLowerCase().includes(kw)
-    )
+    list = list.filter((r: Record<string, unknown>) => {
+      const details = r.details as string | undefined
+      const message = r.message as string | undefined
+      const resource = r.resource as string | undefined
+      return (details || message || '').toLowerCase().includes(kw)
+        || (resource || '').toLowerCase().includes(kw)
+    })
   }
   return list
 })
@@ -235,7 +241,10 @@ watch(searchLog, () => {
   <div class="space-y-6">
     <div>
       <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-        <UIcon name="i-lucide-refresh-cw" class="hidden sm:inline-block w-7 h-7 text-emerald-500" />
+        <UIcon
+          name="i-lucide-refresh-cw"
+          class="hidden sm:inline-block w-7 h-7 text-emerald-500"
+        />
         Sinkronisasi & Integrasi Moodle
       </h1>
       <p class="text-sm text-gray-500 dark:text-gray-400">
@@ -249,7 +258,10 @@ watch(searchLog, () => {
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div class="hidden sm:inline-block p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
-              <UIcon name="i-lucide-user-plus" class="w-6 h-6 " />
+              <UIcon
+                name="i-lucide-user-plus"
+                class="w-6 h-6 "
+              />
             </div>
             <div>
               <h2 class="text-base font-bold text-gray-900 dark:text-white">
@@ -260,7 +272,12 @@ watch(searchLog, () => {
               </p>
             </div>
           </div>
-          <UBadge color="success" variant="subtle" size="sm" class="font-bold hidden sm:inline-block">
+          <UBadge
+            color="success"
+            variant="subtle"
+            size="sm"
+            class="font-bold hidden sm:inline-block"
+          >
             Pendaftaran Massal
           </UBadge>
         </div>
@@ -294,10 +311,10 @@ watch(searchLog, () => {
           <div class="space-y-1 flex flex-col justify-end">
             <label class="flex items-center gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
               <input
-                type="checkbox"
                 v-model="autoEnrollCourses"
+                type="checkbox"
                 class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-              />
+              >
               <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
                 Auto-Enroll ke Course Moodle
               </span>
@@ -306,27 +323,49 @@ watch(searchLog, () => {
         </div>
 
         <!-- Summary Result Badge / Alert -->
-        <div v-if="exportSummary" class="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-2">
+        <div
+          v-if="exportSummary"
+          class="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-2"
+        >
           <div class="flex items-center gap-2 text-sm font-bold text-emerald-900 dark:text-emerald-200">
-            <UIcon name="i-lucide-check-circle" class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <UIcon
+              name="i-lucide-check-circle"
+              class="w-5 h-5 text-emerald-600 dark:text-emerald-400"
+            />
             <span>Hasil Ekspor User & Enroll Selesai:</span>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
             <div class="bg-white dark:bg-gray-900 p-2 rounded-lg border text-center">
-              <div class="text-gray-400">Total Diproses</div>
-              <div class="text-base font-bold text-gray-900 dark:text-white">{{ exportSummary.totalProcessed }}</div>
+              <div class="text-gray-400">
+                Total Diproses
+              </div>
+              <div class="text-base font-bold text-gray-900 dark:text-white">
+                {{ exportSummary.totalProcessed }}
+              </div>
             </div>
             <div class="bg-white dark:bg-gray-900 p-2 rounded-lg border text-center">
-              <div class="text-gray-400">Akun Baru Dibuat</div>
-              <div class="text-base font-bold text-emerald-600 dark:text-emerald-400">{{ exportSummary.usersCreated }}</div>
+              <div class="text-gray-400">
+                Akun Baru Dibuat
+              </div>
+              <div class="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                {{ exportSummary.usersCreated }}
+              </div>
             </div>
             <div class="bg-white dark:bg-gray-900 p-2 rounded-lg border text-center">
-              <div class="text-gray-400">Akun Sudah Ada</div>
-              <div class="text-base font-bold text-blue-600 dark:text-blue-400">{{ exportSummary.usersExisting }}</div>
+              <div class="text-gray-400">
+                Akun Sudah Ada
+              </div>
+              <div class="text-base font-bold text-blue-600 dark:text-blue-400">
+                {{ exportSummary.usersExisting }}
+              </div>
             </div>
             <div class="bg-white dark:bg-gray-900 p-2 rounded-lg border text-center">
-              <div class="text-gray-400">Enrollment Course</div>
-              <div class="text-base font-bold text-amber-600 dark:text-amber-400">{{ exportSummary.enrolmentsCount }}</div>
+              <div class="text-gray-400">
+                Enrollment Course
+              </div>
+              <div class="text-base font-bold text-amber-600 dark:text-amber-400">
+                {{ exportSummary.enrolmentsCount }}
+              </div>
             </div>
           </div>
         </div>
@@ -354,7 +393,10 @@ watch(searchLog, () => {
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div class="hidden sm:inline-block p-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
-              <UIcon name="i-lucide-key-round" class="w-6 h-6 " />
+              <UIcon
+                name="i-lucide-key-round"
+                class="w-6 h-6 "
+              />
             </div>
             <div>
               <h2 class="text-base font-bold text-gray-900 dark:text-white">
@@ -365,7 +407,12 @@ watch(searchLog, () => {
               </p>
             </div>
           </div>
-          <UBadge color="warning" variant="subtle" size="sm" class="font-bold hidden sm:inline-block">
+          <UBadge
+            color="warning"
+            variant="subtle"
+            size="sm"
+            class="font-bold hidden sm:inline-block"
+          >
             Manajemen Akses Ujian
           </UBadge>
         </div>
@@ -383,12 +430,12 @@ watch(searchLog, () => {
                 :class="passwordMode === 'HARIAN' ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-500/30' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'"
               >
                 <input
+                  v-model="passwordMode"
                   type="radio"
                   name="pwdMode"
                   value="HARIAN"
-                  v-model="passwordMode"
                   class="mt-1 text-emerald-600 focus:ring-emerald-500"
-                />
+                >
                 <div>
                   <div class="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
                     <span>Mode Harian</span>
@@ -405,12 +452,12 @@ watch(searchLog, () => {
                 :class="passwordMode === 'EXAM_STS_SAS' ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 ring-2 ring-amber-500/30' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'"
               >
                 <input
+                  v-model="passwordMode"
                   type="radio"
                   name="pwdMode"
                   value="EXAM_STS_SAS"
-                  v-model="passwordMode"
                   class="mt-1 text-amber-600 focus:ring-amber-500"
-                />
+                >
                 <div>
                   <div class="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
                     <span>Mode Ujian STS/SAS</span>
@@ -437,23 +484,41 @@ watch(searchLog, () => {
         </div>
 
         <!-- Summary Result Badge / Alert -->
-        <div v-if="passwordUpdateSummary" class="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl space-y-2">
+        <div
+          v-if="passwordUpdateSummary"
+          class="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl space-y-2"
+        >
           <div class="flex items-center gap-2 text-sm font-bold text-amber-900 dark:text-amber-200">
-            <UIcon name="i-lucide-check-circle" class="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <UIcon
+              name="i-lucide-check-circle"
+              class="w-5 h-5 text-amber-600 dark:text-amber-400"
+            />
             <span>Hasil Update & Sync Password Selesai:</span>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs font-mono">
             <div class="bg-white dark:bg-gray-900 p-2 rounded-lg border text-center">
-              <div class="text-gray-400">Total Siswa</div>
-              <div class="text-base font-bold text-gray-900 dark:text-white">{{ passwordUpdateSummary.totalStudents }}</div>
+              <div class="text-gray-400">
+                Total Siswa
+              </div>
+              <div class="text-base font-bold text-gray-900 dark:text-white">
+                {{ passwordUpdateSummary.totalStudents }}
+              </div>
             </div>
             <div class="bg-white dark:bg-gray-900 p-2 rounded-lg border text-center">
-              <div class="text-gray-400">Di-sync ke Moodle</div>
-              <div class="text-base font-bold text-emerald-600 dark:text-emerald-400">{{ passwordUpdateSummary.moodleUpdated }}</div>
+              <div class="text-gray-400">
+                Di-sync ke Moodle
+              </div>
+              <div class="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                {{ passwordUpdateSummary.moodleUpdated }}
+              </div>
             </div>
             <div class="bg-white dark:bg-gray-900 p-2 rounded-lg border text-center">
-              <div class="text-gray-400">Mode Password</div>
-              <div class="text-base font-bold text-amber-600 dark:text-amber-400">{{ passwordUpdateSummary.mode }}</div>
+              <div class="text-gray-400">
+                Mode Password
+              </div>
+              <div class="text-base font-bold text-amber-600 dark:text-amber-400">
+                {{ passwordUpdateSummary.mode }}
+              </div>
             </div>
           </div>
         </div>
@@ -497,11 +562,20 @@ watch(searchLog, () => {
     <div>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
         <h2 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <UIcon name="i-lucide-download-cloud" class="w-5 h-5 text-blue-500" />
+          <UIcon
+            name="i-lucide-download-cloud"
+            class="w-5 h-5 text-blue-500"
+          />
           Tarik Data Dari Moodle ke Aplikasi (Pull Sync)
         </h2>
-        <NuxtLink to="/super-admin/akademik/teaching-assignments" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1">
-          <UIcon name="i-lucide-zap" class="w-4 h-4 text-emerald-500" />
+        <NuxtLink
+          to="/super-admin/akademik/teaching-assignments"
+          class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+        >
+          <UIcon
+            name="i-lucide-zap"
+            class="w-4 h-4 text-emerald-500"
+          />
           <span>Sync Nilai Cepat Per-Course (di Penugasan Mengajar) &rarr;</span>
         </NuxtLink>
       </div>
@@ -509,10 +583,17 @@ watch(searchLog, () => {
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <UCard class="text-center">
           <div class="space-y-3 py-2">
-            <UIcon name="i-lucide-layers" class="w-8 h-8 mx-auto text-primary-500" />
+            <UIcon
+              name="i-lucide-layers"
+              class="w-8 h-8 mx-auto text-primary-500"
+            />
             <div>
-              <h3 class="font-semibold text-sm">Semua Resource</h3>
-              <p class="text-xs text-gray-400 mt-0.5">Sync Kategori, Course, User, & Nilai</p>
+              <h3 class="font-semibold text-sm">
+                Semua Resource
+              </h3>
+              <p class="text-xs text-gray-400 mt-0.5">
+                Sync Kategori, Course, User, & Nilai
+              </p>
             </div>
             <UButton
               block
@@ -529,10 +610,17 @@ watch(searchLog, () => {
 
         <UCard class="text-center">
           <div class="space-y-3 py-2">
-            <UIcon name="i-lucide-folder-tree" class="w-8 h-8 mx-auto text-info-500" />
+            <UIcon
+              name="i-lucide-folder-tree"
+              class="w-8 h-8 mx-auto text-info-500"
+            />
             <div>
-              <h3 class="font-semibold text-sm">Kategori</h3>
-              <p class="text-xs text-gray-400 mt-0.5">Sync CourseCategory</p>
+              <h3 class="font-semibold text-sm">
+                Kategori
+              </h3>
+              <p class="text-xs text-gray-400 mt-0.5">
+                Sync CourseCategory
+              </p>
             </div>
             <UButton
               block
@@ -549,10 +637,17 @@ watch(searchLog, () => {
 
         <UCard class="text-center">
           <div class="space-y-3 py-2">
-            <UIcon name="i-lucide-book-open" class="w-8 h-8 mx-auto text-success-500" />
+            <UIcon
+              name="i-lucide-book-open"
+              class="w-8 h-8 mx-auto text-success-500"
+            />
             <div>
-              <h3 class="font-semibold text-sm">Course</h3>
-              <p class="text-xs text-gray-400 mt-0.5">Sync Course Moodle</p>
+              <h3 class="font-semibold text-sm">
+                Course
+              </h3>
+              <p class="text-xs text-gray-400 mt-0.5">
+                Sync Course Moodle
+              </p>
             </div>
             <UButton
               block
@@ -569,10 +664,17 @@ watch(searchLog, () => {
 
         <UCard class="text-center">
           <div class="space-y-3 py-2">
-            <UIcon name="i-lucide-user-check" class="w-8 h-8 mx-auto text-warning-500" />
+            <UIcon
+              name="i-lucide-user-check"
+              class="w-8 h-8 mx-auto text-warning-500"
+            />
             <div>
-              <h3 class="font-semibold text-sm">Enrollment</h3>
-              <p class="text-xs text-gray-400 mt-0.5">Sync Pendaftaran Siswa</p>
+              <h3 class="font-semibold text-sm">
+                Enrollment
+              </h3>
+              <p class="text-xs text-gray-400 mt-0.5">
+                Sync Pendaftaran Siswa
+              </p>
             </div>
             <UButton
               block
@@ -589,10 +691,17 @@ watch(searchLog, () => {
 
         <UCard class="text-center">
           <div class="space-y-3 py-2">
-            <UIcon name="i-lucide-award" class="w-8 h-8 mx-auto text-error-500" />
+            <UIcon
+              name="i-lucide-award"
+              class="w-8 h-8 mx-auto text-error-500"
+            />
             <div>
-              <h3 class="font-semibold text-sm">Nilai / Grade</h3>
-              <p class="text-xs text-gray-400 mt-0.5">Sync GradeItem & Skor</p>
+              <h3 class="font-semibold text-sm">
+                Nilai / Grade
+              </h3>
+              <p class="text-xs text-gray-400 mt-0.5">
+                Sync GradeItem & Skor
+              </p>
             </div>
             <UButton
               block
@@ -614,11 +723,20 @@ watch(searchLog, () => {
       <template #header>
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div class="flex items-center gap-2 font-semibold">
-            <UIcon name="i-lucide-history" class="w-5 h-5 text-primary-500 hidden sm:inline-block" />
+            <UIcon
+              name="i-lucide-history"
+              class="w-5 h-5 text-primary-500 hidden sm:inline-block"
+            />
             <span>Log Sinkronisasi</span>
           </div>
           <div class="flex items-center gap-2 w-full sm:w-auto">
-            <UInput v-model="searchLog" icon="i-lucide-search" placeholder="Cari log..." class="w-full sm:w-64" size="sm" />
+            <UInput
+              v-model="searchLog"
+              icon="i-lucide-search"
+              placeholder="Cari log..."
+              class="w-full sm:w-64"
+              size="sm"
+            />
             <UButton
               icon="i-lucide-rotate-cw"
               color="neutral"
@@ -634,11 +752,17 @@ watch(searchLog, () => {
         </div>
       </template>
 
-      <div v-if="pendingLogs" class="py-8 text-center text-sm text-gray-400">
+      <div
+        v-if="pendingLogs"
+        class="py-8 text-center text-sm text-gray-400"
+      >
         Memuat riwayat log...
       </div>
 
-      <div v-else-if="logs.length === 0" class="py-8 text-center text-sm text-gray-400">
+      <div
+        v-else-if="logs.length === 0"
+        class="py-8 text-center text-sm text-gray-400"
+      >
         Belum ada entri log sinkronisasi.
       </div>
 
@@ -649,7 +773,11 @@ watch(searchLog, () => {
           class="w-full"
         >
           <template #resource-cell="{ row }">
-            <UBadge color="neutral" variant="soft" size="xs">
+            <UBadge
+              color="neutral"
+              variant="soft"
+              size="xs"
+            >
               {{ (row as any).original.resource }}
             </UBadge>
           </template>
@@ -678,10 +806,17 @@ watch(searchLog, () => {
         </UTable>
       </div>
 
-      <template v-if="filteredLogs.length > 0" #footer>
+      <template
+        v-if="filteredLogs.length > 0"
+        #footer
+      >
         <div class="flex justify-between items-center text-xs text-gray-500">
           <span>Menampilkan {{ paginatedLogs.length }} dari {{ filteredLogs.length }} log</span>
-          <UPagination v-model:page="pageLog" :total="filteredLogs.length" :items-per-page="pageCountLog" />
+          <UPagination
+            v-model:page="pageLog"
+            :total="filteredLogs.length"
+            :items-per-page="pageCountLog"
+          />
         </div>
       </template>
     </UCard>

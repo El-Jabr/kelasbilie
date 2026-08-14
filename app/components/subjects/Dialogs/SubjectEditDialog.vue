@@ -29,7 +29,7 @@ watch(
       return
     }
 
-    const firstTeaching = (selectedSubject.value as any).teachings?.[0]
+    const firstTeaching = (selectedSubject.value as { teachings?: Record<string, unknown>[] })?.teachings?.[0]
 
     Object.assign(form, {
       code: selectedSubject.value.code || '',
@@ -60,10 +60,20 @@ async function save() {
         <template #header>
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-lg font-semibold">Edit Mata Pelajaran</h2>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Ubah informasi mata pelajaran di bawah ini.</p>
+              <h2 class="text-lg font-semibold">
+                Edit Mata Pelajaran
+              </h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Ubah informasi mata pelajaran di bawah ini.
+              </p>
             </div>
-            <UButton color="neutral" variant="ghost" icon="i-lucide-x" class="-my-1" @click="closeEditDialog" />
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-lucide-x"
+              class="-my-1"
+              @click="closeEditDialog"
+            />
           </div>
         </template>
 
@@ -74,7 +84,10 @@ async function save() {
           class="space-y-4"
           @submit="save"
         >
-          <SubjectsFormsSubjectForm :model-value="form" @update:model-value="Object.assign(form, $event)" />
+          <SubjectsFormsSubjectForm
+            :model-value="form"
+            @update:model-value="Object.assign(form, $event)"
+          />
         </UForm>
 
         <template #footer>

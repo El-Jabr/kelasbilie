@@ -1,12 +1,25 @@
 <script setup lang="ts">
-import type { TableColumn } from '@nuxt/ui'
-
 const {
   subjects,
   loading
 } = useSubjects()
 
-const columns: TableColumn<any>[] = [
+interface SubjectRow {
+  id: string
+  code: string
+  name: string
+  kkm: number
+  classroomId?: string | null
+  teachings?: {
+    id: string
+    classroom?: { name: string }
+    course?: { fullname: string, id?: string }
+  }[]
+  course?: { fullname?: string, id?: string }
+  [key: string]: unknown
+}
+
+const columns = [
   {
     accessorKey: 'code',
     header: 'Kode'
@@ -35,15 +48,20 @@ const columns: TableColumn<any>[] = [
 </script>
 
 <template>
-  <UCard :ui="{ body:'p-0 sm:p-0'}">
+  <UCard :ui="{ body: 'p-0 sm:p-0' }">
     <UTable
-      :data="subjects"
+      :data="subjects as SubjectRow[]"
       :columns="columns"
       :loading="loading"
     >
       <!-- Kode -->
       <template #code-cell="{ row }">
-        <UBadge color="primary" variant="subtle" size="md" class="font-mono font-bold">
+        <UBadge
+          color="primary"
+          variant="subtle"
+          size="md"
+          class="font-mono font-bold"
+        >
           {{ row.original.code }}
         </UBadge>
       </template>
@@ -57,14 +75,22 @@ const columns: TableColumn<any>[] = [
 
       <!-- KKM -->
       <template #kkm-cell="{ row }">
-        <UBadge color="warning" variant="subtle" size="md" class="font-bold">
+        <UBadge
+          color="warning"
+          variant="subtle"
+          size="md"
+          class="font-bold"
+        >
           {{ row.original.kkm || 75 }}
         </UBadge>
       </template>
 
       <!-- Kelas (Classroom) -->
       <template #classroom-cell="{ row }">
-        <div v-if="row.original.teachings?.length" class="flex flex-wrap gap-1">
+        <div
+          v-if="row.original.teachings?.length"
+          class="flex flex-wrap gap-1"
+        >
           <UBadge
             v-for="t in row.original.teachings"
             :key="t.id"
@@ -76,25 +102,40 @@ const columns: TableColumn<any>[] = [
             {{ t.classroom?.name || 'Kelas' }}
           </UBadge>
         </div>
-        <span v-else class="text-xs text-gray-400 italic">Belum di-assign ke kelas</span>
+        <span
+          v-else
+          class="text-xs text-gray-400 italic"
+        >Belum di-assign ke kelas</span>
       </template>
 
       <!-- Course Moodle -->
       <template #course-cell="{ row }">
-        <div v-if="row.original.teachings?.length" class="space-y-1">
+        <div
+          v-if="row.original.teachings?.length"
+          class="space-y-1"
+        >
           <div
             v-for="t in row.original.teachings"
             :key="t.id"
             class="text-xs flex items-center gap-1.5"
           >
             <UIcon name="i-lucide-book-open text-blue-500 shrink-0" />
-            <span v-if="t.course" class="font-medium text-gray-800 dark:text-gray-200">
+            <span
+              v-if="t.course"
+              class="font-medium text-gray-800 dark:text-gray-200"
+            >
               {{ t.course.fullname }} <span class="text-gray-400 text-[10px] font-mono">(ID: {{ t.course.id }})</span>
             </span>
-            <span v-else class="text-gray-400 italic text-[11px]">Belum terhubung Moodle</span>
+            <span
+              v-else
+              class="text-gray-400 italic text-[11px]"
+            >Belum terhubung Moodle</span>
           </div>
         </div>
-        <span v-else class="text-xs text-gray-400 italic">Belum terhubung Moodle</span>
+        <span
+          v-else
+          class="text-xs text-gray-400 italic"
+        >Belum terhubung Moodle</span>
       </template>
 
       <!-- Actions -->

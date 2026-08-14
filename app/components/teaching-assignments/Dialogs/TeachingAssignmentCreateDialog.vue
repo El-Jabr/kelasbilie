@@ -17,7 +17,7 @@ watch(createDialogOpen, (open) => {
     form.teacherId = ''
     form.subjectId = ''
     form.classroomId = ''
-    form.semesterId = semesters.value.find((s: any) => s.isActive)?.id || ''
+    form.semesterId = semesters.value.find((s: { isActive?: boolean, id?: string }) => s.isActive)?.id || ''
     form.courseId = undefined
   }
 })

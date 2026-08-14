@@ -5,7 +5,7 @@ const props = defineProps<{
   identifier: 'nip' | 'nis'
 }>()
 
-interface Row {
+interface ImportRow {
   row: number
   username: string
   fullname: string
@@ -21,7 +21,7 @@ interface Row {
 const file = ref<File | null>(null)
 const loadingPreview = ref(false)
 const loadingImport = ref(false)
-const preview = ref<{ summary: { total: number, valid: number, invalid: number }, rows: Row[] } | null>(null)
+const preview = ref<{ summary: { total: number, valid: number, invalid: number }, rows: ImportRow[] } | null>(null)
 const result = ref<{ summary: { success: number, failed: number } } | null>(null)
 const toast = useToast()
 
@@ -41,9 +41,9 @@ const filteredRows = computed(() => {
   if (search.value) {
     const kw = search.value.toLowerCase()
     list = list.filter(r =>
-      r.username.toLowerCase().includes(kw) ||
-      r.fullname.toLowerCase().includes(kw) ||
-      (r[props.identifier] ?? '').toLowerCase().includes(kw)
+      r.username.toLowerCase().includes(kw)
+      || r.fullname.toLowerCase().includes(kw)
+      || (r[props.identifier] ?? '').toLowerCase().includes(kw)
     )
   }
 
@@ -56,7 +56,7 @@ const filteredRows = computed(() => {
   return list
 })
 
-const columns = computed<any[]>(() => [
+const columns = computed<{ accessorKey: string, header: string }[]>(() => [
   { accessorKey: 'row', header: '#' },
   { accessorKey: 'username', header: 'Username' },
   { accessorKey: 'fullname', header: 'Nama Lengkap' },
@@ -118,7 +118,7 @@ async function previewFile() {
     const form = new FormData()
     form.append('file', file.value)
     const previewUrl = `/api/${props.resource}/preview`
-    preview.value = await $fetch<{ summary: { total: number, valid: number, invalid: number }, rows: Row[] }>(previewUrl, {
+    preview.value = await $fetch<{ summary: { total: number, valid: number, invalid: number }, rows: ImportRow[] }>(previewUrl, {
       method: 'POST',
       body: form
     })
@@ -128,7 +128,8 @@ async function previewFile() {
       description: `${preview.value.summary.valid} data valid ditemukan.`,
       color: 'success'
     })
-  } catch (error: any) {
+  } catch (e) {
+    const error = e as { data?: { statusMessage?: string }, message?: string }
     toast.add({
       title: 'Preview Gagal',
       description: error.data?.statusMessage || error.message || 'File tidak dapat diproses.',
@@ -163,7 +164,8 @@ async function submitImport() {
       description: `${result.value?.summary.success ?? 0} data ${props.label} berhasil diimport.`,
       color: 'success'
     })
-  } catch (error: any) {
+  } catch (e) {
+    const error = e as { data?: { statusMessage?: string }, message?: string }
     toast.add({
       title: 'Import Gagal',
       description: error.data?.statusMessage || error.message || 'Gagal mengimport data.',
@@ -217,7 +219,10 @@ async function submitImport() {
       >
         <div class="flex flex-col items-center gap-3">
           <div class="p-3 bg-primary-50 dark:bg-primary-950/50 rounded-full text-primary-600 dark:text-primary-400">
-            <UIcon name="i-lucide-file-spreadsheet" class="w-10 h-10" />
+            <UIcon
+              name="i-lucide-file-spreadsheet"
+              class="w-10 h-10"
+            />
           </div>
 
           <div>
@@ -229,7 +234,11 @@ async function submitImport() {
             </p>
           </div>
 
-          <UButton color="primary" variant="soft" size="xs">
+          <UButton
+            color="primary"
+            variant="soft"
+            size="xs"
+          >
             Pilih File
           </UButton>
         </div>
@@ -243,16 +252,22 @@ async function submitImport() {
         >
       </div>
 
-      <!-- File Details -->
       <div
         v-if="file"
         class="mt-4 rounded-lg border border-gray-200 dark:border-gray-700 p-3 flex items-center justify-between bg-gray-50 dark:bg-gray-800/50"
       >
         <div class="flex items-center gap-3">
-          <UIcon name="i-lucide-file-text" class="w-6 h-6 text-primary-500" />
+          <UIcon
+            name="i-lucide-file-text"
+            class="w-6 h-6 text-primary-500"
+          />
           <div>
-            <p class="font-medium text-sm">{{ file.name }}</p>
-            <p class="text-xs text-gray-400">{{ (file.size / 1024).toFixed(1) }} KB</p>
+            <p class="font-medium text-sm">
+              {{ file.name }}
+            </p>
+            <p class="text-xs text-gray-400">
+              {{ (file.size / 1024).toFixed(1) }} KB
+            </p>
           </div>
         </div>
 
@@ -267,7 +282,11 @@ async function submitImport() {
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton variant="ghost" color="neutral" @click="reset">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            @click="reset"
+          >
             Reset
           </UButton>
 
@@ -284,40 +303,62 @@ async function submitImport() {
       </template>
     </UCard>
 
-    <!-- Section 2: Summary Cards -->
-    <div v-if="preview" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div
+      v-if="preview"
+      class="grid grid-cols-1 sm:grid-cols-3 gap-4"
+    >
       <UCard>
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs font-semibold text-gray-400 uppercase">Total Data</p>
-            <p class="text-2xl font-bold mt-1">{{ preview.summary.total }}</p>
+            <p class="text-xs font-semibold text-gray-400 uppercase">
+              Total Data
+            </p>
+            <p class="text-2xl font-bold mt-1">
+              {{ preview.summary.total }}
+            </p>
           </div>
-          <UIcon name="i-lucide-file-text" class="w-8 h-8 text-gray-400" />
+          <UIcon
+            name="i-lucide-file-text"
+            class="w-8 h-8 text-gray-400"
+          />
         </div>
       </UCard>
 
       <UCard>
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs font-semibold text-gray-400 uppercase">Valid</p>
-            <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{{ preview.summary.valid }}</p>
+            <p class="text-xs font-semibold text-gray-400 uppercase">
+              Valid
+            </p>
+            <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+              {{ preview.summary.valid }}
+            </p>
           </div>
-          <UIcon name="i-lucide-check-circle" class="w-8 h-8 text-emerald-500" />
+          <UIcon
+            name="i-lucide-check-circle"
+            class="w-8 h-8 text-emerald-500"
+          />
         </div>
       </UCard>
 
       <UCard>
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs font-semibold text-gray-400 uppercase">Invalid</p>
-            <p class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{{ preview.summary.invalid }}</p>
+            <p class="text-xs font-semibold text-gray-400 uppercase">
+              Invalid
+            </p>
+            <p class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
+              {{ preview.summary.invalid }}
+            </p>
           </div>
-          <UIcon name="i-lucide-x-circle" class="w-8 h-8 text-red-500" />
+          <UIcon
+            name="i-lucide-x-circle"
+            class="w-8 h-8 text-red-500"
+          />
         </div>
       </UCard>
     </div>
 
-    <!-- Section 3: Toolbar Filter -->
     <UCard v-if="preview">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <UInput
@@ -356,7 +397,6 @@ async function submitImport() {
       </div>
     </UCard>
 
-    <!-- Section 4: Data Preview Table -->
     <UCard v-if="preview">
       <UTable
         :data="paginatedRows"
@@ -364,35 +404,49 @@ async function submitImport() {
         class="w-full"
       >
         <template #row-cell="{ row }">
-          <span class="text-xs font-mono text-gray-400">{{ (row as any).original.row }}</span>
+          <span class="text-xs font-mono text-gray-400">{{ (row as unknown as { original: ImportRow }).original.row }}</span>
         </template>
         <template #username-cell="{ row }">
-          <span class="font-medium">{{ (row as any).original.username }}</span>
+          <span class="font-medium">{{ (row as unknown as { original: ImportRow }).original.username }}</span>
         </template>
         <template #fullname-cell="{ row }">
-          <span>{{ (row as any).original.fullname }}</span>
+          <span>{{ (row as unknown as { original: ImportRow }).original.fullname }}</span>
         </template>
         <template #[`${props.identifier}-cell`]="{ row }">
-          <span class="font-mono text-xs">{{ (row as any).original[props.identifier] || '-' }}</span>
+          <span class="font-mono text-xs">{{ (row as unknown as { original: ImportRow }).original[props.identifier as keyof ImportRow] || '-' }}</span>
         </template>
         <template #valid-cell="{ row }">
           <UBadge
-            :color="(row as any).original.valid ? 'success' : 'error'"
+            :color="(row as unknown as { original: ImportRow }).original.valid ? 'success' : 'error'"
             variant="subtle"
             size="xs"
           >
-            {{ (row as any).original.valid ? 'Valid' : 'Invalid' }}
+            {{ (row as unknown as { original: ImportRow }).original.valid ? 'Valid' : 'Invalid' }}
           </UBadge>
         </template>
         <template #errors-cell="{ row }">
-          <ul v-if="!(row as any).original.valid && (row as any).original.errors?.length" class="list-disc list-inside text-xs text-red-500">
-            <li v-for="(err, i) in (row as any).original.errors" :key="i">{{ err }}</li>
+          <ul
+            v-if="!(row as unknown as { original: ImportRow }).original.valid && (row as unknown as { original: ImportRow }).original.errors?.length"
+            class="list-disc list-inside text-xs text-red-500"
+          >
+            <li
+              v-for="(err, i) in (row as unknown as { original: ImportRow }).original.errors"
+              :key="i"
+            >
+              {{ err }}
+            </li>
           </ul>
-          <span v-else class="text-gray-400">-</span>
+          <span
+            v-else
+            class="text-gray-400"
+          >-</span>
         </template>
       </UTable>
 
-      <template v-if="filteredRows.length > 0" #footer>
+      <template
+        v-if="filteredRows.length > 0"
+        #footer
+      >
         <div class="flex justify-end">
           <UPagination
             v-model:page="page"

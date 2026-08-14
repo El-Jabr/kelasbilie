@@ -20,23 +20,23 @@ const bulkStudentSearch = ref('')
 const selectAllStudents = ref(false)
 
 onMounted(() => {
-  const activeSem = semesters.value.find((s: any) => s.isActive)
+  const activeSem = semesters.value.find((s: { isActive?: boolean }) => s.isActive)
   bulkForm.semesterId = activeSem?.id || semesters.value[0]?.id || ''
 })
 
 const filteredBulkStudents = computed(() => {
   if (!bulkStudentSearch.value.trim()) return students.value
   const q = bulkStudentSearch.value.toLowerCase().trim()
-  return students.value.filter((s: any) =>
-    (s.user?.fullname || '').toLowerCase().includes(q) ||
-    (s.nis || '').toLowerCase().includes(q) ||
-    (s.user?.email || '').toLowerCase().includes(q)
+  return students.value.filter((s: { user?: { fullname?: string, email?: string }, nis?: string }) =>
+    (s.user?.fullname || '').toLowerCase().includes(q)
+    || (s.nis || '').toLowerCase().includes(q)
+    || (s.user?.email || '').toLowerCase().includes(q)
   )
 })
 
 function toggleSelectAll() {
   if (selectAllStudents.value) {
-    bulkForm.selectedStudentIds = filteredBulkStudents.value.map((s: any) => s.id)
+    bulkForm.selectedStudentIds = filteredBulkStudents.value.map((s: { id: string }) => s.id)
   } else {
     bulkForm.selectedStudentIds = []
   }
@@ -61,7 +61,10 @@ async function onSubmit() {
       </template>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <UFormField label="Target Kelas" required>
+        <UFormField
+          label="Target Kelas"
+          required
+        >
           <USelect
             v-model="bulkForm.classroomId"
             :items="classOptions"
@@ -72,7 +75,10 @@ async function onSubmit() {
           />
         </UFormField>
 
-        <UFormField label="Target Semester" required>
+        <UFormField
+          label="Target Semester"
+          required
+        >
           <USelect
             v-model="bulkForm.semesterId"
             :items="semesterOptions"
@@ -100,14 +106,22 @@ async function onSubmit() {
             />
 
             <label class="flex items-center gap-2 text-xs cursor-pointer text-gray-600 dark:text-gray-400 shrink-0">
-              <input type="checkbox" v-model="selectAllStudents" @change="toggleSelectAll" class="rounded border-gray-300 text-primary-600" />
+              <input
+                v-model="selectAllStudents"
+                type="checkbox"
+                class="rounded border-gray-300 text-primary-600"
+                @change="toggleSelectAll"
+              >
               Pilih Semua
             </label>
           </div>
         </div>
 
         <div class="max-h-80 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-100 dark:divide-gray-800">
-          <div v-if="filteredBulkStudents.length === 0" class="p-6 text-center text-xs text-gray-400">
+          <div
+            v-if="filteredBulkStudents.length === 0"
+            class="p-6 text-center text-xs text-gray-400"
+          >
             Tidak ada siswa yang sesuai dengan pencarian.
           </div>
 
@@ -123,15 +137,19 @@ async function onSubmit() {
           >
             <div class="flex items-center gap-3">
               <input
+                v-model="bulkForm.selectedStudentIds"
                 type="checkbox"
                 :value="s.id"
-                v-model="bulkForm.selectedStudentIds"
                 class="rounded border-gray-300 text-primary-600"
                 @click.stop
-              />
+              >
               <div>
-                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ s.user?.fullname || '-' }}</p>
-                <p class="text-xs text-gray-400">NIS: {{ s.nis }} • Email: {{ s.user?.email || '-' }}</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ s.user?.fullname || '-' }}
+                </p>
+                <p class="text-xs text-gray-400">
+                  NIS: {{ s.nis }} • Email: {{ s.user?.email || '-' }}
+                </p>
               </div>
             </div>
           </div>
