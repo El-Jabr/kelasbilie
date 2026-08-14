@@ -7,7 +7,7 @@ export default defineEventHandler((event) => {
   ]
   
   // Mengambil Base URL dari environment variable atau fallback ke domain default
-  const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://kelasbilie.com'
+  const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://kelasbilie.id'
   
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
