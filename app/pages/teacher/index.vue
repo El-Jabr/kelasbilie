@@ -12,20 +12,23 @@ useSeoMeta({
 const user = ref<any>(null)
 const activeSemester = ref<any>(null)
 const teacherProfile = ref<any>(null)
+const progressData = ref<any>(null)
 const pending = ref(true)
 
 async function loadData() {
   pending.value = true
   try {
-    const [authRes, teacherRes, semRes]: [any, any, any] = await Promise.all([
+    const [authRes, teacherRes, semRes, progressRes]: [any, any, any, any] = await Promise.all([
       ($fetch as any)('/api/auth/me').catch(() => null),
       ($fetch as any)('/api/teachers/me').catch(() => null),
-      ($fetch as any)('/api/semesters/active').catch(() => null)
+      ($fetch as any)('/api/semesters/active').catch(() => null),
+      ($fetch as any)('/api/progress/teacher').catch(() => null)
     ])
 
     if (authRes) user.value = authRes
     if (teacherRes?.data) teacherProfile.value = teacherRes.data
     if (semRes?.data) activeSemester.value = semRes.data
+    if (progressRes) progressData.value = progressRes
   } catch (err) {
     console.error('Error loading teacher dashboard data:', err)
   } finally {
@@ -48,6 +51,10 @@ const assignments = computed(() => {
   }
   return teachings
 })
+
+function getProgress(teachingId: string) {
+  return progressData.value?.items?.find((i: any) => i.teachingId === teachingId)
+}
 </script>
 
 <template>
@@ -63,7 +70,7 @@ const assignments = computed(() => {
           Selamat Datang, {{ user?.fullname || 'Bapak/Ibu Guru' }}! 👋
         </h1>
         <p class="text-xs sm:text-sm text-emerald-100 max-w-2xl leading-relaxed">
-          Kelola penugasan mengajar, input nilai harian, STS, SAS, serta pantau pendaftaran siswa Moodle dalam satu tempat.
+          Kelola penugasan mengajar, input nilai harian, STS, SAS, serta pantau progres penilaian Anda dalam satu tempat.
         </p>
       </div>
 
@@ -96,16 +103,29 @@ const assignments = computed(() => {
     </UCard>
 
     <!-- Stat Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <UCard>
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Penugasan Mengajar</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Penugasan</p>
             <p class="text-2xl font-black text-gray-900 dark:text-white mt-1">{{ assignments.length }}</p>
-            <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">Kelas yang Anda Ajar</p>
+            <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">Kelas yang Diajar</p>
           </div>
           <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
             <UIcon name="i-lucide-book-open" class="w-6 h-6" />
+          </div>
+        </div>
+      </UCard>
+
+      <UCard>
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Progres Nilai</p>
+            <p class="text-2xl font-black text-gray-900 dark:text-white mt-1">{{ progressData?.overallPercent ?? 0 }}%</p>
+            <p class="text-[11px] text-blue-600 dark:text-blue-400 mt-1 font-medium">Semua Kelas</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
+            <UIcon name="i-lucide-pie-chart" class="w-6 h-6" />
           </div>
         </div>
       </UCard>
@@ -117,7 +137,7 @@ const assignments = computed(() => {
             <p class="text-lg font-bold font-mono text-gray-900 dark:text-white mt-1">{{ teacherProfile?.nip || '-' }}</p>
             <p class="text-[11px] text-gray-500 mt-1">Nomor Induk Pegawai</p>
           </div>
-          <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
+          <div class="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400">
             <UIcon name="i-lucide-badge-check" class="w-6 h-6" />
           </div>
         </div>
@@ -127,7 +147,7 @@ const assignments = computed(() => {
         <div class="flex items-center justify-between">
           <div>
             <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Status Akun</p>
-            <p class="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1">Aktif & Terverifikasi</p>
+            <p class="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1">Aktif</p>
             <p class="text-[11px] text-gray-500 mt-1">Role: {{ user?.role }}</p>
           </div>
           <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
@@ -156,7 +176,7 @@ const assignments = computed(() => {
         <UIcon name="i-lucide-folder-open" class="w-12 h-12 text-gray-400 mx-auto mb-2" />
         <h3 class="text-base font-semibold text-gray-900 dark:text-white">Belum Ada Penugasan Mengajar</h3>
         <p class="text-xs text-gray-500 max-w-sm mx-auto mt-1">
-          Bapak/Ibu belum ditugaskan mengajar pada semester ini. Silakan hubungi Super Admin jika terdapat ketidaksesuaian.
+          Bapak/Ibu belum ditugaskan mengajar pada semester ini. Silakan hubungi Admin jika terdapat ketidaksesuaian.
         </p>
       </div>
 
@@ -184,7 +204,7 @@ const assignments = computed(() => {
             </div>
           </template>
 
-          <div class="space-y-3 py-2">
+          <div class="space-y-4 py-2">
             <div class="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
               <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
                 <UIcon name="i-lucide-map-pin" class="w-4 h-4 text-gray-500" />
@@ -203,6 +223,24 @@ const assignments = computed(() => {
                 <p class="font-medium text-blue-700 dark:text-blue-400">Sinkron Moodle Aktif</p>
                 <p class="text-xs text-blue-600/70 dark:text-blue-400/70">ID Course: {{ item.courseId }}</p>
               </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="pt-2">
+              <div class="flex justify-between text-xs mb-1">
+                <span class="font-medium text-gray-600 dark:text-gray-400">Progres Penilaian</span>
+                <span class="font-bold" :class="(getProgress(item.id)?.percent || 0) === 100 ? 'text-success-600 dark:text-success-400' : 'text-gray-900 dark:text-white'">
+                  {{ getProgress(item.id)?.percent || 0 }}%
+                </span>
+              </div>
+              <UProgress 
+                :value="getProgress(item.id)?.percent || 0" 
+                :color="(getProgress(item.id)?.percent || 0) === 100 ? 'success' : 'primary'"
+                size="sm"
+              />
+              <p class="text-[10px] text-gray-400 text-right mt-1">
+                {{ getProgress(item.id)?.filled || 0 }} dari {{ getProgress(item.id)?.expected || 0 }} nilai
+              </p>
             </div>
           </div>
 

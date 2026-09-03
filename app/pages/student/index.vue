@@ -22,6 +22,12 @@ const currentStudentClass = computed(() => {
 const classroom = computed(() => currentStudentClass.value?.classroom ?? null)
 const semester = computed(() => currentStudentClass.value?.semester ?? null)
 
+const { data: progressResp } = await useAsyncData<any>(
+  'student-progress-dashboard',
+  () => ($fetch as any)('/api/progress/student', { credentials: 'include' })
+)
+const progressData = computed(() => progressResp.value ?? null)
+
 // Wali kelas: cari homeroom di semester aktif, atau fallback ke homeroom pertama
 const homeroomTeacher = computed(() => {
   const homerooms = classroom.value?.homerooms
@@ -209,6 +215,43 @@ const homeroomTeacher = computed(() => {
           </UCard>
         </NuxtLink>
       </div>
+
+      <!-- Progress Section -->
+      <UCard v-if="progressData" class="mt-6">
+        <template #header>
+          <div class="flex items-center gap-2 font-semibold">
+            <UIcon name="i-lucide-bar-chart" class="w-5 h-5 text-primary-500" />
+            <span>Progress Penyelesaian Tugas Semester Ini</span>
+          </div>
+        </template>
+        <div class="py-4">
+          <div class="flex justify-between items-end mb-2">
+            <div>
+              <p class="text-3xl font-black text-gray-900 dark:text-white">{{ progressData.overallPercent }}%</p>
+              <p class="text-sm text-gray-500 mt-1">Keseluruhan tugas yang telah diselesaikan</p>
+            </div>
+            <div class="text-right">
+              <p class="text-lg font-bold text-gray-900 dark:text-white">{{ progressData.totalFilled }} / {{ progressData.totalExpected }}</p>
+              <p class="text-xs text-gray-500">Total Tugas Terselesaikan</p>
+            </div>
+          </div>
+          <UProgress :value="progressData.overallPercent" :color="progressData.overallPercent === 100 ? 'success' : 'primary'" size="xl" class="mt-4" />
+        </div>
+        
+        <USeparator class="my-6" />
+        
+        <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4">Rincian per Mata Pelajaran</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div v-for="(item, idx) in progressData.items" :key="idx" class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
+            <div class="flex justify-between items-center mb-2">
+              <span class="font-semibold text-sm truncate pr-2">{{ item.subjectName }}</span>
+              <span class="text-xs font-bold" :class="item.percent === 100 ? 'text-success-600' : 'text-gray-900 dark:text-white'">{{ item.percent }}%</span>
+            </div>
+            <UProgress :value="item.percent" :color="item.percent === 100 ? 'success' : 'primary'" size="xs" />
+            <p class="text-[10px] text-gray-400 mt-1.5 text-right">{{ item.filled }} dari {{ item.expected }} tugas</p>
+          </div>
+        </div>
+      </UCard>
     </template>
 
     <div v-else class="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">

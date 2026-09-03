@@ -34,8 +34,34 @@ async function loadDashboardStats() {
   }
 }
 
+const teacherProgress = ref<any[]>([])
+const loadingProgress = ref(true)
+const progressFilter = ref('all')
+
+const filteredProgress = computed(() => {
+  if (progressFilter.value === 'incomplete') {
+    return teacherProgress.value.filter(t => t.percent < 100)
+  }
+  return teacherProgress.value
+})
+
+async function loadTeacherProgress() {
+  loadingProgress.value = true
+  try {
+    const res = await $fetch<any[]>('/api/progress/all-teachers', {
+      credentials: 'include'
+    })
+    teacherProgress.value = res || []
+  } catch (err) {
+    console.error('Gagal memuat teacher progress:', err)
+  } finally {
+    loadingProgress.value = false
+  }
+}
+
 onMounted(() => {
   loadDashboardStats()
+  loadTeacherProgress()
 })
 </script>
 
@@ -295,5 +321,62 @@ onMounted(() => {
         </div>
       </UCard>
     </div>
+
+    <!-- Teacher Progress Section -->
+    <UCard>
+      <template #header>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 font-semibold">
+            <UIcon name="i-lucide-bar-chart" class="w-5 h-5 text-primary-500" />
+            <span>Kelengkapan Penilaian Guru</span>
+          </div>
+          <USelect
+            v-model="progressFilter"
+            :items="[{label:'Semua Guru', value:'all'}, {label:'Belum Selesai', value:'incomplete'}]"
+            class="w-40"
+            value-key="value"
+            label-key="label"
+          />
+        </div>
+      </template>
+
+      <div v-if="loadingProgress" class="py-8 text-center text-sm text-gray-400">
+        Memuat progress penilaian...
+      </div>
+      
+      <div v-else-if="filteredProgress.length === 0" class="py-8 text-center text-sm text-gray-400">
+        Tidak ada data progress guru ditemukan.
+      </div>
+      
+      <div v-else class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-800">
+            <tr>
+              <th class="px-4 py-3">Nama Guru</th>
+              <th class="px-4 py-3">NIP</th>
+              <th class="px-4 py-3">Progress</th>
+              <th class="px-4 py-3">Detail</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+            <tr v-for="teacher in filteredProgress" :key="teacher.teacherId" class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+              <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ teacher.name }}</td>
+              <td class="px-4 py-3 text-gray-500 font-mono">{{ teacher.nip }}</td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 max-w-32">
+                    <div class="h-2.5 rounded-full" :class="teacher.percent === 100 ? 'bg-success-500' : 'bg-primary-500'" :style="`width: ${teacher.percent}%`"></div>
+                  </div>
+                  <span class="text-xs font-medium" :class="teacher.percent === 100 ? 'text-success-600' : 'text-gray-500'">{{ teacher.percent }}%</span>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-xs text-gray-500">
+                {{ teacher.totalFilled }} / {{ teacher.totalExpected }} nilai terisi
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </UCard>
   </div>
 </template>

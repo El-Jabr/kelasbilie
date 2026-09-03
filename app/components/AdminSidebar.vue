@@ -107,16 +107,12 @@ const navItems = computed<NavigationMenuItem[]>(() => {
         open: isAkademikActive,
         children: [
           {
-            label: 'Tahun Ajaran',
-            icon: 'i-lucide-calendar',
-            to: '/super-admin/akademik/tahun-ajaran',
-            active: route.path.startsWith('/super-admin/akademik/tahun-ajaran')
-          },
-          {
-            label: 'Semester',
-            icon: 'i-lucide-clock',
-            to: '/super-admin/akademik/semester',
-            active: route.path.startsWith('/super-admin/akademik/semester')
+            label: 'Kalender Akademik',
+            icon: 'i-lucide-calendar-range',
+            to: '/super-admin/akademik/kalender',
+            active: route.path.startsWith('/super-admin/akademik/kalender')
+              || route.path.startsWith('/super-admin/akademik/tahun-ajaran')
+              || route.path.startsWith('/super-admin/akademik/semester')
           },
           {
             label: 'Kelas',
@@ -131,16 +127,12 @@ const navItems = computed<NavigationMenuItem[]>(() => {
             active: route.path.startsWith('/super-admin/akademik/mata-pelajaran')
           },
           {
-            label: 'Penugasan Mengajar',
-            icon: 'i-lucide-file-spreadsheet',
-            to: '/super-admin/akademik/teaching-assignments',
-            active: route.path.startsWith('/super-admin/akademik/teaching-assignments')
-          },
-          {
-            label: 'Wali Kelas',
-            icon: 'i-lucide-user-cog',
-            to: '/super-admin/akademik/homerooms',
-            active: route.path.startsWith('/super-admin/akademik/homerooms')
+            label: 'Penugasan Kelas',
+            icon: 'i-lucide-clipboard-list',
+            to: '/super-admin/akademik/penugasan',
+            active: route.path.startsWith('/super-admin/akademik/penugasan')
+              || route.path.startsWith('/super-admin/akademik/teaching-assignments')
+              || route.path.startsWith('/super-admin/akademik/homerooms')
           },
           {
             label: 'Pembagian Kelas Siswa',

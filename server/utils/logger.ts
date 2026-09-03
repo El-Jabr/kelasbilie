@@ -1,4 +1,8 @@
-import { H3Event, getRequestHeader, getRequestIP } from 'h3'
+import pino from 'pino'
+import fs from 'node:fs'
+import path from 'node:path'
+import type { H3Event } from 'h3'
+import { getRequestHeader, getRequestIP } from 'h3'
 import { prisma } from './db'
 
 export interface LogActivityParams {
@@ -57,10 +61,6 @@ export async function logActivity(params: LogActivityParams) {
     console.error('Failed to write activity log:', err)
   }
 }
-
-import pino from 'pino'
-import fs from 'node:fs'
-import path from 'node:path'
 
 const logDir = path.resolve(process.cwd(), 'logs')
 if (!fs.existsSync(logDir)) {

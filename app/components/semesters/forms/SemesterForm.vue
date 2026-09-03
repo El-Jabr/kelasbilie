@@ -49,19 +49,34 @@ const semesterOptions = [
     </UFormField>
 
     <UFormField
-      label="Semester"
+      label="Tipe Semester"
       required
     >
-      <USelect
-        v-model="model.type"
-        :items="semesterOptions"
-        value-key="value"
-        label-key="label"
-        class="w-full"
-        placeholder="Pilih Semester"
-        :disabled="mode === 'edit'"
-      />
+      <div class="flex gap-3 mt-1" :class="{ 'opacity-60 pointer-events-none': mode === 'edit' }">
+        <button
+          type="button"
+          class="flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all cursor-pointer"
+          :class="model.type === 'GANJIL'
+            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+            : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-400'"
+          @click="model.type = 'GANJIL'"
+        >
+          Ganjil
+        </button>
+        <button
+          type="button"
+          class="flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all cursor-pointer"
+          :class="model.type === 'GENAP'
+            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+            : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-400'"
+          @click="model.type = 'GENAP'"
+        >
+          Genap
+        </button>
+      </div>
+      <p v-if="mode === 'edit'" class="text-xs text-gray-400 mt-1">Tipe semester tidak dapat diubah setelah dibuat.</p>
     </UFormField>
+
 
     <UFormField label="Status">
       <div class="space-y-3">
