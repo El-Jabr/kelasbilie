@@ -34,6 +34,23 @@ const assignments = computed(() => {
   return teachings
 })
 
+// Search filter for teaching assignments
+const searchClass = ref('')
+
+const filteredAssignments = computed(() => {
+  let list = assignments.value
+  if (searchClass.value.trim()) {
+    const q = searchClass.value.toLowerCase().trim()
+    list = list.filter((item: any) =>
+      item.subject?.name?.toLowerCase().includes(q) ||
+      item.subject?.code?.toLowerCase().includes(q) ||
+      item.classroom?.name?.toLowerCase().includes(q) ||
+      String(item.classroom?.level).includes(q)
+    )
+  }
+  return list
+})
+
 function getProgress(teachingId: string) {
   return progressData.value?.items?.find((i: any) => i.teachingId === teachingId)
 }
@@ -42,211 +59,277 @@ function getProgress(teachingId: string) {
 <template>
   <div class="space-y-6">
     <!-- Welcome Banner -->
-    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 p-6 sm:p-8 text-white shadow-xl">
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 p-6 sm:p-8 text-white shadow-lg">
       <div class="relative z-10 space-y-2">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-medium text-emerald-100 border border-white/20">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-semibold text-emerald-100 border border-white/20 shadow-sm">
           <UIcon name="i-lucide-sparkles" class="w-3.5 h-3.5 text-amber-300" />
           <span>Portal Pengajar • Kelas Bilie</span>
         </div>
         <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
           Selamat Datang, {{ user?.fullname || 'Bapak/Ibu Guru' }}! 👋
         </h1>
-        <p class="text-xs sm:text-sm text-emerald-100 max-w-2xl leading-relaxed">
-          Kelola penugasan mengajar, input nilai harian, STS, SAS, serta pantau progres penilaian Anda dalam satu tempat.
+        <p class="text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
+          Kelola penugasan mengajar, input nilai harian, STS, SAS, serta pantau progres penilaian kelas Anda dengan mudah.
         </p>
       </div>
 
-      <!-- Decorative shapes -->
+      <!-- Decorative ambient shapes -->
       <div class="absolute -right-10 -bottom-10 w-64 h-64 rounded-full bg-white/5 blur-2xl pointer-events-none" />
-      <div class="absolute right-40 -top-10 w-48 h-48 rounded-full bg-emerald-400/10 blur-xl pointer-events-none" />
+      <div class="absolute right-40 -top-10 w-48 h-48 rounded-full bg-emerald-400/15 blur-xl pointer-events-none" />
     </div>
 
     <!-- Active Semester Bar -->
-    <UCard v-if="activeSemester" class="border border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/20">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-bold">
-            <UIcon name="i-lucide-calendar" class="w-4 h-4" />
-          </div>
-          <div>
-            <p class="font-bold text-gray-900 dark:text-white">
-              Tahun Ajaran {{ activeSemester.academicYear?.name }} — {{ activeSemester.type }}
-            </p>
-            <p class="text-gray-500 dark:text-gray-400">
-              Semester Aktif Sistem Akademik
-            </p>
-          </div>
+    <div v-if="activeSemester" class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-500/20 text-xs">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold shadow-sm shadow-emerald-500/30 shrink-0">
+          <UIcon name="i-lucide-calendar" class="w-4 h-4" />
         </div>
-
-        <UBadge color="success" variant="subtle" size="sm" class="font-bold">
-          SEMESTER AKTIF
-        </UBadge>
+        <div>
+          <p class="font-bold text-gray-900 dark:text-white text-sm">
+            Tahun Ajaran {{ activeSemester.academicYear?.name }} — {{ activeSemester.type }}
+          </p>
+          <p class="text-gray-500 dark:text-gray-400 text-xs">
+            Semester Aktif Sistem Akademik
+          </p>
+        </div>
       </div>
-    </UCard>
+
+      <UBadge color="success" variant="subtle" size="sm" class="font-bold font-mono tracking-wide px-2.5 py-1">
+        SEMESTER AKTIF
+      </UBadge>
+    </div>
 
     <!-- Stat Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <UCard>
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Penugasan</p>
-            <p class="text-2xl font-black text-gray-900 dark:text-white mt-1">{{ assignments.length }}</p>
-            <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">Kelas yang Diajar</p>
-          </div>
-          <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-            <UIcon name="i-lucide-book-open" class="w-6 h-6" />
-          </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-gray-800/90 border border-gray-200/80 dark:border-gray-700/70 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
+        <div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Penugasan Mengajar</p>
+          <p class="text-2xl font-black text-gray-900 dark:text-white mt-1">{{ assignments.length }}</p>
+          <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 font-semibold">Kelas Aktif</p>
         </div>
-      </UCard>
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40">
+          <UIcon name="i-lucide-book-open" class="w-6 h-6" />
+        </div>
+      </div>
 
-      <UCard>
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Progres Nilai</p>
-            <p class="text-2xl font-black text-gray-900 dark:text-white mt-1">{{ progressData?.overallPercent ?? 0 }}%</p>
-            <p class="text-[11px] text-blue-600 dark:text-blue-400 mt-1 font-medium">Semua Kelas</p>
-          </div>
-          <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
-            <UIcon name="i-lucide-pie-chart" class="w-6 h-6" />
-          </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-gray-800/90 border border-gray-200/80 dark:border-gray-700/70 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
+        <div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Progres Penilaian</p>
+          <p class="text-2xl font-black text-gray-900 dark:text-white mt-1">{{ progressData?.overallPercent ?? 0 }}%</p>
+          <p class="text-[11px] text-blue-600 dark:text-blue-400 mt-0.5 font-semibold">Semua Kelas</p>
         </div>
-      </UCard>
+        <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40">
+          <UIcon name="i-lucide-pie-chart" class="w-6 h-6" />
+        </div>
+      </div>
 
-      <UCard>
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">NIP Pengajar</p>
-            <p class="text-lg font-bold font-mono text-gray-900 dark:text-white mt-1">{{ teacherProfile?.nip || '-' }}</p>
-            <p class="text-[11px] text-gray-500 mt-1">Nomor Induk Pegawai</p>
-          </div>
-          <div class="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400">
-            <UIcon name="i-lucide-badge-check" class="w-6 h-6" />
-          </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-gray-800/90 border border-gray-200/80 dark:border-gray-700/70 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
+        <div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">NIP Pengajar</p>
+          <p class="text-lg font-bold font-mono text-gray-900 dark:text-white mt-1">{{ teacherProfile?.nip || '-' }}</p>
+          <p class="text-[11px] text-gray-400 mt-0.5">Identitas Pegawai</p>
         </div>
-      </UCard>
+        <div class="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/40">
+          <UIcon name="i-lucide-badge-check" class="w-6 h-6" />
+        </div>
+      </div>
 
-      <UCard>
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Status Akun</p>
-            <p class="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1">Aktif</p>
-            <p class="text-[11px] text-gray-500 mt-1">Role: {{ user?.role }}</p>
-          </div>
-          <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
-            <UIcon name="i-lucide-user-check" class="w-6 h-6" />
-          </div>
+      <div class="p-4 rounded-2xl bg-white dark:bg-gray-800/90 border border-gray-200/80 dark:border-gray-700/70 shadow-sm flex items-center justify-between transition-all hover:shadow-md">
+        <div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Status Akun</p>
+          <p class="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1">Aktif</p>
+          <p class="text-[11px] text-gray-400 mt-0.5 font-mono">Role: {{ user?.role }}</p>
         </div>
-      </UCard>
+        <div class="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40">
+          <UIcon name="i-lucide-user-check" class="w-6 h-6" />
+        </div>
+      </div>
     </div>
 
     <!-- Classes Section -->
     <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <UIcon name="i-lucide-layers" class="w-5 h-5 text-emerald-500" />
-          Daftar Penugasan Mengajar (Kelas Saya)
-        </h2>
+      <!-- Section Header with Search Toolbar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+            <UIcon name="i-lucide-layers" class="w-4 h-4" />
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white leading-none">
+              Daftar Penugasan Mengajar
+            </h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Kelas dan mata pelajaran yang Anda ampu pada semester ini
+            </p>
+          </div>
+          <UBadge color="neutral" variant="subtle" size="sm" class="font-mono font-bold ml-1">
+            {{ assignments.length }} Kelas
+          </UBadge>
+        </div>
+
+        <UInput
+          v-if="assignments.length > 2"
+          v-model="searchClass"
+          icon="i-lucide-search"
+          placeholder="Cari mapel atau kelas..."
+          class="w-full sm:w-64"
+          size="sm"
+        />
       </div>
 
       <!-- Loading State -->
-      <div v-if="pending" class="py-12 text-center text-sm text-gray-400">
-        Memuat data penugasan...
+      <div v-if="pending" class="py-16 text-center space-y-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+        <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-emerald-500 mx-auto" />
+        <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Memuat data penugasan kelas...</p>
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="!assignments.length" class="py-12 text-center bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-        <UIcon name="i-lucide-folder-open" class="w-12 h-12 text-gray-400 mx-auto mb-2" />
-        <h3 class="text-base font-semibold text-gray-900 dark:text-white">Belum Ada Penugasan Mengajar</h3>
+      <div v-else-if="!assignments.length" class="py-16 text-center bg-white dark:bg-gray-800/60 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+        <div class="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 mx-auto mb-3">
+          <UIcon name="i-lucide-folder-open" class="w-7 h-7" />
+        </div>
+        <h3 class="text-base font-bold text-gray-900 dark:text-white">Belum Ada Penugasan Mengajar</h3>
         <p class="text-xs text-gray-500 max-w-sm mx-auto mt-1">
           Bapak/Ibu belum ditugaskan mengajar pada semester ini. Silakan hubungi Admin jika terdapat ketidaksesuaian.
         </p>
       </div>
 
-      <!-- Card Grid -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <UCard
-          v-for="item in assignments"
+      <!-- Empty Search Result -->
+      <div v-else-if="!filteredAssignments.length" class="py-12 text-center bg-white dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700">
+        <UIcon name="i-lucide-search-x" class="w-8 h-8 text-gray-400 mx-auto mb-2" />
+        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Tidak ada kelas yang cocok dengan kata kunci</p>
+        <UButton color="neutral" variant="ghost" size="xs" class="mt-2 cursor-pointer" @click="searchClass = ''">
+          Reset Pencarian
+        </UButton>
+      </div>
+
+      <!-- Card Grid: Modern, Intuitive & Proper -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div
+          v-for="item in filteredAssignments"
           :key="item.id"
-          class="hover:shadow-xl transition-all duration-300 border-transparent hover:border-emerald-500/30 group flex flex-col justify-between"
+          class="group relative flex flex-col justify-between rounded-2xl bg-white dark:bg-gray-800/90 border border-gray-200/80 dark:border-gray-700/70 p-5 shadow-sm hover:shadow-xl hover:border-emerald-500/40 dark:hover:border-emerald-500/40 transition-all duration-300"
         >
-          <template #header>
-            <div class="flex items-start justify-between">
-              <div>
-                <UBadge color="neutral" variant="solid" size="xs" class="mb-2 font-mono bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                  KODE: {{ item.subject?.code }}
-                </UBadge>
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white line-clamp-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                  {{ item.subject?.name }}
-                </h3>
+          <!-- Top Section: Class Badge & Moodle Status -->
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <!-- Full Class Name Badge -->
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300 font-bold text-xs tracking-tight shadow-sm">
+                <UIcon name="i-lucide-school" class="w-3.5 h-3.5 text-emerald-500" />
+                <span>Kelas {{ item.classroom?.name || '-' }}</span>
               </div>
-              <div class="my-auto w-auto px-3 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex flex-col items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-800/50">
-                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">KELAS</span>
-                <span class="text-sm font-black text-gray-900 dark:text-white leading-none mt-0.5">{{ item.classroom?.name.split(' ').pop() || item.classroom?.name }}</span>
-              </div>
-            </div>
-          </template>
 
-          <div class="space-y-4 py-2">
-            <div class="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
-              <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
-                <UIcon name="i-lucide-map-pin" class="w-4 h-4 text-gray-500" />
-              </div>
-              <div>
-                <p class="font-medium text-gray-900 dark:text-white">Tingkat {{ item.classroom?.level }}</p>
-                <p class="text-xs">Ruang {{ item.classroom?.room }}</p>
-              </div>
+              <!-- Moodle Status Badge -->
+              <UBadge
+                v-if="item.courseId"
+                color="info"
+                variant="subtle"
+                size="xs"
+                class="font-mono flex items-center gap-1 px-2 py-0.5"
+                :title="`Terhubung ke Moodle Course #${item.courseId}`"
+              >
+                <UIcon name="i-lucide-cloud" class="w-3 h-3 text-blue-500" />
+                <span>Moodle #{{ item.courseId }}</span>
+              </UBadge>
+              <span v-else class="text-[10px] text-gray-400 dark:text-gray-500">
+                Non-Moodle
+              </span>
             </div>
 
-            <div v-if="item.course" class="flex items-center gap-3 text-sm">
-              <div class="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
-                <UIcon name="i-lucide-cloud-download" class="w-4 h-4 text-blue-500" />
+            <!-- Subject Information -->
+            <div class="space-y-1 mb-4">
+              <div class="flex items-center gap-2">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase">
+                  {{ item.subject?.code || 'MAPEL' }}
+                </span>
+                <span class="text-xs text-gray-400">•</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                  Tingkat {{ item.classroom?.level }} {{ item.classroom?.room ? `• Ruang ${item.classroom.room}` : '' }}
+                </span>
               </div>
-              <div>
-                <p class="font-medium text-blue-700 dark:text-blue-400">Sinkron Moodle Aktif</p>
-                <p class="text-xs text-blue-600/70 dark:text-blue-400/70">ID Course: {{ item.courseId }}</p>
-              </div>
+              <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors line-clamp-2" :title="item.subject?.name">
+                {{ item.subject?.name }}
+              </h3>
             </div>
-            
-            <!-- Progress Bar -->
-            <div class="pt-2">
-              <div class="flex justify-between text-xs mb-1">
-                <span class="font-medium text-gray-600 dark:text-gray-400">Progres Penilaian</span>
-                <span class="font-bold" :class="(getProgress(item.id)?.percent || 0) === 100 ? 'text-success-600 dark:text-success-400' : 'text-gray-900 dark:text-white'">
+
+            <!-- Progress Card Section -->
+            <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 space-y-2.5 mb-4">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-gray-600 dark:text-gray-300 font-medium flex items-center gap-1.5">
+                  <UIcon name="i-lucide-clipboard-check" class="w-3.5 h-3.5 text-gray-400" />
+                  Kelengkapan Nilai
+                </span>
+                <span
+                  class="font-extrabold font-mono text-xs px-2 py-0.5 rounded-md"
+                  :class="{
+                    'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300': (getProgress(item.id)?.percent || 0) === 100,
+                    'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300': (getProgress(item.id)?.percent || 0) > 0 && (getProgress(item.id)?.percent || 0) < 100,
+                    'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400': (getProgress(item.id)?.percent || 0) === 0
+                  }"
+                >
                   {{ getProgress(item.id)?.percent || 0 }}%
                 </span>
               </div>
-              <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                <div class="h-2 rounded-full" :class="(getProgress(item.id)?.percent || 0) === 100 ? 'bg-success-500' : 'bg-primary-500'" :style="`width: ${getProgress(item.id)?.percent || 0}%`"></div>
+
+              <!-- Modern Progress Bar -->
+              <div class="w-full bg-gray-200/80 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                <div
+                  class="h-full rounded-full transition-all duration-500"
+                  :class="(getProgress(item.id)?.percent || 0) === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-emerald-500 to-teal-500'"
+                  :style="{ width: `${Math.min(100, getProgress(item.id)?.percent || 0)}%` }"
+                />
               </div>
-              <p class="text-[10px] text-gray-400 text-right mt-1">
-                {{ getProgress(item.id)?.filled || 0 }} dari {{ getProgress(item.id)?.expected || 0 }} nilai
-              </p>
+
+              <div class="flex items-center justify-between text-[11px] text-gray-400 pt-0.5 font-medium">
+                <span>
+                  {{ (getProgress(item.id)?.percent || 0) === 100 ? '✅ Nilai Lengkap' : (getProgress(item.id)?.percent || 0) > 0 ? '⏳ Sedang Berjalan' : 'Belum Ada Nilai' }}
+                </span>
+                <span class="font-mono text-gray-500 dark:text-gray-400">
+                  {{ getProgress(item.id)?.filled || 0 }}/{{ getProgress(item.id)?.expected || 0 }} nilai
+                </span>
+              </div>
             </div>
           </div>
 
-          <template #footer>
-            <div class="flex gap-3">
-              <UButton
-                :to="`/teacher/classes/${item.id}`"
-                color="neutral"
-                variant="solid"
-                class="flex-1 justify-center rounded-xl"
-                icon="i-lucide-users"
-              >
-                Siswa
-              </UButton>
-              <UButton
-                :to="`/teacher/classes/${item.id}/grades`"
-                color="success"
-                variant="solid"
-                class="flex-1 justify-center rounded-xl shadow-md shadow-emerald-500/20"
-                icon="i-lucide-edit-3"
-              >
-                Isi Nilai
-              </UButton>
-            </div>
-          </template>
-        </UCard>
+          <!-- Bottom Action Buttons: Intuitive & Clean -->
+          <div class="pt-3 border-t border-gray-100 dark:border-gray-800/80 flex items-center gap-2">
+            <!-- Primary Action: Input Nilai -->
+            <UButton
+              :to="`/teacher/classes/${item.id}/grades`"
+              color="success"
+              variant="solid"
+              size="sm"
+              class="flex-1 justify-center rounded-xl font-bold cursor-pointer shadow-sm hover:shadow-md hover:shadow-emerald-500/20 transition-all"
+              icon="i-lucide-file-edit"
+            >
+              Input Nilai
+            </UButton>
+
+            <!-- Secondary Action: Data Siswa -->
+            <UButton
+              :to="`/teacher/classes/${item.id}`"
+              color="neutral"
+              variant="soft"
+              size="sm"
+              class="rounded-xl cursor-pointer"
+              icon="i-lucide-users"
+              title="Daftar Siswa di Kelas Ini"
+            >
+              Siswa
+            </UButton>
+
+            <!-- Tertiary Action: AI Analisis Pembelajaran -->
+            <UButton
+              :to="`/teacher/classes/${item.id}/ai-analysis`"
+              color="primary"
+              variant="soft"
+              size="sm"
+              class="rounded-xl cursor-pointer"
+              icon="i-lucide-sparkles"
+              title="AI Analisis Pembelajaran"
+            />
+          </div>
+        </div>
       </div>
     </div>
   </div>
