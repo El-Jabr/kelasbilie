@@ -9,16 +9,27 @@ useSeoMeta({
   title: 'AI Analisis Kelas - Wali Kelas'
 })
 
+import { storeToRefs } from 'pinia'
+import { useAiAnalysisStore } from '~/stores/aiAnalysis'
+
 const toast = useToast()
 const forceRefresh = ref(false)
 
-const isAnalyzing = ref(false)
-const analysisData = ref<any>(null)
-const isCached = ref(false)
-const generatedAt = ref('')
-
+const aiStore = useAiAnalysisStore()
 const homeroomStore = useTeacherHomeroomStore()
 const { homeroom } = storeToRefs(homeroomStore)
+
+const { isAnalyzingClass: isAnalyzing } = storeToRefs(aiStore)
+
+const classAnalysis = computed(() => {
+  const cid = homeroom.value?.classroomId
+  if (!cid) return null
+  return aiStore.classAnalysisCache[`${cid}__active`] || null
+})
+
+const analysisData = computed(() => classAnalysis.value?.data || null)
+const isCached = computed(() => classAnalysis.value?.cached || false)
+const generatedAt = computed(() => classAnalysis.value?.generatedAt || '')
 
 onMounted(async () => {
   try {
@@ -36,23 +47,9 @@ onMounted(async () => {
 async function analyzeClass() {
   if (!homeroom.value?.classroomId) return
 
-  isAnalyzing.value = true
-  analysisData.value = null
-  
   try {
-    const res: any = await $fetch('/api/ai/analyze-class', {
-      method: 'POST',
-      body: {
-        classroomId: homeroom.value.classroomId,
-        forceRefresh: forceRefresh.value
-      }
-    })
-    
-    analysisData.value = res.data
-    isCached.value = res.cached
-    generatedAt.value = new Date(res.generatedAt).toLocaleString('id-ID')
+    await aiStore.analyzeClass(homeroom.value.classroomId, undefined, forceRefresh.value)
     forceRefresh.value = false
-    
     toast.add({ title: 'Analisis Berhasil', color: 'success' })
   } catch (error: any) {
     toast.add({ 
@@ -60,8 +57,6 @@ async function analyzeClass() {
       description: error.data?.statusMessage || 'Terjadi kesalahan saat memanggil AI.', 
       color: 'error' 
     })
-  } finally {
-    isAnalyzing.value = false
   }
 }
 

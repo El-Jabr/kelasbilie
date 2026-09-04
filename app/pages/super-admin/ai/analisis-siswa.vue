@@ -37,41 +37,26 @@ useSeoMeta({
   title: 'AI Analisis Siswa'
 })
 
-const toast = useToast()
+import { storeToRefs } from 'pinia'
+import { useAiAnalysisStore } from '~/stores/aiAnalysis'
 
-const selectedStudent = ref('')
-const selectedSemester = ref('')
+const toast = useToast()
+const aiStore = useAiAnalysisStore()
+
+const {
+  selectedStudentId: selectedStudent,
+  selectedSemesterId: selectedSemester,
+  currentStudentAnalysis,
+  isAnalyzingStudent: isAnalyzing,
+  studentOptions,
+  semesterOptions
+} = storeToRefs(aiStore)
+
 const forceRefresh = ref(false)
 
-const isAnalyzing = ref(false)
-const analysisData = ref<AIAnalysisData | null>(null)
-const isCached = ref(false)
-const generatedAt = ref('')
-
-const { data: filterData } = await useAsyncData('siswa-filters', async () => {
-  const [studRes, semRes] = await Promise.all([
-    $fetch<{ data: Student[] }>('/api/students?limit=1000'),
-    $fetch<{ data: Semester[] }>('/api/semesters?limit=1000')
-  ])
-  return {
-    students: studRes.data || [],
-    semesters: semRes.data || []
-  }
-})
-
-const students = computed(() => filterData.value?.students || [])
-const semesters = computed(() => filterData.value?.semesters || [])
-
-const studentOptions = computed(() => students.value.map((s: Student) => ({ label: `${s.user.fullname} (${s.nis})`, value: s.id })))
-const semesterOptions = computed(() => semesters.value.map((s: Semester) => ({ label: `${s.type} ${s.academicYear.name}${s.isActive ? ' (Aktif)' : ''}`, value: s.id })))
-
-// Auto select active semester
-watchEffect(() => {
-  if (semesters.value.length && !selectedSemester.value) {
-    const activeSem = semesters.value.find((s: Semester) => s.isActive)
-    if (activeSem) selectedSemester.value = activeSem.id
-  }
-})
+const analysisData = computed(() => currentStudentAnalysis.value?.data || null)
+const isCached = computed(() => currentStudentAnalysis.value?.cached || false)
+const generatedAt = computed(() => currentStudentAnalysis.value?.generatedAt || '')
 
 async function analyzeStudent() {
   if (!selectedStudent.value) {
@@ -79,24 +64,9 @@ async function analyzeStudent() {
     return
   }
 
-  isAnalyzing.value = true
-  analysisData.value = null
-
   try {
-    const res = await $fetch<{ data: AIAnalysisData, cached: boolean, generatedAt: string }>('/api/ai/analyze-student', {
-      method: 'POST',
-      body: {
-        studentId: selectedStudent.value,
-        semesterId: selectedSemester.value || undefined,
-        forceRefresh: forceRefresh.value
-      }
-    })
-
-    analysisData.value = res.data
-    isCached.value = res.cached
-    generatedAt.value = new Date(res.generatedAt).toLocaleString('id-ID')
+    await aiStore.analyzeStudent(selectedStudent.value, selectedSemester.value, forceRefresh.value)
     forceRefresh.value = false
-
     toast.add({ title: 'Analisis Berhasil', color: 'success' })
   } catch (error: unknown) {
     const err = error as { data?: { statusMessage?: string } }
@@ -105,10 +75,12 @@ async function analyzeStudent() {
       description: err.data?.statusMessage || 'Terjadi kesalahan saat memanggil AI.',
       color: 'error'
     })
-  } finally {
-    isAnalyzing.value = false
   }
 }
+
+onMounted(() => {
+  aiStore.fetchFilters()
+})
 
 const overlay = useOverlay()
 const confirmModal = overlay.create(LazyModalConfirm)

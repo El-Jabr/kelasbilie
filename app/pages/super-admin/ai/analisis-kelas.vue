@@ -9,62 +9,26 @@ useSeoMeta({
   title: 'AI Analisis Kelas'
 })
 
-const toast = useToast()
+import { storeToRefs } from 'pinia'
+import { useAiAnalysisStore } from '~/stores/aiAnalysis'
 
-const selectedClassroom = ref('')
-const selectedSemester = ref('')
+const toast = useToast()
+const aiStore = useAiAnalysisStore()
+
+const {
+  selectedClassroomId: selectedClassroom,
+  selectedSemesterId: selectedSemester,
+  currentClassAnalysis,
+  isAnalyzingClass: isAnalyzing,
+  classroomOptions,
+  semesterOptions
+} = storeToRefs(aiStore)
+
 const forceRefresh = ref(false)
 
-const isAnalyzing = ref(false)
-interface AnalysisData {
-  ringkasan?: {
-    jumlahLulus?: number
-    jumlahRemidi?: number
-    rataRataKelas?: number
-    mapelTerkuat?: string
-    mapelTerlemah?: string
-  }
-  narasi?: string
-  rekomendasiKelas?: {
-    prioritas?: string
-    mapel?: string
-    tindakan?: string
-  }[]
-  siswaPerhatianKhusus?: {
-    nama?: string
-    alasan?: string
-    saran?: string
-  }[]
-  [key: string]: unknown
-}
-const analysisData = ref<AnalysisData | null>(null)
-const isCached = ref(false)
-const generatedAt = ref('')
-
-const { data: filterData } = await useAsyncData('kelas-filters', async () => {
-  const [classRes, semRes] = await Promise.all([
-    $fetch<{ data?: { id: string, name: string }[] }>('/api/classes?limit=1000'),
-    $fetch<{ data?: { id: string, type: string, isActive: boolean, academicYear: { name: string } }[] }>('/api/semesters?limit=1000')
-  ])
-  return {
-    classes: classRes.data || [],
-    semesters: semRes.data || []
-  }
-})
-
-const classrooms = computed(() => filterData.value?.classes || [])
-const semesters = computed(() => filterData.value?.semesters || [])
-
-const classroomOptions = computed(() => classrooms.value.map((c: { name: string, id: string }) => ({ label: c.name, value: c.id })))
-const semesterOptions = computed(() => semesters.value.map((s: { type: string, academicYear: { name: string }, isActive: boolean, id: string }) => ({ label: `${s.type} ${s.academicYear.name}${s.isActive ? ' (Aktif)' : ''}`, value: s.id })))
-
-// Auto select active semester
-watchEffect(() => {
-  if (semesters.value.length && !selectedSemester.value) {
-    const activeSem = semesters.value.find((s: { isActive?: boolean }) => s.isActive)
-    if (activeSem) selectedSemester.value = activeSem.id
-  }
-})
+const analysisData = computed<any>(() => currentClassAnalysis.value?.data ?? null)
+const isCached = computed(() => currentClassAnalysis.value?.cached ?? false)
+const generatedAt = computed(() => currentClassAnalysis.value?.generatedAt ?? '')
 
 async function analyzeClass() {
   if (!selectedClassroom.value) {
@@ -72,24 +36,9 @@ async function analyzeClass() {
     return
   }
 
-  isAnalyzing.value = true
-  analysisData.value = null
-
   try {
-    const res = await $fetch<{ data?: AnalysisData, cached?: boolean, generatedAt?: string }>('/api/ai/analyze-class', {
-      method: 'POST',
-      body: {
-        classroomId: selectedClassroom.value,
-        semesterId: selectedSemester.value || undefined,
-        forceRefresh: forceRefresh.value
-      }
-    })
-
-    analysisData.value = res.data ?? null
-    isCached.value = res.cached ?? false
-    generatedAt.value = new Date(res.generatedAt ?? '').toLocaleString('id-ID')
+    await aiStore.analyzeClass(selectedClassroom.value, selectedSemester.value, forceRefresh.value)
     forceRefresh.value = false
-
     toast.add({ title: 'Analisis Berhasil', color: 'success' })
   } catch (e) {
     const error = e as { data?: { statusMessage?: string } }
@@ -98,10 +47,12 @@ async function analyzeClass() {
       description: error.data?.statusMessage || 'Terjadi kesalahan saat memanggil AI.',
       color: 'error'
     })
-  } finally {
-    isAnalyzing.value = false
   }
 }
+
+onMounted(() => {
+  aiStore.fetchFilters()
+})
 
 const overlay = useOverlay()
 const confirmModal = overlay.create(LazyModalConfirm)

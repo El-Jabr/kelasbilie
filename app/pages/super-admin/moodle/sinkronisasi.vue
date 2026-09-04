@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
+import { useMoodleStore } from '~/stores/moodle'
+
 definePageMeta({
   layout: 'admin',
   middleware: ['auth', 'role'],
@@ -10,24 +13,25 @@ useSeoMeta({
 })
 
 const toast = useToast()
-const syncingResource = ref<string | null>(null)
-const pendingLogs = ref(false)
-const logs = ref<Record<string, unknown>[]>([])
+const moodleStore = useMoodleStore()
 
-// Export Users State
-const isExportingUsers = ref(false)
-const exportTargetRole = ref<'ALL' | 'TEACHER' | 'STUDENT'>('ALL')
-const autoEnrollCourses = ref(true)
-const defaultPassword = ref('Password123!')
-const exportSummary = ref<Record<string, unknown> | null>(null)
+const {
+  logs,
+  loadingLogs: pendingLogs,
+  classroomOptions,
+  syncingResource,
+  isExportingUsers,
+  exportTargetRole,
+  autoEnrollCourses,
+  defaultPassword,
+  exportSummary,
+  isUpdatingPasswords,
+  passwordMode,
+  passwordClassroomId,
+  passwordUpdateSummary
+} = storeToRefs(moodleStore)
 
-// Password Mode & CSV Export State
-const isUpdatingPasswords = ref(false)
 const isExportingCsv = ref(false)
-const passwordMode = ref<'HARIAN' | 'EXAM_STS_SAS'>('HARIAN')
-const passwordClassroomId = ref('ALL')
-const classroomOptions = ref<{ value: string, label: string }[]>([])
-const passwordUpdateSummary = ref<Record<string, unknown> | null>(null)
 
 const roleOptions = [
   { value: 'ALL', label: 'Semua User (Guru & Siswa)' },
@@ -35,52 +39,14 @@ const roleOptions = [
   { value: 'STUDENT', label: 'Khusus Siswa' }
 ]
 
-async function loadClassroomsDropdown() {
-  try {
-    const res = await $fetch<{ data?: { id: string, name: string, level: string | number }[] }>('/api/classes', { credentials: 'include' })
-    if (res?.data) {
-      classroomOptions.value = [
-        { value: 'ALL', label: 'Semua Kelas' },
-        ...(res.data || []).map((c: { id: string, name: string, level: string | number }) => ({
-          value: c.id,
-          label: `${c.name} (Tingkat ${c.level})`
-        }))
-      ]
-    }
-  } catch (err) {
-    console.error('Gagal memuat dropdown kelas:', err)
-  }
-}
-
-async function loadLogs() {
-  pendingLogs.value = true
-  try {
-    const res = await $fetch<{ data?: Record<string, unknown>[] }>('/api/moodle/logs?limit=15', {
-      credentials: 'include'
-    })
-    if (res?.data) {
-      logs.value = res.data
-    }
-  } catch (err) {
-    console.error('Gagal mengambil logs Moodle:', err)
-  } finally {
-    pendingLogs.value = false
-  }
-}
-
 async function triggerSync(resource: string) {
-  syncingResource.value = resource
   try {
-    const res = await $fetch<{ message?: string }>(`/api/moodle?resource=${resource}`, {
-      method: 'POST',
-      credentials: 'include'
-    })
+    const res = await moodleStore.triggerSyncResource(resource)
     toast.add({
       title: 'Sinkronisasi Selesai',
       description: res.message || `Sinkronisasi resource [${resource}] selesai.`,
       color: 'success'
     })
-    await loadLogs()
   } catch (e) {
     const err = e as { data?: { statusMessage?: string, message?: string }, message?: string }
     const errorMsg = err.data?.statusMessage || err.data?.message || err.message || 'Gagal menjalankan sinkronisasi.'
@@ -89,37 +55,18 @@ async function triggerSync(resource: string) {
       description: errorMsg,
       color: 'error'
     })
-  } finally {
-    syncingResource.value = null
   }
 }
 
 // Trigger User Export & Auto-Enrollment
 async function handleExportUsers() {
-  isExportingUsers.value = true
-  exportSummary.value = null
   try {
-    const res = await $fetch<{ message?: string, summary?: Record<string, unknown> }>('/api/moodle/export-users', {
-      method: 'POST',
-      body: {
-        targetRole: exportTargetRole.value,
-        autoEnroll: autoEnrollCourses.value,
-        defaultPassword: defaultPassword.value
-      },
-      credentials: 'include'
-    })
-
+    const res = await moodleStore.exportUsers()
     toast.add({
       title: 'Ekspor User Selesai',
       description: res.message || 'Berhasil mengimpor user dan melakukan enrollment Moodle.',
       color: 'success'
     })
-
-    if (res.summary) {
-      exportSummary.value = res.summary
-    }
-
-    await loadLogs()
   } catch (e) {
     const err = e as { data?: { statusMessage?: string, message?: string }, message?: string }
     const errorMsg = err.data?.statusMessage || err.data?.message || err.message || 'Gagal mengekspor user ke Moodle.'
@@ -128,36 +75,18 @@ async function handleExportUsers() {
       description: errorMsg,
       color: 'error'
     })
-  } finally {
-    isExportingUsers.value = false
   }
 }
 
 // Trigger Password Mode Update & Moodle Sync
 async function handleUpdatePasswords() {
-  isUpdatingPasswords.value = true
-  passwordUpdateSummary.value = null
   try {
-    const res = await $fetch<{ message?: string, summary?: Record<string, unknown> }>('/api/moodle/update-passwords', {
-      method: 'POST',
-      body: {
-        mode: passwordMode.value,
-        classroomId: passwordClassroomId.value
-      },
-      credentials: 'include'
-    })
-
+    const res = await moodleStore.updatePasswords()
     toast.add({
       title: 'Update Password Selesai',
       description: res.message || 'Berhasil memperbarui password siswa di Moodle & database.',
       color: 'success'
     })
-
-    if (res.summary) {
-      passwordUpdateSummary.value = res.summary
-    }
-
-    await loadLogs()
   } catch (e) {
     const err = e as { data?: { statusMessage?: string, message?: string }, message?: string }
     const errorMsg = err.data?.statusMessage || err.data?.message || err.message || 'Gagal memperbarui password Moodle.'
@@ -166,8 +95,6 @@ async function handleUpdatePasswords() {
       description: errorMsg,
       color: 'error'
     })
-  } finally {
-    isUpdatingPasswords.value = false
   }
 }
 
@@ -195,9 +122,13 @@ function downloadStudentCsv() {
   }
 }
 
+async function handleRefreshLogs() {
+  await moodleStore.fetchLogs(true)
+}
+
 onMounted(() => {
-  loadLogs()
-  loadClassroomsDropdown()
+  moodleStore.fetchLogs()
+  moodleStore.fetchClassrooms()
 })
 
 const searchLog = ref('')
@@ -744,7 +675,7 @@ watch(searchLog, () => {
               size="sm"
               class="cursor-pointer whitespace-nowrap"
               :loading="pendingLogs"
-              @click="loadLogs"
+              @click="handleRefreshLogs"
             >
               Refresh Log
             </UButton>

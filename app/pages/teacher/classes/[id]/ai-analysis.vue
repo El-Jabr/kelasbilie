@@ -7,16 +7,24 @@ useSeoMeta({
   title: 'AI Analisis Pembelajaran'
 })
 
+import { storeToRefs } from 'pinia'
+import { useAiAnalysisStore } from '~/stores/aiAnalysis'
+
 const route = useRoute()
 const toast = useToast()
+const aiStore = useAiAnalysisStore()
 
 const teachingId = route.params.id as string
 const forceRefresh = ref(false)
 
-const isAnalyzing = ref(false)
-const analysisData = ref<any>(null)
-const isCached = ref(false)
-const generatedAt = ref('')
+const {
+  isAnalyzingSubject: isAnalyzing
+} = storeToRefs(aiStore)
+
+const subjectAnalysis = computed(() => aiStore.subjectAnalysisCache[teachingId] || null)
+const analysisData = computed(() => subjectAnalysis.value?.data || null)
+const isCached = computed(() => subjectAnalysis.value?.cached || false)
+const generatedAt = computed(() => subjectAnalysis.value?.generatedAt || '')
 
 const teaching = ref<any>(null)
 
@@ -25,7 +33,7 @@ onMounted(async () => {
     const res: any = await $fetch(`/api/teaching-assignments/${teachingId}`)
     if (res.data) teaching.value = res.data
     
-    // Auto analyze on load
+    // Auto analyze on load (returns instant 0ms if cached)
     analyzeSubject()
   } catch (err) {
     console.error(err)
@@ -35,30 +43,15 @@ onMounted(async () => {
 async function analyzeSubject() {
   if (!teachingId) return
 
-  isAnalyzing.value = true
-  
   try {
-    const res: any = await $fetch('/api/ai/analyze-subject', {
-      method: 'POST',
-      body: {
-        teachingId,
-        forceRefresh: forceRefresh.value
-      }
-    })
-    
-    analysisData.value = res.data
-    isCached.value = res.cached
-    generatedAt.value = new Date(res.generatedAt).toLocaleString('id-ID')
+    await aiStore.analyzeSubject(teachingId, forceRefresh.value)
     forceRefresh.value = false
-    
   } catch (error: any) {
     toast.add({ 
       title: 'Analisis Gagal', 
       description: error.data?.statusMessage || 'Terjadi kesalahan saat memanggil AI.', 
       color: 'error' 
     })
-  } finally {
-    isAnalyzing.value = false
   }
 }
 
