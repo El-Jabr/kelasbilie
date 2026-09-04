@@ -23,22 +23,36 @@ const formState = reactive({
   logo: ''
 })
 
-const pending = ref(true)
+const cachedSettings = useState<any>('app_settings_cache', () => null)
+const pending = ref(!cachedSettings.value)
 
-async function refresh() {
-  pending.value = true
+async function refresh(force = false) {
+  if (cachedSettings.value && !force) {
+    Object.assign(formState, cachedSettings.value)
+    pending.value = false
+    return
+  }
+
+  if (!cachedSettings.value) {
+    pending.value = true
+  }
+
   try {
     const res: any = await $fetch('/api/settings', { credentials: 'include' })
     if (res?.data) {
-      formState.schoolName = res.data.schoolName || ''
-      formState.moodleUrl = res.data.moodleUrl || ''
-      formState.moodleToken = res.data.moodleToken || ''
-      formState.syncEnabled = res.data.syncEnabled ?? true
-      formState.syncInterval = res.data.syncInterval ?? 30
-      formState.aiEnabled = res.data.aiEnabled ?? false
-      formState.geminiApiKey = res.data.geminiApiKey || ''
-      formState.aiSystemPrompt = res.data.aiSystemPrompt || ''
-      formState.logo = res.data.logo || ''
+      const data = {
+        schoolName: res.data.schoolName || '',
+        moodleUrl: res.data.moodleUrl || '',
+        moodleToken: res.data.moodleToken || '',
+        syncEnabled: res.data.syncEnabled ?? true,
+        syncInterval: res.data.syncInterval ?? 30,
+        aiEnabled: res.data.aiEnabled ?? false,
+        geminiApiKey: res.data.geminiApiKey || '',
+        aiSystemPrompt: res.data.aiSystemPrompt || '',
+        logo: res.data.logo || ''
+      }
+      Object.assign(formState, data)
+      cachedSettings.value = data
     }
   } catch (err) {
     console.error('Failed to fetch settings:', err)
@@ -58,12 +72,13 @@ async function handleSave() {
       method: 'PATCH',
       body: formState
     })
+    cachedSettings.value = { ...formState }
     toast.add({
       title: 'Pengaturan Disimpan',
       description: res.message || 'Pengaturan sekolah & Moodle berhasil diperbarui.',
       color: 'success'
     })
-    await refresh()
+    await refresh(true)
   } catch (error: any) {
     toast.add({
       title: 'Gagal Menyimpan',
@@ -112,7 +127,7 @@ async function handleTestConnection() {
 </script>
 
 <template>
-  <div class="max-w-4xl space-y-6">
+  <div class="max-w-4xl mx-auto space-y-6">
     <div>
       <h1 class="text-2xl font-bold tracking-tight">
         Pengaturan Sekolah & Moodle
@@ -143,7 +158,7 @@ async function handleTestConnection() {
               <UInput
                 v-model="formState.schoolName"
                 placeholder="Contoh: SMA Negeri 1 Kelas Bilie"
-                class="w-full lg:w-1/3"
+                class="w-full sm:max-w-md"
               />
             </div>
           </div>
@@ -232,7 +247,7 @@ async function handleTestConnection() {
                 type="password"
                 placeholder="Masukkan API Key dari Google AI Studio"
                 icon="i-lucide-key"
-                class="w-full lg:w-1/3"
+                class="w-full sm:max-w-md"
               />
               <p class="mt-1 text-xs text-gray-500">
                 Dapatkan API Key di <a href="https://aistudio.google.com/" target="_blank" class="text-primary-600 hover:underline">Google AI Studio</a>.
