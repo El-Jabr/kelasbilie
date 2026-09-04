@@ -55,11 +55,7 @@ export default defineEventHandler(async (event) => {
       include: {
         subject: true,
         teacher: { include: { user: true } },
-        course: {
-          include: {
-            gradeItems: true
-          }
-        }
+        classroom: true
       }
     })
   ])
@@ -73,28 +69,34 @@ export default defineEventHandler(async (event) => {
 
     const studentIds = studentClasses.map(sc => sc.studentId)
 
-    // Parallelize grade items, components, and summaries
+    // Parallelize grade items and summaries (guard courseId if null)
     const [allItems, summaries] = await Promise.all([
-      prisma.gradeItem.findMany({
-        where: { courseId: selectedTeaching.courseId },
-        orderBy: { id: 'asc' }
-      }),
-      prisma.gradeSummary.findMany({
-        where: {
-          teachingId,
-          studentId: { in: studentIds },
-          semesterId: activeSemester.id
-        }
-      })
+      selectedTeaching.courseId
+        ? prisma.gradeItem.findMany({
+            where: { courseId: selectedTeaching.courseId },
+            orderBy: { id: 'asc' }
+          })
+        : Promise.resolve([]),
+      studentIds.length > 0
+        ? prisma.gradeSummary.findMany({
+            where: {
+              teachingId,
+              studentId: { in: studentIds },
+              semesterId: activeSemester.id
+            }
+          })
+        : Promise.resolve([])
     ])
 
     const itemIds = allItems.map(g => g.id)
-    const components = await prisma.gradeComponent.findMany({
-      where: {
-        studentId: { in: studentIds },
-        gradeItemId: { in: itemIds }
-      }
-    })
+    const components = (studentIds.length > 0 && itemIds.length > 0)
+      ? await prisma.gradeComponent.findMany({
+          where: {
+            studentId: { in: studentIds },
+            gradeItemId: { in: itemIds }
+          }
+        })
+      : []
 
     const phGradeItems = allItems.filter(g => g.category === 'PH')
     const stsGradeItems = allItems.filter(g => g.category === 'STS')
@@ -234,13 +236,21 @@ export default defineEventHandler(async (event) => {
   const teachingIds = teachings.map(t => t.id)
   const studentIds = studentClasses.map(sc => sc.studentId)
 
-  const summaries = await prisma.gradeSummary.findMany({
-    where: {
-      teachingId: { in: teachingIds },
-      studentId: { in: studentIds },
-      semesterId: activeSemester.id
-    }
-  })
+  const summaries = (teachingIds.length > 0 && studentIds.length > 0)
+    ? await prisma.gradeSummary.findMany({
+        where: {
+          teachingId: { in: teachingIds },
+          studentId: { in: studentIds },
+          semesterId: activeSemester.id
+        },
+        select: {
+          studentId: true,
+          teachingId: true,
+          category: true,
+          score: true
+        }
+      })
+    : []
 
   // Fast map lookup O(1)
   const summaryLookup = new Map<string, number>()

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useGradesStore } from './grades'
 
 export const useTeacherHomeroomStore = defineStore('teacherHomeroom', () => {
   const homeroom = ref<any | null>(null)
@@ -104,13 +105,14 @@ export const useTeacherHomeroomStore = defineStore('teacherHomeroom', () => {
 
     gradesPromise = (async () => {
       try {
-        const res: any = await $fetch('/api/grades/inspection', {
-          query: {
-            classroomId: classroomId.value,
-            teachingId: (selectedTeachingId.value && selectedTeachingId.value !== 'ALL') ? selectedTeachingId.value : undefined
-          },
-          credentials: 'include'
-        })
+        const gradesStore = useGradesStore()
+        const tid = (selectedTeachingId.value && selectedTeachingId.value !== 'ALL') ? selectedTeachingId.value : 'ALL'
+        const res: any = await gradesStore.fetchInspection(
+          classroomId.value,
+          tid,
+          '',
+          force
+        )
         inspectionData.value = res || null
       } catch (err) {
         console.error('[TeacherHomeroomStore] Gagal mengambil grades inspection:', err)

@@ -5,9 +5,12 @@ definePageMeta({
   role: ['TEACHER', 'ADMIN']
 })
 
+import { useGradesStore } from '~/stores/grades'
+
 const route = useRoute()
 const toast = useToast()
 const teachingId = route.params.id as string
+const gradesStore = useGradesStore()
 
 const isSaving = ref(false)
 const isAddingItem = ref(false)
@@ -26,21 +29,28 @@ const pendingData = ref(true)
 async function fetchTeaching() {
   try {
     teachingRes.value = await $fetch(`/api/teaching-assignments/${teachingId}`)
+    if (!teaching.value?.classroomId) {
+      pendingData.value = false
+    }
   } catch (error) {
     console.error(error)
+    pendingData.value = false
   }
 }
 
-async function refreshData() {
-  if (!teaching.value?.classroomId) return
+async function refreshData(force = false) {
+  if (!teaching.value?.classroomId) {
+    pendingData.value = false
+    return
+  }
   pendingData.value = true
   try {
-    fullInspectionRes.value = await $fetch('/api/grades/inspection', {
-      query: {
-        classroomId: teaching.value?.classroomId,
-        teachingId: teachingId
-      }
-    })
+    fullInspectionRes.value = await gradesStore.fetchInspection(
+      teaching.value.classroomId,
+      teachingId,
+      '',
+      force
+    )
   } catch (error) {
     console.error(error)
   } finally {
@@ -48,8 +58,12 @@ async function refreshData() {
   }
 }
 
-watch(() => teaching.value?.classroomId, () => {
-  refreshData()
+watch(() => teaching.value?.classroomId, (cid) => {
+  if (cid) {
+    refreshData()
+  } else {
+    pendingData.value = false
+  }
 })
 
 onMounted(async () => {
@@ -199,7 +213,8 @@ async function saveAllGrades() {
       color: 'success'
     })
 
-    await refreshData()
+    gradesStore.invalidateCache(teaching.value.classroomId)
+    await refreshData(true)
   } catch (err: any) {
     toast.add({
       title: 'Gagal Menyimpan',

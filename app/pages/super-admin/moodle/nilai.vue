@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
+import { useGradesStore } from '~/stores/grades'
+
 definePageMeta({
   layout: 'admin',
   middleware: ['auth', 'role'],
@@ -12,123 +15,32 @@ useSeoMeta({
 const route = useRoute()
 const toast = useToast()
 
-function extractId(val: any): string {
-  if (!val) return 'ALL'
-  if (typeof val === 'object') return val.value || val.id || 'ALL'
-  return String(val)
+const gradesStore = useGradesStore()
+const {
+  selectedClassroomId,
+  selectedTeachingId,
+  searchInput,
+  currentPage,
+  itemsPerPage,
+  pending,
+  pendingDropdowns,
+  isSyncingMoodle,
+  classroomOptions,
+  currentTeachingOptions: teachingOptions,
+  currentInspection: inspectionData
+} = storeToRefs(gradesStore)
+
+const { extractId } = gradesStore
+
+// Sync route query if present on initial load
+if (route.query.classroomId && selectedClassroomId.value === 'ALL') {
+  selectedClassroomId.value = String(route.query.classroomId)
+}
+if (route.query.teachingId && selectedTeachingId.value === 'ALL') {
+  selectedTeachingId.value = String(route.query.teachingId)
 }
 
-const selectedClassroomId = ref<any>((route.query.classroomId as string) || 'ALL')
-const selectedTeachingId = ref<any>((route.query.teachingId as string) || 'ALL')
-const searchInput = ref<string>('')
-
-// Pagination State (Standar seperti Tabel User: 10 items per page)
-const currentPage = ref(1)
-const itemsPerPage = ref(10)
-
-// Dropdown Options State
-const classroomOptions = ref<{ label: string, value: string }[]>([])
-const teachingOptions = ref<{ label: string, value: string }[]>([])
-const pendingDropdowns = ref(false)
-
-// Inspection Table Data State ($fetch manual)
-const inspectionData = ref<any>(null)
-const pending = ref(false)
-const isSyncingMoodle = ref(false)
-
-// 1. Fetch Classrooms Dropdown
-async function loadClassrooms() {
-  pendingDropdowns.value = true
-  try {
-    const res: any = await $fetch('/api/classes', { credentials: 'include' })
-    if (res?.data) {
-      classroomOptions.value = [
-        { label: '-- Pilih Kelas --', value: 'ALL' },
-        ...res.data.map((c: any) => ({
-          label: `Kelas ${c.name} (Tingkat ${c.level})`,
-          value: c.id
-        }))
-      ]
-    }
-  } catch (err) {
-    console.error('Gagal memuat daftar kelas:', err)
-  } finally {
-    pendingDropdowns.value = false
-  }
-}
-
-// 2. Fetch Teaching Assignments Dropdown when Classroom Changes
-async function loadTeachingsForClassroom(classroomIdVal: any) {
-  const classroomId = extractId(classroomIdVal)
-  if (!classroomId || classroomId === 'ALL') {
-    teachingOptions.value = [{ label: 'Semua Mata Pelajaran (Rekap Nilai)', value: 'ALL' }]
-    if (selectedTeachingId.value !== 'ALL') {
-      selectedTeachingId.value = 'ALL'
-    }
-    return
-  }
-
-  try {
-    let activeSemId: string | undefined
-    try {
-      const activeSem: any = await $fetch('/api/semesters/active')
-      activeSemId = activeSem?.data?.id
-    } catch {
-      // Fallback
-    }
-
-    const res: any = await $fetch('/api/teaching-assignments', {
-      query: {
-        classroomId,
-        ...(activeSemId ? { semesterId: activeSemId } : { activeSemester: 'true' }),
-        limit: 100
-      },
-      credentials: 'include'
-    })
-
-    if (res?.data) {
-      teachingOptions.value = [
-        { label: 'Semua Mata Pelajaran (Rekap Nilai)', value: 'ALL' },
-        ...res.data.map((t: any) => ({
-          label: `${t.subject?.code} - ${t.subject?.name} (${t.teacher?.user?.fullname || 'No Teacher'})`,
-          value: t.id
-        }))
-      ]
-    }
-  } catch (err) {
-    console.error('Gagal memuat mata pelajaran kelas:', err)
-  }
-}
-
-// 3. Fetch Inspection Grades Table Data dengan $fetch biasa (tanpa useFetch)
-async function loadInspectionData() {
-  const classroomId = extractId(selectedClassroomId.value)
-  if (!classroomId || classroomId === 'ALL') {
-    inspectionData.value = null
-    pending.value = false
-    return
-  }
-
-  pending.value = true
-  try {
-    const res: any = await $fetch('/api/grades/inspection', {
-      query: {
-        classroomId,
-        teachingId: extractId(selectedTeachingId.value),
-        search: searchInput.value
-      },
-      credentials: 'include'
-    })
-    inspectionData.value = res
-  } catch (err) {
-    console.error('Gagal memuat data inspeksi nilai:', err)
-    inspectionData.value = null
-  } finally {
-    pending.value = false
-  }
-}
-
-// 4. Trigger Sync Nilai Moodle Cepat dari Toolbar
+// 1. Action: Sync Nilai Moodle Toolbar
 async function handleToolbarSyncMoodle() {
   const classroomId = extractId(selectedClassroomId.value)
   if (!classroomId || classroomId === 'ALL') {
@@ -144,7 +56,6 @@ async function handleToolbarSyncMoodle() {
   try {
     const mode = inspectionData.value?.mode
     if (mode === 'SUBJECT_DETAIL' && inspectionData.value?.teaching?.courseId) {
-      // Sync 1 Course Spesifik
       const courseId = inspectionData.value.teaching.courseId
       const subjectName = inspectionData.value.teaching.subject?.name || 'Mata Pelajaran'
 
@@ -160,7 +71,6 @@ async function handleToolbarSyncMoodle() {
         color: 'success'
       })
     } else {
-      // Sync Seluruh Course di Kelas ini
       const teachings = inspectionData.value?.teachings || []
       const courseIds = teachings.map((t: any) => t.courseId).filter(Boolean)
 
@@ -194,8 +104,9 @@ async function handleToolbarSyncMoodle() {
       })
     }
 
-    // Refresh tabel nilai setelah sync selesai
-    await loadInspectionData()
+    // Invalidate cache for this class and force refresh
+    gradesStore.invalidateCache(classroomId)
+    await gradesStore.fetchInspection(classroomId, selectedTeachingId.value, searchInput.value, true)
   } catch (err: any) {
     const errorMsg = err.data?.statusMessage || err.data?.message || err.message || 'Gagal menyingkronkan nilai dari Moodle.'
     toast.add({
@@ -208,21 +119,38 @@ async function handleToolbarSyncMoodle() {
   }
 }
 
-// Watchers untuk reaktivitas toolbar dan pemanggilan $fetch
-watch(selectedClassroomId, (newClassroomId) => {
-  loadTeachingsForClassroom(newClassroomId)
-}, { immediate: true })
+// 2. Watchers untuk reaktivitas filter
+watch(selectedClassroomId, async (newVal, oldVal) => {
+  const cid = extractId(newVal)
+  if (!cid || cid === 'ALL') {
+    gradesStore.resetFilter()
+    return
+  }
 
-watch([selectedClassroomId, selectedTeachingId, searchInput], () => {
+  await gradesStore.fetchTeachingsForClassroom(cid)
+  if (oldVal !== undefined && oldVal !== newVal) {
+    selectedTeachingId.value = 'ALL'
+  }
   currentPage.value = 1
-  loadInspectionData()
-}, { immediate: true })
+  gradesStore.fetchInspection(cid, selectedTeachingId.value, searchInput.value)
+})
+
+watch(selectedTeachingId, (newTeachingId) => {
+  currentPage.value = 1
+  gradesStore.fetchInspection(selectedClassroomId.value, newTeachingId, searchInput.value)
+})
+
+let searchDebounceTimer: any = null
+watch(searchInput, (newSearch) => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    currentPage.value = 1
+    gradesStore.fetchInspection(selectedClassroomId.value, selectedTeachingId.value, newSearch)
+  }, 300)
+})
 
 function resetFilter() {
-  selectedClassroomId.value = 'ALL'
-  selectedTeachingId.value = 'ALL'
-  searchInput.value = ''
-  currentPage.value = 1
+  gradesStore.resetFilter()
 }
 
 // Computed untuk client-side pagination
@@ -235,8 +163,13 @@ const paginatedStudents = computed(() => {
   return list.slice(start, end)
 })
 
-onMounted(() => {
-  loadClassrooms()
+onMounted(async () => {
+  await gradesStore.fetchClassrooms()
+  const cid = extractId(selectedClassroomId.value)
+  if (cid && cid !== 'ALL') {
+    await gradesStore.fetchTeachingsForClassroom(cid)
+    gradesStore.fetchInspection(cid, selectedTeachingId.value, searchInput.value)
+  }
 })
 </script>
 
@@ -638,5 +571,18 @@ onMounted(() => {
         />
       </div>
     </div>
+
+    <!-- State 5: Fallback jika kelas dipilih tetapi data kosong atau belum ada nilai -->
+    <UCard v-else-if="extractId(selectedClassroomId) !== 'ALL'">
+      <div class="py-16 text-center space-y-3">
+        <div class="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center mx-auto mb-2">
+          <UIcon name="i-lucide-info" class="w-7 h-7" />
+        </div>
+        <h3 class="text-base font-bold text-gray-900 dark:text-white">Tidak Ada Data Nilai Ditemukan</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+          Belum ada data nilai atau siswa terdaftar untuk filter kelas yang dipilih. Pastikan siswa telah terdaftar di kelas ini atau lakukan <strong>Sync Nilai Moodle</strong>.
+        </p>
+      </div>
+    </UCard>
   </div>
 </template>
