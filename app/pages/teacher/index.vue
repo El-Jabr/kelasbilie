@@ -54,6 +54,10 @@ const filteredAssignments = computed(() => {
 function getProgress(teachingId: string) {
   return progressData.value?.items?.find((i: any) => i.teachingId === teachingId)
 }
+
+function resetSearch() {
+  searchClass.value = ''
+}
 </script>
 
 <template>
@@ -198,7 +202,7 @@ function getProgress(teachingId: string) {
       <div v-else-if="!filteredAssignments.length" class="py-12 text-center bg-white dark:bg-gray-800/60 rounded-2xl border border-gray-200 dark:border-gray-700">
         <UIcon name="i-lucide-search-x" class="w-8 h-8 text-gray-400 mx-auto mb-2" />
         <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Tidak ada kelas yang cocok dengan kata kunci</p>
-        <UButton color="neutral" variant="ghost" size="xs" class="mt-2 cursor-pointer" @click="searchClass = ''">
+        <UButton color="neutral" variant="ghost" size="xs" class="mt-2 cursor-pointer" @click="resetSearch">
           Reset Pencarian
         </UButton>
       </div>
