@@ -17,13 +17,15 @@ const analysisData = ref<any>(null)
 const isCached = ref(false)
 const generatedAt = ref('')
 
-const homeroom = ref<any>(null)
+const homeroomStore = useTeacherHomeroomStore()
+const { homeroom } = storeToRefs(homeroomStore)
 
 onMounted(async () => {
   try {
-    const res: any = await $fetch('/api/homerooms/my')
-    if (res.data) {
-      homeroom.value = res.data
+    if (!homeroomStore.isLoaded) {
+      await homeroomStore.fetchHomeroom()
+    }
+    if (homeroom.value?.classroomId) {
       analyzeClass()
     }
   } catch (err) {

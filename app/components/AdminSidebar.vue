@@ -23,18 +23,12 @@ const user = computed(() => ({
   role: authStore.user?.role ?? 'ADMIN'
 }))
 
-// Navigation items untuk Admin & Super Admin
-const navItems = computed<NavigationMenuItem[]>(() => {
+// Navigation groups untuk Admin & Super Admin
+const navGroups = computed(() => {
   const role = String(authStore.user?.role || '').toUpperCase()
 
   if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
     const isSuperAdmin = role === 'SUPER_ADMIN'
-
-    const isMasterActive = route.path.startsWith('/super-admin/master')
-    const isAkademikActive = route.path.startsWith('/super-admin/akademik')
-    const isMoodleActive = route.path.startsWith('/super-admin/moodle')
-    const isAiActive = route.path.startsWith('/super-admin/ai')
-    const isMonitoringActive = route.path.startsWith('/super-admin/monitoring')
 
     const masterChildren = []
     if (isSuperAdmin) {
@@ -83,36 +77,52 @@ const navItems = computed<NavigationMenuItem[]>(() => {
         active: route.path.startsWith('/super-admin/moodle/sinkronisasi')
       })
     }
+    
+    const aiChildren = [
+      {
+        label: 'Analisis Kelas',
+        icon: 'i-lucide-users',
+        to: '/super-admin/ai/analisis-kelas',
+        active: route.path.startsWith('/super-admin/ai/analisis-kelas')
+      },
+      {
+        label: 'Analisis Siswa',
+        icon: 'i-lucide-user-check',
+        to: '/super-admin/ai/analisis-siswa',
+        active: route.path.startsWith('/super-admin/ai/analisis-siswa')
+      }
+    ]
 
-    const items: NavigationMenuItem[] = [
+    const groups = [
       {
-        label: 'Dashboard',
-        icon: 'i-lucide-home',
-        to: '/super-admin',
-        active: route.path === '/super-admin'
+        title: 'Menu Utama',
+        items: [
+          {
+            label: 'Dashboard',
+            icon: 'i-lucide-home',
+            to: '/super-admin',
+            active: route.path === '/super-admin'
+          },
+          {
+            label: 'Portal Mengajar (Guru)',
+            icon: 'i-lucide-graduation-cap',
+            to: '/teacher',
+            active: route.path.startsWith('/teacher')
+          }
+        ]
       },
       {
-        label: 'Master Data',
-        icon: 'i-lucide-box',
-        active: isMasterActive,
-        defaultOpen: isMasterActive,
-        open: isMasterActive,
-        children: masterChildren
+        title: 'Master Data',
+        items: masterChildren
       },
       {
-        label: 'Akademik',
-        icon: 'i-lucide-book',
-        active: isAkademikActive,
-        defaultOpen: isAkademikActive,
-        open: isAkademikActive,
-        children: [
+        title: 'Akademik',
+        items: [
           {
             label: 'Kalender Akademik',
             icon: 'i-lucide-calendar-range',
             to: '/super-admin/akademik/kalender',
             active: route.path.startsWith('/super-admin/akademik/kalender')
-              || route.path.startsWith('/super-admin/akademik/tahun-ajaran')
-              || route.path.startsWith('/super-admin/akademik/semester')
           },
           {
             label: 'Kelas',
@@ -131,8 +141,6 @@ const navItems = computed<NavigationMenuItem[]>(() => {
             icon: 'i-lucide-clipboard-list',
             to: '/super-admin/akademik/penugasan',
             active: route.path.startsWith('/super-admin/akademik/penugasan')
-              || route.path.startsWith('/super-admin/akademik/teaching-assignments')
-              || route.path.startsWith('/super-admin/akademik/homerooms')
           },
           {
             label: 'Pembagian Kelas Siswa',
@@ -143,51 +151,20 @@ const navItems = computed<NavigationMenuItem[]>(() => {
         ]
       },
       {
-        label: 'Nilai & Moodle',
-        icon: 'i-lucide-server',
-        active: isMoodleActive,
-        defaultOpen: isMoodleActive,
-        open: isMoodleActive,
-        children: moodleChildren
+        title: 'Nilai & Moodle',
+        items: moodleChildren
       },
       {
-        label: 'Portal Mengajar (Guru)',
-        icon: 'i-lucide-graduation-cap',
-        to: '/teacher',
-        active: route.path.startsWith('/teacher')
-      },
-      {
-        label: 'Analisis AI',
-        icon: 'i-lucide-brain-circuit',
-        active: isAiActive,
-        defaultOpen: isAiActive,
-        open: isAiActive,
-        children: [
-          {
-            label: 'Analisis Kelas',
-            icon: 'i-lucide-users',
-            to: '/super-admin/ai/analisis-kelas',
-            active: route.path.startsWith('/super-admin/ai/analisis-kelas')
-          },
-          {
-            label: 'Analisis Siswa',
-            icon: 'i-lucide-user-check',
-            to: '/super-admin/ai/analisis-siswa',
-            active: route.path.startsWith('/super-admin/ai/analisis-siswa')
-          }
-        ]
+        title: 'Analisis AI',
+        items: aiChildren
       }
     ]
 
     if (isSuperAdmin) {
-      items.push(
+      groups.push(
         {
-          label: 'Monitoring',
-          icon: 'i-lucide-monitor',
-          active: isMonitoringActive,
-          defaultOpen: isMonitoringActive,
-          open: isMonitoringActive,
-          children: [
+          title: 'Sistem',
+          items: [
             {
               label: 'Activity Log',
               icon: 'i-lucide-activity',
@@ -199,40 +176,45 @@ const navItems = computed<NavigationMenuItem[]>(() => {
               icon: 'i-lucide-terminal',
               to: '/super-admin/monitoring/debugging',
               active: route.path.startsWith('/super-admin/monitoring/debugging')
+            },
+            {
+              label: 'Settings',
+              icon: 'i-lucide-settings',
+              to: '/super-admin/settings',
+              active: route.path.startsWith('/super-admin/settings')
             }
           ]
-        },
-        {
-          label: 'Settings',
-          icon: 'i-lucide-settings',
-          to: '/super-admin/settings',
-          active: route.path.startsWith('/super-admin/settings')
         }
       )
     }
 
-    return items
+    return groups
   }
 
   // Teacher ONLY
   return [
     {
-      label: 'Dashboard',
-      icon: 'i-lucide-home',
-      to: '/teacher',
-      active: route.path === '/teacher'
-    },
-    {
-      label: 'Kelas Mengajar',
-      icon: 'i-lucide-book-open',
-      to: '/teacher/classes',
-      active: route.path.startsWith('/teacher/classes')
-    },
-    {
-      label: 'Profil Saya',
-      icon: 'i-lucide-user',
-      to: '/teacher/profile',
-      active: route.path === '/teacher/profile'
+      title: 'Menu Guru',
+      items: [
+        {
+          label: 'Dashboard',
+          icon: 'i-lucide-home',
+          to: '/teacher',
+          active: route.path === '/teacher'
+        },
+        {
+          label: 'Kelas Mengajar',
+          icon: 'i-lucide-book-open',
+          to: '/teacher/classes',
+          active: route.path.startsWith('/teacher/classes')
+        },
+        {
+          label: 'Profil Saya',
+          icon: 'i-lucide-user',
+          to: '/teacher/profile',
+          active: route.path === '/teacher/profile'
+        }
+      ]
     }
   ]
 })
@@ -284,12 +266,17 @@ async function handleLogout() {
     </div>
 
     <!-- Navigation List -->
-    <div class="flex-1 overflow-y-auto p-3 space-y-1">
-      <UNavigationMenu
-        :items="navItems"
-        orientation="vertical"
-        class="w-full"
-      />
+    <div class="flex-1 overflow-y-auto p-3 space-y-4">
+      <div v-for="(group, idx) in navGroups" :key="idx" class="space-y-1">
+        <p v-if="group.title" class="px-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+          {{ group.title }}
+        </p>
+        <UNavigationMenu
+          :items="group.items"
+          orientation="vertical"
+          class="w-full"
+        />
+      </div>
     </div>
 
     <!-- Sidebar Footer / User Profile -->

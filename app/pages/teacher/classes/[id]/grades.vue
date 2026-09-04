@@ -17,16 +17,43 @@ const newItemName = ref('')
 // Scores Map: key `${studentId}_${gradeItemId}` -> score
 const scoresMap = ref<Record<string, number | null>>({})
 
-// Direct fetch using teaching assignment detail
-const { data: teachingRes } = await useFetch(`/api/teaching-assignments/${teachingId}`)
+const teachingRes = ref<any>(null)
 const teaching = computed(() => teachingRes.value?.data)
 
-const { data: fullInspectionRes, pending: pendingData, refresh: refreshData } = await useFetch('/api/grades/inspection', {
-  query: computed(() => ({
-    classroomId: teaching.value?.classroomId,
-    teachingId: teachingId
-  })),
-  immediate: !!teaching.value?.classroomId
+const fullInspectionRes = ref<any>(null)
+const pendingData = ref(true)
+
+async function fetchTeaching() {
+  try {
+    teachingRes.value = await $fetch(`/api/teaching-assignments/${teachingId}`)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+async function refreshData() {
+  if (!teaching.value?.classroomId) return
+  pendingData.value = true
+  try {
+    fullInspectionRes.value = await $fetch('/api/grades/inspection', {
+      query: {
+        classroomId: teaching.value?.classroomId,
+        teachingId: teachingId
+      }
+    })
+  } catch (error) {
+    console.error(error)
+  } finally {
+    pendingData.value = false
+  }
+}
+
+watch(() => teaching.value?.classroomId, () => {
+  refreshData()
+})
+
+onMounted(async () => {
+  await fetchTeaching()
 })
 
 const inspectionData = computed<any>(() => fullInspectionRes.value)

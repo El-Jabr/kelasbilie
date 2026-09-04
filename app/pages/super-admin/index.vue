@@ -245,7 +245,7 @@ onMounted(() => {
         </div>
 
         <template #footer>
-          <NuxtLink to="/super-admin/akademik/tahun-ajaran">
+          <NuxtLink to="/super-admin/akademik/kalender">
             <UButton
               block
               color="neutral"

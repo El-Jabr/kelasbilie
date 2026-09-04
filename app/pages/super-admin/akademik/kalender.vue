@@ -8,9 +8,8 @@ useSeoMeta({
 })
 
 const { academicYears, loading: loadingYears, fetchAcademicYears } = useAcademicYears()
-const { semesters, fetchSemesters } = useSemesters()
+const { semesters, pagination: semPagination, fetchSemesters } = useSemesters()
 const { openCreateDialog: openCreateYear } = useAcademicYearDialogs()
-const { openCreateDialog: openCreateSemester } = useSemesterDialogs()
 
 // Accordion: menyimpan ID tahun yang sedang terbuka
 const openYearIds = ref<string[]>([])
@@ -62,6 +61,7 @@ function toggleYear(yearId: string) {
 }
 
 onMounted(async () => {
+  semPagination.value.limit = 100 // Fetch up to 100 semesters for the calendar view
   await Promise.all([fetchAcademicYears(), fetchSemesters()])
   // Buka tahun aktif secara otomatis
   const activeYear = (academicYears.value as IAcademicYear[]).find(y => y.isActive)
@@ -185,13 +185,12 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- Expanded: Semesters inside this year -->
         <div
           v-if="isOpen(year.id)"
           class="border-t border-gray-100 dark:border-gray-800 px-5 pb-4 pt-3"
         >
           <!-- Semester list -->
-          <div class="space-y-2 mb-3">
+          <div class="space-y-2">
             <div
               v-for="sem in semestersForYear(year.id)"
               :key="sem.id"
@@ -204,27 +203,7 @@ onMounted(async () => {
               </div>
               <SemestersTableSemesterActions :semester="sem" />
             </div>
-
-            <!-- No semesters yet -->
-            <div
-              v-if="!semestersForYear(year.id).length"
-              class="py-4 text-center text-xs text-gray-400 italic rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-dashed border-gray-200 dark:border-gray-700"
-            >
-              Belum ada semester untuk tahun ajaran ini.
-            </div>
           </div>
-
-          <!-- Add semester button -->
-          <UButton
-            size="sm"
-            color="neutral"
-            variant="ghost"
-            icon="i-lucide-plus"
-            class="cursor-pointer"
-            @click="openCreateSemester"
-          >
-            Tambah Semester untuk {{ year.name }}
-          </UButton>
         </div>
       </div>
     </div>
@@ -234,10 +213,9 @@ onMounted(async () => {
     <AcademicYearsDialogsAcademicYearEditDialog />
     <AcademicYearsDialogsAcademicYearDeleteDialog />
     <AcademicYearsDialogsAcademicYearStatusDialog />
+    <AcademicYearsDialogsAcademicYearLockDialog />
 
-    <SemestersDialogsSemesterCreateDialog />
-    <SemestersDialogsSemesterEditDialog />
-    <SemestersDialogsSemesterDeleteDialog />
     <SemestersDialogsSemesterStatusDialog />
+    <SemestersDialogsSemesterLockDialog />
   </div>
 </template>

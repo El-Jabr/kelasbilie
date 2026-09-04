@@ -3,8 +3,10 @@ definePageMeta({
   layout: 'admin'
 })
 
-const { fetchTeachers } = useTeachers()
-await fetchTeachers()
+const { teachers, fetchTeachers } = useTeachers()
+onMounted(() => {
+  if (teachers.value.length === 0) fetchTeachers()
+})
 useSeoMeta({ title: 'Guru' })
 </script>
 

@@ -1,29 +1,45 @@
-/* eslint-disable @stylistic/max-statements-per-line */
-import type { TeacherTableSchema } from '~~/shared/schemas/teacher'
-import type { PaginatedResponse, PaginationMeta } from '~~/shared/types/api'
+import { storeToRefs } from 'pinia'
+import { useUserMasterStore } from '~~/app/stores/userMaster'
 
 export function useTeachers() {
-  const teachers = useState<TeacherTableSchema[]>('teachers:list', () => [])
-  const pagination = useState<PaginationMeta>('teachers:pagination', () => ({ page: 1, limit: 10, total: 0, pages: 1 }))
-  const loading = useState('teachers:loading', () => false)
-  const search = useState('teachers:search', () => '')
-  const selectedTeacher = useState<TeacherTableSchema | null>('teachers:selected', () => null)
+  const store = useUserMasterStore()
+  const {
+    teachers,
+    paginationTeachers: pagination,
+    loadingTeachers: loading,
+    searchTeachers: search,
+    selectedTeacher
+  } = storeToRefs(store)
 
-  async function fetchTeachers(page = pagination.value.page) {
-    loading.value = true
-    try {
-      const response = await $fetch<PaginatedResponse<TeacherTableSchema>>('/api/teachers', {
-        credentials: 'include',
-        query: { page, limit: pagination.value.limit, search: search.value || undefined }
-      })
-      teachers.value = response.data
-      pagination.value = response.pagination
-    } finally { loading.value = false }
+  async function fetchTeachers(force?: boolean | unknown) {
+    const isForce = force === true
+    await store.fetchTeachers(isForce)
   }
 
-  async function refresh() { pagination.value.page = 1; await fetchTeachers(1) }
-  async function changePage(page: number) { await fetchTeachers(page) }
-  async function resetFilter() { search.value = ''; await refresh() }
+  async function refresh() {
+    pagination.value.page = 1
+    await store.fetchTeachers(true, 1)
+  }
 
-  return { teachers, pagination, loading, search, selectedTeacher, fetchTeachers, refresh, changePage, resetFilter }
+  async function changePage(page: number) {
+    pagination.value.page = page
+    await store.fetchTeachers(true, page)
+  }
+
+  async function resetFilter() {
+    search.value = ''
+    await refresh()
+  }
+
+  return {
+    teachers,
+    pagination,
+    loading,
+    search,
+    selectedTeacher,
+    fetchTeachers,
+    refresh,
+    changePage,
+    resetFilter
+  }
 }

@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (currentAcademicYear.isLocked) {
+  if (currentAcademicYear.isLocked && body.isLocked !== false) {
     throw createError({
       statusCode: 403,
       statusMessage: 'Data tahun ajaran terkunci dan tidak bisa diubah/dihapus.'
@@ -60,6 +60,10 @@ export default defineEventHandler(async (event) => {
       where: {
         NOT: { id }
       },
+      data: { isActive: false }
+    })
+    // Nonaktifkan semua semester dari tahun ajaran lain
+    await prisma.semester.updateMany({
       data: { isActive: false }
     })
   }

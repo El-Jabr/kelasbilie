@@ -8,68 +8,66 @@ export default defineEventHandler(async (event) => {
       createSemesterSchema.parse
     )
 
-    const semester = await prisma.$transaction(async (tx) => {
-      const academicYear = await tx.academicYear.findUnique({
+    const academicYear = await prisma.academicYear.findUnique({
+      where: {
+        id: body.academicYearId
+      },
+      select: {
+        id: true
+      }
+    })
+
+    if (!academicYear) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Tahun ajaran tidak ditemukan.'
+      })
+    }
+
+    const exists = await prisma.semester.findUnique({
+      where: {
+        academicYearId_type: {
+          academicYearId: body.academicYearId,
+          type: body.type
+        }
+      }
+    })
+
+    if (exists) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Semester sudah ada pada tahun ajaran tersebut.'
+      })
+    }
+
+    if (body.isActive) {
+      await prisma.semester.updateMany({
         where: {
-          id: body.academicYearId
+          isActive: true
         },
-        select: {
-          id: true
+        data: {
+          isActive: false
         }
       })
+    }
 
-      if (!academicYear) {
-        throw createError({
-          statusCode: 404,
-          statusMessage: 'Tahun ajaran tidak ditemukan.'
-        })
-      }
+    const semester = await prisma.semester.create({
+      data: body,
 
-      const exists = await tx.semester.findUnique({
-        where: {
-          academicYearId_type: {
-            academicYearId: body.academicYearId,
-            type: body.type
+      select: {
+        id: true,
+        type: true,
+        isActive: true,
+        isLocked: true,
+        createdAt: true,
+
+        academicYear: {
+          select: {
+            id: true,
+            name: true
           }
         }
-      })
-
-      if (exists) {
-        throw createError({
-          statusCode: 409,
-          statusMessage: 'Semester sudah ada pada tahun ajaran tersebut.'
-        })
       }
-
-      if (body.isActive) {
-        await tx.semester.updateMany({
-          where: {
-            isActive: true
-          },
-          data: {
-            isActive: false
-          }
-        })
-      }
-
-      return tx.semester.create({
-        data: body,
-
-        select: {
-          id: true,
-          type: true,
-          isActive: true,
-          isLocked: true,
-          createdAt: true,
-
-          academicYear: {
-            select: {
-              id: true,
-              name: true
-            }
-          }
-        }
-      })
     })
 
     return {

@@ -1,69 +1,38 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
+import { useTeacherHomeroomStore } from '~~/app/stores/teacherHomeroom'
+
 definePageMeta({
   layout: 'teacher',
   middleware: ['auth', 'role'],
-  role: ['TEACHER', 'ADMIN']
+  role: ['TEACHER', 'ADMIN', 'SUPER_ADMIN']
 })
 
 useSeoMeta({
   title: 'Rekap Nilai Wali Kelas'
 })
 
-// 1. Fetch homeroom details for current teacher
-const { data: homeroomRes, pending: pendingHomeroom } = await useFetch<any>('/api/homerooms/my')
-const homeroom = computed(() => homeroomRes.value?.data)
-const classroomId = computed(() => homeroom.value?.classroomId || '')
+const store = useTeacherHomeroomStore()
+const {
+  homeroom,
+  selectedTeachingId,
+  inspectionData,
+  students,
+  subjectOptions,
+  pendingHomeroom,
+  pendingGrades
+} = storeToRefs(store)
 
-// 2. Selected Teaching Assignment filter ('ALL' = Rekap Seluruh Mapel)
-const selectedTeachingId = ref('ALL')
+const { refreshGrades, refreshAll } = store
 
-// 3. Fetch all teaching assignments in classroom for subject dropdown
-const { data: teachingsRes } = await useFetch<any>(
-  '/api/teaching-assignments',
-  {
-    query: computed(() => ({
-      classroomId: classroomId.value || undefined,
-      limit: 100
-    })),
-    immediate: !!classroomId.value
-  }
-)
-
-const subjectOptions = computed(() => {
-  const options = [
-    { label: 'Semua Mata Pelajaran (Rekap Kelas)', value: 'ALL' }
-  ]
-  const list = teachingsRes.value?.data || inspectionData.value?.teachings || []
-  for (const t of list) {
-    const sName = t.subject?.name || t.subjectName || 'Mata Pelajaran'
-    const sCode = (t.subject?.code || t.subjectCode) ? ` (${t.subject?.code || t.subjectCode})` : ''
-    const tName = (t.teacher?.user?.fullname || t.teacherName) ? ` - Guru: ${t.teacher?.user?.fullname || t.teacherName}` : ''
-    options.push({
-      label: `${sName}${sCode}${tName}`,
-      value: t.id
-    })
-  }
-  return options
+onMounted(async () => {
+  await store.fetchHomeroom()
 })
-
-// 4. Fetch Inspection Data (supports both CLASSROOM_OVERVIEW and SUBJECT_DETAIL)
-const { data: inspectionRes, pending: pendingGrades, refresh: refreshGrades } = await useFetch<any>(
-  '/api/grades/inspection',
-  {
-    query: computed(() => ({
-      classroomId: classroomId.value,
-      teachingId: (selectedTeachingId.value && selectedTeachingId.value !== 'ALL') ? selectedTeachingId.value : undefined
-    })),
-    immediate: !!classroomId.value
-  }
-)
-
-const inspectionData = computed(() => inspectionRes.value)
-const students = computed<any[]>(() => inspectionData.value?.students || [])
 
 // Reset page when subject filter changes
 watch(selectedTeachingId, () => {
   currentPage.value = 1
+  store.refreshGrades()
 })
 
 // Pagination state matching Admin grade table
@@ -120,7 +89,7 @@ const paginatedStudents = computed(() => {
           size="sm"
           :loading="pendingGrades"
           class="w-full sm:w-auto flex justify-center cursor-pointer"
-          @click="() => refreshGrades()"
+          @click="() => refreshAll()"
         >
           <template #leading>
             <UIcon name="i-lucide-rotate-cw" class="hidden sm:inline-block" />

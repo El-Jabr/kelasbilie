@@ -5,26 +5,50 @@ definePageMeta({
   role: 'STUDENT'
 })
 
-const { data: studentRes, status: studentStatus } = await useFetch<any>('/api/students/me')
+const studentRes = ref<any>(null)
+const studentStatus = ref('pending')
 const studentId = computed(() => studentRes.value?.data?.id)
 
-const { data: gradesRes, status: gradesStatus, refresh } = await useAsyncData<any>(
-  'student-grades',
-  async () => {
+const gradesRes = ref<any>(null)
+const gradesStatus = ref('pending')
+
+async function fetchStudent() {
+  studentStatus.value = 'pending'
+  try {
+    studentRes.value = await $fetch('/api/students/me')
+    studentStatus.value = 'success'
+  } catch (error) {
+    console.error(error)
+    studentStatus.value = 'error'
+  }
+}
+
+async function refresh() {
+  gradesStatus.value = 'pending'
+  try {
     let sId = studentId.value
     if (!sId) {
-      const meRes: any = await ($fetch as any)('/api/students/me')
+      const meRes = await $fetch<any>('/api/students/me')
       sId = meRes?.data?.id
     }
-    if (!sId) return null
-    return await ($fetch as any)(`/api/grades/student/${sId}`)
-  },
-  {
-    watch: [studentId]
+    if (!sId) return
+    gradesRes.value = await $fetch(`/api/grades/student/${sId}`)
+    gradesStatus.value = 'success'
+  } catch (error) {
+    console.error(error)
+    gradesStatus.value = 'error'
   }
-)
+}
 
-const gradesList = computed(() => gradesRes.value?.data ?? [])
+watch(studentId, (newId) => {
+  if (newId) refresh()
+})
+
+onMounted(async () => {
+  await fetchStudent()
+})
+
+const gradesList = computed(() => gradesRes.value?.data ?? gradesRes.value ?? [])
 
 const search = ref('')
 const page = ref(1)

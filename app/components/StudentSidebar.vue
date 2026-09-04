@@ -23,40 +23,55 @@ const user = computed(() => ({
   role: authStore.user?.role ?? 'STUDENT'
 }))
 
-const navItems = computed<NavigationMenuItem[]>(() => {
+const navGroups = computed(() => {
   const isSuperOrAdmin = user.value.role === 'SUPER_ADMIN' || user.value.role === 'ADMIN'
 
-  const items: NavigationMenuItem[] = [
+  const groups = [
     {
-      label: 'Dashboard Siswa',
-      icon: 'i-lucide-home',
-      to: '/student',
-      active: route.path === '/student'
+      title: 'Portal Siswa',
+      items: [
+        {
+          label: 'Dashboard Siswa',
+          icon: 'i-lucide-home',
+          to: '/student',
+          active: route.path === '/student'
+        },
+        {
+          label: 'Nilai Akademik',
+          icon: 'i-lucide-award',
+          to: '/student/grades',
+          active: route.path.startsWith('/student/grades')
+        }
+      ]
     },
     {
-      label: 'Nilai Akademik',
-      icon: 'i-lucide-award',
-      to: '/student/grades',
-      active: route.path.startsWith('/student/grades')
-    },
-    {
-      label: 'Profil Saya',
-      icon: 'i-lucide-user',
-      to: '/student/profile',
-      active: route.path === '/student/profile'
+      title: 'Akun',
+      items: [
+        {
+          label: 'Profil Saya',
+          icon: 'i-lucide-user',
+          to: '/student/profile',
+          active: route.path === '/student/profile'
+        }
+      ]
     }
   ]
 
   if (isSuperOrAdmin) {
-    items.push({
-      label: 'Ke Panel Admin',
-      icon: 'i-lucide-shield',
-      to: '/super-admin',
-      active: route.path.startsWith('/super-admin')
+    groups.push({
+      title: 'Sistem',
+      items: [
+        {
+          label: 'Ke Panel Admin',
+          icon: 'i-lucide-shield',
+          to: '/super-admin',
+          active: route.path.startsWith('/super-admin')
+        }
+      ]
     })
   }
 
-  return items
+  return groups
 })
 
 async function handleLogout() {
@@ -106,12 +121,17 @@ async function handleLogout() {
     </div>
 
     <!-- Navigation List -->
-    <div class="flex-1 overflow-y-auto p-3 space-y-1">
-      <UNavigationMenu
-        :items="navItems"
-        orientation="vertical"
-        class="w-full"
-      />
+    <div class="flex-1 overflow-y-auto p-3 space-y-4">
+      <div v-for="(group, idx) in navGroups" :key="idx" class="space-y-1">
+        <p v-if="group.title" class="px-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+          {{ group.title }}
+        </p>
+        <UNavigationMenu
+          :items="group.items"
+          orientation="vertical"
+          class="w-full"
+        />
+      </div>
     </div>
 
     <!-- Sidebar Footer / User Profile -->

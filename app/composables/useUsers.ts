@@ -1,119 +1,65 @@
-import type { UserSchema } from '~~/shared/schemas/user'
-import type { PaginationMeta, PaginatedResponse } from '~~/shared/types/api'
+import { storeToRefs } from 'pinia'
+import { useUserMasterStore } from '~~/app/stores/userMaster'
 
 export function useUsers() {
-  // State
-  const users = useState<UserSchema[]>('users:list', () => [])
-  const pagination = useState<PaginationMeta>('users:pagination', () => ({
-    page: 1,
-    limit: 10,
-    total: 0,
-    pages: 1
-  }))
+  const store = useUserMasterStore()
+  const {
+    users,
+    paginationUsers: pagination,
+    loadingUsers: loading,
+    searchUsers: search,
+    roleUsers: role,
+    activeUsers: active,
+    sortUsers: sort,
+    orderUsers: order,
+    selectedUsers: selected,
+    selectedUser
+  } = storeToRefs(store)
 
-  const loading = useState('users:loading', () => false)
-
-  // Filter
-  const search = useState('users:search', () => '')
-  const role = useState<string>('users:role', () => 'ALL')
-  const active = useState<string>('users:active', () => 'ALL')
-
-  // Sorting
-  const sort = useState('users:sort', () => 'createdAt')
-  const order = useState<'asc' | 'desc'>('users:order', () => 'desc')
-
-  // Selected rows (untuk fitur berikutnya)
-  const selected = useState<UserSchema[]>('users:selected', () => [])
-
-  const selectedUser = useState<UserSchema | null>(
-    'users:selected-user',
-    () => null
-  )
-
-  async function fetchUsers(page = pagination.value.page) {
-    loading.value = true
-
-    try {
-      const response = await $fetch<PaginatedResponse<UserSchema>>('/api/users', {
-        credentials: 'include',
-        query: {
-          page,
-          limit: pagination.value.limit,
-          search: search.value || undefined,
-          role: role.value || undefined,
-          active: active.value || undefined,
-          sort: sort.value,
-          order: order.value
-        }
-      })
-
-      users.value = response.data
-      pagination.value = response.pagination
-    } finally {
-      loading.value = false
-    }
+  async function fetchUsers(force?: boolean | unknown) {
+    const isForce = force === true
+    await store.fetchUsers(isForce)
   }
 
   async function refresh() {
     pagination.value.page = 1
-    await fetchUsers(1)
+    await store.fetchUsers(true, 1)
   }
 
   async function changePage(page: number) {
-    await fetchUsers(page)
+    pagination.value.page = page
+    await store.fetchUsers(true, page)
   }
 
   async function changeLimit(limit: number) {
     pagination.value.limit = limit
-    await fetchUsers(1)
-  }
-
-  async function changeSort(field: string) {
-    if (sort.value === field) {
-      order.value = order.value === 'asc' ? 'desc' : 'asc'
-    } else {
-      sort.value = field
-      order.value = 'asc'
-    }
-
-    await fetchUsers(1)
+    await store.fetchUsers(true, 1)
   }
 
   async function resetFilter() {
     search.value = ''
-    role.value = ''
-    active.value = ''
+    role.value = 'ALL'
+    active.value = 'ALL'
     sort.value = 'createdAt'
     order.value = 'desc'
-
-    await fetchUsers(1)
+    await store.fetchUsers(true, 1)
   }
 
   return {
-    // data
     users,
     pagination,
     loading,
-
-    // filter
     search,
     role,
     active,
-
-    // sorting
     sort,
     order,
-
-    // selection
     selected,
     selectedUser,
-
-    // methods
     fetchUsers,
     refresh,
     changePage,
     changeLimit,
-    changeSort,
     resetFilter
   }
 }

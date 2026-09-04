@@ -9,27 +9,51 @@ const route = useRoute()
 const teachingId = route.params.id as string
 const studentId = route.params.studentId as string
 
-// Fetch teaching assignment detail
-const { data: teachingRes, status: teachingStatus } = await useFetch<any>(`/api/teaching-assignments/${teachingId}`)
+const teachingRes = ref<any>(null)
+const teachingStatus = ref('pending')
 const teaching = computed(() => teachingRes.value?.data ?? null)
 
-// Fetch student detail
-const { data: studentRes } = await useFetch<any>(`/api/students/${studentId}`)
+const studentRes = ref<any>(null)
 const student = computed(() => studentRes.value?.data ?? null)
 
-// Fetch student components
-const { data: componentsRes, status: componentsStatus, refresh } = await useAsyncData<any>(
-  `teacher-student-components-${teachingId}-${studentId}`,
-  async () => {
-    if (!studentId || !teachingId) return null
-    return await ($fetch as any)('/api/grades/components', {
-      query: {
-        studentId,
-        teachingId
-      }
-    })
+const componentsRes = ref<any>(null)
+const componentsStatus = ref('pending')
+
+async function fetchTeaching() {
+  teachingStatus.value = 'pending'
+  try {
+    teachingRes.value = await $fetch(`/api/teaching-assignments/${teachingId}`)
+    teachingStatus.value = 'success'
+  } catch (error) {
+    console.error(error)
+    teachingStatus.value = 'error'
   }
-)
+}
+
+async function fetchStudent() {
+  try {
+    studentRes.value = await $fetch(`/api/students/${studentId}`)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+async function refresh() {
+  componentsStatus.value = 'pending'
+  try {
+    componentsRes.value = await $fetch('/api/grades/components', {
+      query: { studentId, teachingId }
+    })
+    componentsStatus.value = 'success'
+  } catch (error) {
+    console.error(error)
+    componentsStatus.value = 'error'
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([fetchTeaching(), fetchStudent(), refresh()])
+})
 
 const components = computed(() => componentsRes.value?.data ?? [])
 

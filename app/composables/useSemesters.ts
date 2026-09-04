@@ -1,105 +1,50 @@
-import type { SemesterSchema } from '~~/shared/schemas/semester'
-import type { PaginatedResponse, PaginationMeta } from '~~/shared/types/api'
+import { storeToRefs } from 'pinia'
+import { useAcademicStore } from '~~/app/stores/academic'
 
 export function useSemesters() {
-  // State
-  const semesters = useState<SemesterSchema[]>(
-    'semesters:list',
-    () => []
-  )
+  const store = useAcademicStore()
+  const {
+    semesters,
+    paginationSem: pagination,
+    loadingSem: loading,
+    filterAcademicYearId: academicYearId,
+    activeSem: active,
+    selectedSemester
+  } = storeToRefs(store)
 
-  const pagination = useState<PaginationMeta>(
-    'semesters:pagination',
-    () => ({
-      page: 1,
-      limit: 10,
-      total: 0,
-      pages: 1
-    })
-  )
-
-  const loading = useState(
-    'semesters:loading',
-    () => false
-  )
-
-  // Filter
-  const academicYearId = useState(
-    'semesters:academic-year',
-    () => 'ALL'
-  )
-
-  const active = useState<string>(
-    'semesters:active',
-    () => 'ALL'
-  )
-
-  // Selection
-  const selectedSemester = useState<SemesterSchema | null>(
-    'semesters:selected',
-    () => null
-  )
-
-  async function fetchSemesters(page = pagination.value.page) {
-    loading.value = true
-
-    try {
-      const response = await $fetch<PaginatedResponse<SemesterSchema>>(
-        '/api/semesters',
-        {
-          query: {
-            page,
-            limit: pagination.value.limit,
-            academicYearId: academicYearId.value === 'ALL' ? undefined : academicYearId.value,
-            active: active.value === 'ALL'
-              ? undefined
-              : active.value
-          }
-        }
-      )
-
-      semesters.value = response.data
-      pagination.value = response.pagination
-    } finally {
-      loading.value = false
-    }
+  async function fetchSemesters(force?: boolean | unknown) {
+    const isForce = force === true
+    await store.fetchSemesters(isForce)
   }
 
   async function refresh() {
     pagination.value.page = 1
-    await fetchSemesters(1)
+    await store.fetchSemesters(true, 1)
   }
 
   async function changePage(page: number) {
-    await fetchSemesters(page)
+    pagination.value.page = page
+    await store.fetchSemesters(true, page)
   }
 
   async function changeLimit(limit: number) {
     pagination.value.limit = limit
-    await fetchSemesters(1)
+    await store.fetchSemesters(true, 1)
   }
 
   async function resetFilter() {
-    academicYearId.value = ''
+    academicYearId.value = 'ALL'
     active.value = 'ALL'
-
-    await fetchSemesters(1)
+    await store.fetchSemesters(true, 1)
   }
 
   return {
-    // data
     semesters,
     pagination,
     loading,
-
-    // filter
     academicYearId,
     active,
-
-    // selection
     selectedSemester,
-
-    // methods
     fetchSemesters,
     refresh,
     changePage,

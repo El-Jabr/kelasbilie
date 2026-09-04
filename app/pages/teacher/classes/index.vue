@@ -1,31 +1,32 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
+import { storeToRefs } from 'pinia'
+import { useTeacherClassStore } from '~~/app/stores/teacherClass'
 
 definePageMeta({
   layout: 'teacher',
   middleware: ['auth', 'role'],
-  role: ['TEACHER', 'ADMIN']
+  role: ['TEACHER', 'ADMIN', 'SUPER_ADMIN']
 })
 
 const router = useRouter()
-const { data: teacherRes } = await useFetch('/api/teachers/me')
-const teacher = computed(() => teacherRes.value?.data)
+const store = useTeacherClassStore()
+const {
+  teacher,
+  assignments,
+  pagination,
+  search,
+  page,
+  pendingAssignments: pending
+} = storeToRefs(store)
 
-const search = ref('')
-const page = ref(1)
-
-const { data: teachingsRes, pending } = await useFetch('/api/teaching-assignments', {
-  query: computed(() => ({
-    teacherId: teacher.value?.id,
-    search: search.value,
-    page: page.value,
-    limit: 10
-  })),
-  immediate: !!teacher.value?.id
+onMounted(async () => {
+  await store.fetchAssignments()
 })
 
-const assignments = computed(() => teachingsRes.value?.data ?? [])
-const pagination = computed(() => teachingsRes.value?.pagination ?? { page: 1, limit: 10, total: 0, pages: 1 })
+watch([search, page], () => {
+  store.fetchAssignments(true)
+})
 
 const columns: any[] = [
   { accessorKey: 'subject', header: 'Mata Pelajaran' },

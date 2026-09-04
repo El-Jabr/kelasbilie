@@ -5,8 +5,24 @@ definePageMeta({
   role: 'STUDENT'
 })
 
-const { data: studentRes, status, refresh } = await useFetch<any>('/api/students/me')
+const studentRes = ref<any>(null)
+const status = ref('pending')
 const student = computed(() => studentRes.value?.data ?? null)
+
+async function refresh() {
+  status.value = 'pending'
+  try {
+    studentRes.value = await $fetch('/api/students/me')
+    status.value = 'success'
+  } catch (error) {
+    console.error(error)
+    status.value = 'error'
+  }
+}
+
+onMounted(async () => {
+  await refresh()
+})
 
 const studentClassesList = computed<any[]>(() => student.value?.classes ?? [])
 

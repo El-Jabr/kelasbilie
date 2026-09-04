@@ -17,7 +17,7 @@ import type { User } from '~~/prisma/generated/client'
 export const useAuthStore = defineStore('auth', () => {
   /**
    * Data user yang sedang login.
-   * Berisi { id, email, role, fullname } dari JWT payload.
+   * Berisi { id, username, role, fullname } dari JWT payload.
    * Null jika user belum login atau sudah logout.
    */
   const user = ref<any | null>(null)
@@ -47,7 +47,7 @@ export const useAuthStore = defineStore('auth', () => {
    */
   function setUser(data: any | null) {
     user.value = data
-    console.debug('[AuthStore] setUser dipanggil:', data?.email ?? 'null')
+    console.debug('[AuthStore] setUser dipanggil:', data?.username ?? 'null')
   }
 
   /**

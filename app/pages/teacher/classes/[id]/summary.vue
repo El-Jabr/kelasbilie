@@ -9,13 +9,40 @@ const route = useRoute()
 const toast = useToast()
 const teachingId = route.params.id as string
 
-const { data: teachingRes, pending: pendingTeaching } = await useFetch(`/api/teaching-assignments/${teachingId}`)
+const teachingRes = ref<any>(null)
+const pendingTeaching = ref(true)
 const teaching = computed(() => teachingRes.value?.data)
 
-const { data: summaryRes, pending: pendingSummary, refresh } = await useFetch('/api/grades/summary', {
-  query: computed(() => ({
-    teachingId
-  }))
+const summaryRes = ref<any>(null)
+const pendingSummary = ref(true)
+
+async function fetchTeaching() {
+  pendingTeaching.value = true
+  try {
+    teachingRes.value = await $fetch(`/api/teaching-assignments/${teachingId}`)
+  } catch (error) {
+    console.error(error)
+  } finally {
+    pendingTeaching.value = false
+  }
+}
+
+async function refresh() {
+  pendingSummary.value = true
+  try {
+    summaryRes.value = await $fetch('/api/grades/summary', {
+      query: { teachingId }
+    })
+  } catch (error) {
+    console.error(error)
+  } finally {
+    pendingSummary.value = false
+  }
+}
+
+onMounted(async () => {
+  await fetchTeaching()
+  await refresh()
 })
 
 const studentSummaries = computed<any[]>(() => summaryRes.value?.data ?? [])

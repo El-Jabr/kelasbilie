@@ -23,7 +23,7 @@ const route = useRoute()
 const activeTab = ref(route.query.tab === 'homeroom' ? 'homeroom' : 'teaching')
 
 // ── Semester Filter (Teaching Assignment) ─────────────────────────────────
-const selectedSemesterId = ref('')
+const selectedSemesterId = ref('all')
 
 interface ISemester {
   id: string
@@ -51,7 +51,7 @@ interface IHomeroom {
 }
 
 const semesterOptions = computed(() => [
-  { label: 'Semua Semester', value: '' },
+  { label: 'Semua Semester', value: 'all' },
   ...(semesters.value as ISemester[]).map(s => ({
     label: `${s.type} ${s.academicYear?.name || ''} ${s.isActive ? '(Aktif)' : ''}`.trim(),
     value: s.id
@@ -61,7 +61,7 @@ const semesterOptions = computed(() => [
 // ── Teaching Assignments: filter + group by classroom ─────────────────────
 const filteredTA = computed(() => {
   const list = teachingAssignments.value as ITeachingAssignment[]
-  if (!selectedSemesterId.value) return list
+  if (!selectedSemesterId.value || selectedSemesterId.value === 'all') return list
   return list.filter(ta => ta.semesterId === selectedSemesterId.value)
 })
 
@@ -83,11 +83,11 @@ const groupedByClassroom = computed(() => {
 })
 
 // ── Homeroom: filter by semester ──────────────────────────────────────────
-const selectedHRSemesterId = ref('')
+const selectedHRSemesterId = ref('all')
 
 const filteredHomerooms = computed(() => {
   const list = homerooms.value as IHomeroom[]
-  if (!selectedHRSemesterId.value) return list
+  if (!selectedHRSemesterId.value || selectedHRSemesterId.value === 'all') return list
   return list.filter(h => h.semesterId === selectedHRSemesterId.value)
 })
 
@@ -136,14 +136,58 @@ async function syncGrades(courseId: number, subjectName?: string, className?: st
   }
 }
 
+// ── Progress Fetching ───────────────────────────────────────────────────────
+const progressMap = ref<Record<string, { percent: number, expected: number, filled: number }>>({})
+const loadingProgress = ref(false)
+
+async function fetchProgress() {
+  if (!selectedSemesterId.value || selectedSemesterId.value === 'all') {
+    progressMap.value = {}
+    return
+  }
+  loadingProgress.value = true
+  try {
+    const res = await $fetch<any[]>('/api/progress/teaching-assignments', {
+      query: { semesterId: selectedSemesterId.value },
+      credentials: 'include'
+    })
+    const map: Record<string, any> = {}
+    res.forEach(item => {
+      map[item.teachingId] = item
+    })
+    progressMap.value = map
+  } catch (err) {
+    console.error('Failed to load progress', err)
+  } finally {
+    loadingProgress.value = false
+  }
+}
+
+watch(selectedSemesterId, () => {
+  if (activeTab.value === 'teaching') {
+    fetchProgress()
+  }
+})
+
 // ── Init ──────────────────────────────────────────────────────────────────
 onMounted(async () => {
+  // Jika data semester sudah ada di store, langsung set filter aktif tanpa delay
+  const existingActiveSem = (semesters.value as ISemester[]).find(s => s.isActive)
+  if (existingActiveSem && selectedSemesterId.value === 'all') {
+    selectedSemesterId.value = existingActiveSem.id
+    selectedHRSemesterId.value = existingActiveSem.id
+  }
+
   await Promise.all([fetchTeachingAssignments(), fetchHomerooms()])
-  // Default: aktifkan filter semester aktif
+
   const activeSem = (semesters.value as ISemester[]).find(s => s.isActive)
-  if (activeSem) {
+  if (activeSem && selectedSemesterId.value === 'all') {
     selectedSemesterId.value = activeSem.id
     selectedHRSemesterId.value = activeSem.id
+  }
+
+  if (activeTab.value === 'teaching') {
+    fetchProgress()
   }
 })
 </script>
@@ -344,29 +388,44 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <!-- Right: Course badge + Actions -->
-              <div class="flex items-center gap-2 shrink-0">
-                <UBadge
-                  v-if="ta.courseId"
-                  color="primary"
-                  variant="subtle"
-                  size="xs"
-                  class="font-mono"
-                >
-                  <UIcon
-                    name="i-lucide-cloud"
-                    class="w-3 h-3 mr-1"
-                  />
-                  Course #{{ ta.courseId }}
-                </UBadge>
-                <UBadge
-                  v-else
-                  color="warning"
-                  variant="subtle"
-                  size="xs"
-                >
-                  Belum terhubung Moodle
-                </UBadge>
+              <!-- Right: Course badge + Progress + Actions -->
+              <div class="flex items-center gap-4 shrink-0">
+                <!-- Progress Bar -->
+                <div v-if="ta.courseId && progressMap[ta.id]" class="hidden sm:block w-32 px-2">
+                  <div class="flex justify-between text-[10px] mb-1">
+                    <span class="text-gray-500 dark:text-gray-400 font-medium">Progres Nilai</span>
+                    <span class="font-bold" :class="progressMap[ta.id]?.percent === 100 ? 'text-success-600 dark:text-success-400' : 'text-primary-600 dark:text-primary-400'">
+                      {{ progressMap[ta.id]?.percent ?? 0 }}%
+                    </span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700 overflow-hidden">
+                    <div class="h-1.5 rounded-full transition-all duration-500" :class="progressMap[ta.id]?.percent === 100 ? 'bg-success-500' : 'bg-primary-500'" :style="`width: ${progressMap[ta.id]?.percent ?? 0}%`"></div>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <UBadge
+                    v-if="ta.courseId"
+                    color="primary"
+                    variant="subtle"
+                    size="xs"
+                    class="font-mono"
+                  >
+                    <UIcon
+                      name="i-lucide-cloud"
+                      class="w-3 h-3 mr-1"
+                    />
+                    Course #{{ ta.courseId }}
+                  </UBadge>
+                  <UBadge
+                    v-else
+                    color="warning"
+                    variant="subtle"
+                    size="xs"
+                  >
+                    Belum terhubung Moodle
+                  </UBadge>
+                </div>
 
                 <UButton
                   v-if="ta.courseId"

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useIntervalFn } from '@vueuse/core'
-
 definePageMeta({
   layout: 'admin'
 })
@@ -28,9 +26,28 @@ const queryParams = computed(() => ({
   limit: 200
 }))
 
-const { data, status, refresh } = await useFetch('/api/monitoring/debug-logs', {
-  query: queryParams,
-  watch: [selectedLevel, searchQuery]
+const data = ref<any>(null)
+const status = ref('pending')
+
+async function refresh() {
+  status.value = 'pending'
+  try {
+    data.value = await $fetch('/api/monitoring/debug-logs', {
+      query: queryParams.value
+    })
+    status.value = 'success'
+  } catch (error) {
+    console.error(error)
+    status.value = 'error'
+  }
+}
+
+watch([selectedLevel, searchQuery], () => {
+  refresh()
+})
+
+onMounted(() => {
+  refresh()
 })
 
 const logs = computed<Record<string, any>[]>(() => (data.value?.logs || []) as any[])

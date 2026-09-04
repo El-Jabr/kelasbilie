@@ -2,44 +2,32 @@ import { prisma as db } from '~~/server/utils/db'
 import { requireRole } from '~~/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
-  const user = requireRole(event, ['SUPER_ADMIN', 'ADMIN', 'TEACHER'])
-
-  // Get active semester
-  const activeSemester = await db.semester.findFirst({
-    where: { isActive: true },
-    include: { academicYear: true }
-  })
-
-  if (!activeSemester) {
-    return { progress: 0, items: [] }
+  requireRole(event, ['SUPER_ADMIN', 'ADMIN'])
+  const query = getQuery(event)
+  const semesterId = query.semesterId ? String(query.semesterId) : undefined
+  
+  if (!semesterId) {
+    return []
   }
 
-  const teacher = await db.teacher.findUnique({
-    where: { userId: user.id }
-  })
-
-  if (!teacher) {
-    throw createError({ statusCode: 404, message: 'Data guru tidak ditemukan' })
-  }
-
-  // Find all teaching assignments for this teacher in the active semester
+  // Fetch all teaching assignments for the semester
   const teachings = await db.teachingAssignment.findMany({
-    where: {
-      teacherId: teacher.id,
-      semesterId: activeSemester.id
-    },
-    include: {
-      subject: true,
+    where: { semesterId },
+    select: {
+      id: true,
       classroom: {
-        include: {
+        select: {
           students: {
-            where: { semesterId: activeSemester.id }
+            where: { semesterId },
+            select: { studentId: true }
           }
         }
       },
       course: {
-        include: {
-          gradeItems: true
+        select: {
+          gradeItems: {
+            select: { id: true }
+          }
         }
       }
     }
@@ -50,7 +38,7 @@ export default defineEventHandler(async (event) => {
   const allGradeItemIds = new Set<number>()
 
   for (const teaching of teachings) {
-    teaching.classroom.students.forEach((s: any) => allStudentIds.add(s.studentId))
+    teaching.classroom?.students?.forEach((s: any) => allStudentIds.add(s.studentId))
     teaching.course?.gradeItems?.forEach((g: any) => allGradeItemIds.add(g.id))
   }
 
@@ -68,18 +56,13 @@ export default defineEventHandler(async (event) => {
   }
 
   // 3. Calculate progress in memory
-  let totalExpected = 0
-  let totalFilled = 0
-  const items = []
+  const results = []
 
   for (const teaching of teachings) {
-    const studentIds = teaching.classroom.students.map((s: { studentId: string }) => s.studentId)
+    const studentIds = teaching.classroom?.students?.map((s: { studentId: string }) => s.studentId) || []
     const gradeItemIds = teaching.course?.gradeItems?.map((g: { id: number }) => g.id) || []
 
-    const studentsCount = studentIds.length
-    const gradeItemsCount = gradeItemIds.length
-
-    const expected = studentsCount * gradeItemsCount
+    const expected = studentIds.length * gradeItemIds.length
     let filled = 0
 
     if (expected > 0) {
@@ -94,27 +77,13 @@ export default defineEventHandler(async (event) => {
 
     const percent = expected === 0 ? 100 : Math.round((filled / expected) * 100)
 
-    totalExpected += expected
-    totalFilled += filled
-
-    items.push({
+    results.push({
       teachingId: teaching.id,
-      subjectName: teaching.subject.name,
-      className: teaching.classroom.name,
-      studentsCount,
-      gradeItemsCount,
       expected,
       filled,
       percent
     })
   }
 
-  const overallPercent = totalExpected === 0 ? 100 : Math.round((totalFilled / totalExpected) * 100)
-
-  return {
-    overallPercent,
-    totalExpected,
-    totalFilled,
-    items
-  }
+  return results
 })

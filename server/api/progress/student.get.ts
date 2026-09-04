@@ -1,10 +1,8 @@
-import db from '~~/server/utils/db'
+import { prisma as db } from '~~/server/utils/db'
+import { requireRole } from '~~/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
-  const user = event.context.user
-  if (!user || user.role !== 'STUDENT') {
-    throw createError({ statusCode: 403, message: 'Hanya untuk siswa' })
-  }
+  const user = requireRole(event, ['SUPER_ADMIN', 'ADMIN', 'STUDENT'])
 
   const student = await db.student.findUnique({
     where: { userId: user.id }
@@ -45,26 +43,45 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!studentClass) {
-     return { percent: 0, totalExpected: 0, totalFilled: 0, items: [] }
+    return { percent: 0, totalExpected: 0, totalFilled: 0, items: [] }
   }
 
+  // 1. Collect all necessary gradeItemIds to avoid N+1 queries
+  const allGradeItemIds = new Set<number>()
+
+  for (const teaching of studentClass.classroom.teachings) {
+    teaching.course?.gradeItems?.forEach((g: any) => allGradeItemIds.add(g.id))
+  }
+
+  // 2. Fetch all matching grade components in a single query
+  let filledSet = new Set<number>()
+  if (allGradeItemIds.size > 0) {
+    const components = await db.gradeComponent.findMany({
+      where: {
+        studentId: student.id,
+        gradeItemId: { in: Array.from(allGradeItemIds) }
+      },
+      select: { gradeItemId: true }
+    })
+    filledSet = new Set(components.map(c => c.gradeItemId))
+  }
+
+  // 3. Calculate progress in memory
   let totalExpected = 0
   let totalFilled = 0
   const items = []
 
   for (const teaching of studentClass.classroom.teachings) {
-    const gradeItems = teaching.course?.gradeItems || []
-    const expected = gradeItems.length
+    const gradeItemIds = teaching.course?.gradeItems?.map((g: { id: number }) => g.id) || []
+    const expected = gradeItemIds.length
     let filled = 0
 
     if (expected > 0) {
-      const gradeItemIds = gradeItems.map(g => g.id)
-      filled = await db.gradeComponent.count({
-        where: {
-          studentId: student.id,
-          gradeItemId: { in: gradeItemIds }
+      for (const gId of gradeItemIds) {
+        if (filledSet.has(gId)) {
+          filled++
         }
-      })
+      }
     }
 
     const percent = expected === 0 ? 100 : Math.round((filled / expected) * 100)

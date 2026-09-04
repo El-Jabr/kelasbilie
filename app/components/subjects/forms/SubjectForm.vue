@@ -14,12 +14,12 @@ function generateCode(name: string): string {
   if (!name) return ''
   // Ambil huruf kapital atau huruf pertama setiap kata (maks 4 karakter)
   const words = name.trim().split(/\s+/)
-  if (words.length === 1) {
+  if (words.length === 1 && words[0]) {
     // Satu kata: ambil 3 huruf pertama uppercase
     return words[0].slice(0, 3).toUpperCase()
   }
   // Multi kata: inisial setiap kata, maks 4 karakter
-  return words.map(w => w[0]).join('').toUpperCase().slice(0, 4)
+  return words.map(w => w[0] || '').join('').toUpperCase().slice(0, 4)
 }
 
 watch(() => model.value.name, (newName) => {

@@ -18,9 +18,11 @@ const userTable = useTemplateRef('userTable')
 
 const { bulkUpdateStatus } = useUserActions()
 
-const { fetchUsers } = useUsers()
+const { users, fetchUsers } = useUsers()
 
-await fetchUsers()
+onMounted(() => {
+  if (users.value.length === 0) fetchUsers()
+})
 
 function bulkActivate() {
   bulkAction.value = 'activate'

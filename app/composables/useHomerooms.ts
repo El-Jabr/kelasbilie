@@ -1,86 +1,40 @@
-import type { PaginatedResponse, PaginationMeta } from '~~/shared/types/api'
+import { storeToRefs } from 'pinia'
+import { useAssignmentStore } from '~~/app/stores/assignment'
 
 export function useHomerooms() {
-  const homerooms = useState<any[]>(
-    'homerooms:list',
-    () => []
-  )
+  const store = useAssignmentStore()
+  const {
+    homerooms,
+    homeroomPagination: pagination,
+    loadingHR: loading,
+    selectedHomeroom
+  } = storeToRefs(store)
 
-  const pagination = useState<PaginationMeta>(
-    'homerooms:pagination',
-    () => ({
-      page: 1,
-      limit: 10,
-      total: 0,
-      pages: 1
+  const search = useState('homerooms:search', () => '')
+  const filterSemesterId = useState('homerooms:filterSemesterId', () => '')
+  const filterClassroomId = useState('homerooms:filterClassroomId', () => '')
+  const filterTeacherId = useState('homerooms:filterTeacherId', () => '')
+
+  async function fetchHomerooms(page = pagination.value.page, force = false) {
+    await store.fetchHomerooms(force, {
+      semesterId: filterSemesterId.value,
+      classroomId: filterClassroomId.value,
+      teacherId: filterTeacherId.value
     })
-  )
-
-  const loading = useState(
-    'homerooms:loading',
-    () => false
-  )
-
-  // Filters
-  const search = useState(
-    'homerooms:search',
-    () => ''
-  )
-  const filterSemesterId = useState(
-    'homerooms:filterSemesterId',
-    () => ''
-  )
-  const filterClassroomId = useState(
-    'homerooms:filterClassroomId',
-    () => ''
-  )
-  const filterTeacherId = useState(
-    'homerooms:filterTeacherId',
-    () => ''
-  )
-
-  const selectedHomeroom = useState<any | null>(
-    'homerooms:selected',
-    () => null
-  )
-
-  async function fetchHomerooms(page = pagination.value.page) {
-    loading.value = true
-
-    try {
-      const response = await $fetch<PaginatedResponse<any>>(
-        '/api/homerooms',
-        {
-          credentials: 'include',
-          query: {
-            page,
-            limit: pagination.value.limit,
-            semesterId: filterSemesterId.value || undefined,
-            classroomId: filterClassroomId.value || undefined,
-            teacherId: filterTeacherId.value || undefined
-          }
-        }
-      )
-
-      homerooms.value = response.data
-      pagination.value = response.pagination
-    } finally {
-      loading.value = false
-    }
   }
 
   async function refresh() {
-    pagination.value.page = 1
-    await fetchHomerooms(1)
+    await fetchHomerooms(1, true)
   }
 
   async function changePage(page: number) {
-    await fetchHomerooms(page)
+    pagination.value.page = page
+    await fetchHomerooms(page, true)
   }
 
   async function changeLimit(limit: number) {
     pagination.value.limit = limit
-    await fetchHomerooms(1)
+    await fetchHomerooms(1, true)
   }
 
   async function resetFilter() {
@@ -88,7 +42,7 @@ export function useHomerooms() {
     filterSemesterId.value = ''
     filterClassroomId.value = ''
     filterTeacherId.value = ''
-    await fetchHomerooms(1)
+    await fetchHomerooms(1, true)
   }
 
   return {

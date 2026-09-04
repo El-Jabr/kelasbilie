@@ -461,6 +461,20 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const hasError = Object.values(syncResults).some(r => r.status === 'FAILED')
+
+  if (hasError) {
+    const errorMessages = Object.values(syncResults)
+      .filter(r => r.status === 'FAILED')
+      .map(r => r.error)
+      .join(', ')
+
+    throw createError({
+      statusCode: 400,
+      statusMessage: errorMessages || 'Beberapa sinkronisasi gagal.'
+    })
+  }
+
   return {
     status: 'success',
     message: `Proses sinkronisasi [${resource}] selesai.`,

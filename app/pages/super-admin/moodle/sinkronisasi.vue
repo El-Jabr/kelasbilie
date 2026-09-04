@@ -569,7 +569,7 @@ watch(searchLog, () => {
           Tarik Data Dari Moodle ke Aplikasi (Pull Sync)
         </h2>
         <NuxtLink
-          to="/super-admin/akademik/teaching-assignments"
+          to="/super-admin/akademik/penugasan"
           class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
         >
           <UIcon

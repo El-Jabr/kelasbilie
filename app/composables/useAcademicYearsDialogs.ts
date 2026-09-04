@@ -26,6 +26,11 @@ export function useAcademicYearDialogs() {
     () => false
   )
 
+  const lockDialogOpen = useState(
+    'academic-years:lock-dialog',
+    () => false
+  )
+
   function openCreateDialog() {
     createDialogOpen.value = true
   }
@@ -70,6 +75,18 @@ export function useAcademicYearDialogs() {
     selectedAcademicYear.value = null
   }
 
+  function openLockDialog(
+    academicYear: AcademicYearSchema
+  ) {
+    selectedAcademicYear.value = academicYear
+    lockDialogOpen.value = true
+  }
+
+  function closeLockDialog() {
+    lockDialogOpen.value = false
+    selectedAcademicYear.value = null
+  }
+
   return {
     selectedAcademicYear,
 
@@ -77,6 +94,7 @@ export function useAcademicYearDialogs() {
     editDialogOpen,
     deleteDialogOpen,
     statusDialogOpen,
+    lockDialogOpen,
 
     openCreateDialog,
     closeCreateDialog,
@@ -88,6 +106,9 @@ export function useAcademicYearDialogs() {
     closeDeleteDialog,
 
     openStatusDialog,
-    closeStatusDialog
+    closeStatusDialog,
+
+    openLockDialog,
+    closeLockDialog
   }
 }

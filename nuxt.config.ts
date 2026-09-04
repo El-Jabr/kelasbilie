@@ -1,3 +1,11 @@
+// Fix fileURLToPath on Windows when Nitro prerender shims import.meta.url with file:///_entry.js
+if (typeof globalThis !== 'undefined' && !(globalThis as any)._importMeta_) {
+  (globalThis as any)._importMeta_ = {
+    url: 'file:///C:/_entry.js',
+    env: process.env
+  }
+}
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: [
@@ -51,6 +59,9 @@ export default defineNuxtConfig({
     prerender: {
       routes: [],
       crawlLinks: false
+    },
+    replace: {
+      'file:///_entry.js': 'file:///C:/_entry.js'
     }
   },
 

@@ -10,60 +10,58 @@ export default defineEventHandler(async (event) => {
       updateSemesterSchema.parse
     )
 
-    const semester = await prisma.$transaction(async (tx) => {
-      const exists = await tx.semester.findUnique({
-        where: { id }
+    const exists = await prisma.semester.findUnique({
+      where: { id }
+    })
+
+    if (!exists) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Semester tidak ditemukan.'
       })
+    }
 
-      if (!exists) {
-        throw createError({
-          statusCode: 404,
-          statusMessage: 'Semester tidak ditemukan.'
-        })
-      }
+    if (exists.isLocked && body.isLocked !== false) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Data semester terkunci dan tidak bisa diubah/dihapus.'
+      })
+    }
 
-      if (exists.isLocked) {
-        throw createError({
-          statusCode: 403,
-          statusMessage: 'Data semester terkunci dan tidak bisa diubah/dihapus.'
-        })
-      }
-
-      if (body.isActive === true) {
-        await tx.semester.updateMany({
-          where: {
-            isActive: true,
-            NOT: {
-              id
-            }
-          },
-          data: {
-            isActive: false
-          }
-        })
-      }
-
-      return tx.semester.update({
-        where: { id },
-
-        data: body,
-
-        select: {
-          id: true,
-          type: true,
+    if (body.isActive === true) {
+      await prisma.semester.updateMany({
+        where: {
           isActive: true,
-          isLocked: true,
-          createdAt: true,
-          updatedAt: true,
-
-          academicYear: {
-            select: {
-              id: true,
-              name: true
-            }
+          NOT: {
+            id
           }
+        },
+        data: {
+          isActive: false
         }
       })
+    }
+
+    const semester = await prisma.semester.update({
+      where: { id },
+
+      data: body,
+
+      select: {
+        id: true,
+        type: true,
+        isActive: true,
+        isLocked: true,
+        createdAt: true,
+        updatedAt: true,
+
+        academicYear: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
     })
 
     return {

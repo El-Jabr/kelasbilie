@@ -23,6 +23,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const query = getQuery(event)
+  const activeSemesterOnly = query.activeSemester !== 'false'
+  const semesterIdParam = query.semesterId ? String(query.semesterId) : undefined
+
   const teacher = await prisma.teacher.findUnique({
     where: { userId },
     select: {
@@ -40,6 +44,12 @@ export default defineEventHandler(async (event) => {
         }
       },
       teachings: {
+        where: {
+          ...(semesterIdParam && { semesterId: semesterIdParam }),
+          ...(activeSemesterOnly && !semesterIdParam && {
+            semester: { isActive: true }
+          })
+        },
         orderBy: { id: 'desc' },
         select: {
           id: true,

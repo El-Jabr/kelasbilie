@@ -17,8 +17,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // 1. Fetch unique student IDs & gradeItem IDs to get existing scores and metadata
-  const studentIds = Array.from(new Set(items.map((i: any) => String(i.studentId))))
-  const gradeItemIds = Array.from(new Set(items.map((i: any) => Number(i.gradeItemId))))
+  const studentIds = Array.from(new Set<string>(items.map((i: any) => String(i.studentId))))
+  const gradeItemIds = Array.from(new Set<number>(items.map((i: any) => Number(i.gradeItemId))))
 
   const [existingComponents, students, gradeItems] = await Promise.all([
     prisma.gradeComponent.findMany({
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
   })
 
   const studentMap = new Map<string, string>()
-  students.forEach(s => {
+  students.forEach((s: any) => {
     studentMap.set(s.id, s.user?.fullname || 'Siswa')
   })
 
@@ -128,7 +128,7 @@ export default defineEventHandler(async (event) => {
 
   if (changes.length === 0) {
     logDescription = `Simpan nilai ${subjectName}${classLabel} - Tidak ada perubahan data`
-  } else if (changes.length === 1) {
+  } else if (changes.length === 1 && changes[0]) {
     const c = changes[0]
     const oldStr = c.oldScore !== null ? c.oldScore : '-'
     logDescription = `Edit nilai ${subjectName}${classLabel} - ${c.studentName}: ${c.itemName} (${oldStr} ➔ ${c.newScore})`

@@ -28,6 +28,11 @@ export function useSemesterActions() {
     () => false
   )
 
+  const updatingLock = useState(
+    'semesters:updating-lock',
+    () => false
+  )
+
   const deleting = useState(
     'semesters:deleting',
     () => false
@@ -147,6 +152,50 @@ export function useSemesterActions() {
     }
   }
 
+  async function updateLock(
+    isLocked: boolean
+  ) {
+    if (!selectedSemester.value) {
+      return
+    }
+
+    updatingLock.value = true
+
+    try {
+      await $fetch(
+        `/api/semesters/${selectedSemester.value.id}`,
+        {
+          method: 'PATCH',
+          body: {
+            isLocked
+          }
+        }
+      )
+
+      toast.add({
+        title: 'Berhasil',
+        description: isLocked
+          ? 'Semester berhasil dikunci.'
+          : 'Kunci semester berhasil dibuka.',
+        color: 'success'
+      })
+
+      const { closeLockDialog } = useSemesterDialogs()
+      closeLockDialog()
+
+      await refresh()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      toast.add({
+        title: 'Gagal',
+        description: error.statusMessage ?? 'Terjadi kesalahan.',
+        color: 'error'
+      })
+    } finally {
+      updatingLock.value = false
+    }
+  }
+
   async function deleteSemester() {
     if (!selectedSemester.value) {
       return
@@ -187,11 +236,13 @@ export function useSemesterActions() {
     creating,
     updating,
     updatingStatus,
+    updatingLock,
     deleting,
 
     createSemester,
     updateSemester,
     updateStatus,
+    updateLock,
     deleteSemester
   }
 }

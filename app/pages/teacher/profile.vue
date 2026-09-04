@@ -2,13 +2,19 @@
 definePageMeta({
   layout: 'teacher',
   middleware: ['auth', 'role'],
-  role: ['TEACHER', 'ADMIN']
+  role: ['TEACHER', 'ADMIN', 'SUPER_ADMIN']
 })
 
-const toast = useToast()
+import { storeToRefs } from 'pinia'
+import { useTeacherStore } from '~~/app/stores/teacher'
 
-const { data: teacherRes, pending, refresh } = await useFetch('/api/teachers/me')
-const teacher = computed(() => teacherRes.value?.data)
+const toast = useToast()
+const teacherStore = useTeacherStore()
+const { teacherProfile: teacher, isLoading: pending } = storeToRefs(teacherStore)
+
+onMounted(() => {
+  teacherStore.fetchTeacherData()
+})
 
 const state = reactive({
   nip: ''
@@ -27,19 +33,12 @@ async function onSubmit() {
   isSaving.value = true
 
   try {
-    await $fetch(`/api/teachers/${teacher.value.id}`, {
-      method: 'PATCH',
-      body: {
-        nip: state.nip
-      }
-    })
-
+    await teacherStore.updateProfile({ nip: state.nip })
     toast.add({
       title: 'Berhasil',
       description: 'Profil Anda telah diperbarui.',
       color: 'success'
     })
-    await refresh()
   } catch (err: any) {
     toast.add({
       title: 'Gagal',

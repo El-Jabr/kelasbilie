@@ -8,23 +8,55 @@ definePageMeta({
 const route = useRoute()
 const teachingId = route.params.id as string
 
-const { data: teachingRes, pending: pendingTeaching } = await useFetch(`/api/teaching-assignments/${teachingId}`)
+const teachingRes = ref<any>(null)
+const pendingTeaching = ref(true)
 const teaching = computed(() => teachingRes.value?.data)
 
 const search = ref('')
 const page = ref(1)
 
-const { data: studentsRes, pending: pendingStudents } = await useFetch('/api/student-classes', {
-  query: computed(() => ({
-    classroomId: teaching.value?.classroomId,
-    semesterId: teaching.value?.semesterId,
-    page: page.value,
-    limit: 50
-  })),
-  immediate: !!teaching.value?.classroomId
+const studentsRes = ref<any>(null)
+const pendingStudents = ref(true)
+
+async function fetchTeaching() {
+  pendingTeaching.value = true
+  try {
+    teachingRes.value = await $fetch(`/api/teaching-assignments/${teachingId}`)
+  } catch (error) {
+    console.error(error)
+  } finally {
+    pendingTeaching.value = false
+  }
+}
+
+async function fetchStudents() {
+  if (!teaching.value?.classroomId) return
+  pendingStudents.value = true
+  try {
+    studentsRes.value = await $fetch('/api/student-classes', {
+      query: {
+        classroomId: teaching.value?.classroomId,
+        semesterId: teaching.value?.semesterId,
+        page: page.value,
+        limit: 50
+      }
+    })
+  } catch (error) {
+    console.error(error)
+  } finally {
+    pendingStudents.value = false
+  }
+}
+
+watch([page, () => teaching.value?.classroomId], () => {
+  fetchStudents()
 })
 
-const studentClasses = computed(() => studentsRes.value?.data ?? [])
+onMounted(async () => {
+  await fetchTeaching()
+})
+
+const studentClasses = computed<any[]>(() => studentsRes.value?.data ?? [])
 const pagination = computed(() => studentsRes.value?.pagination ?? { page: 1, limit: 50, total: 0, pages: 1 })
 
 const columns = [

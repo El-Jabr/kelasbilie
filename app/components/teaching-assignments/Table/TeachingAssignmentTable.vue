@@ -98,12 +98,6 @@ function getActionItems(row: Record<string, unknown>): Record<string, unknown>[]
   }
 
   mainGroup.push({
-    label: 'Lihat Detail',
-    icon: 'i-lucide-eye',
-    to: `/super-admin/akademik/teaching-assignments/${row.id as string}`
-  })
-
-  mainGroup.push({
     label: 'Edit Penugasan',
     icon: 'i-lucide-pencil',
     onSelect: () => openEditDialog(row)

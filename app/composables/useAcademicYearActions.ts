@@ -4,6 +4,7 @@ export function useAcademicYearActions() {
   const toast = useToast()
 
   const { refresh } = useAcademicYears()
+  const { refresh: refreshSemesters } = useSemesters()
 
   const {
     selectedAcademicYear,
@@ -25,6 +26,11 @@ export function useAcademicYearActions() {
 
   const updatingStatus = useState(
     'academic-years:updating-status',
+    () => false
+  )
+
+  const updatingLock = useState(
+    'academic-years:updating-lock',
     () => false
   )
 
@@ -52,7 +58,7 @@ export function useAcademicYearActions() {
 
       closeCreateDialog()
 
-      await refresh()
+      await Promise.all([refresh(), refreshSemesters()])
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.add({
@@ -91,7 +97,7 @@ export function useAcademicYearActions() {
 
       closeEditDialog()
 
-      await refresh()
+      await Promise.all([refresh(), refreshSemesters()])
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.add({
@@ -134,7 +140,7 @@ export function useAcademicYearActions() {
 
       closeStatusDialog()
 
-      await refresh()
+      await Promise.all([refresh(), refreshSemesters()])
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.add({
@@ -170,7 +176,7 @@ export function useAcademicYearActions() {
 
       closeDeleteDialog()
 
-      await refresh()
+      await Promise.all([refresh(), refreshSemesters()])
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.add({
@@ -183,15 +189,63 @@ export function useAcademicYearActions() {
     }
   }
 
+  async function updateLock(
+    isLocked: boolean
+  ) {
+    if (!selectedAcademicYear.value) {
+      return
+    }
+
+    updatingLock.value = true
+
+    try {
+      await $fetch(
+        `/api/academic-years/${selectedAcademicYear.value.id}`,
+        {
+          method: 'PUT',
+          body: {
+            name: selectedAcademicYear.value.name,
+            isActive: selectedAcademicYear.value.isActive,
+            isLocked
+          }
+        }
+      )
+
+      toast.add({
+        title: 'Berhasil',
+        description: isLocked
+          ? 'Tahun ajaran berhasil dikunci.'
+          : 'Kunci tahun ajaran berhasil dibuka.',
+        color: 'success'
+      })
+
+      const { closeLockDialog } = useAcademicYearDialogs()
+      closeLockDialog()
+
+      await refresh()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      toast.add({
+        title: 'Gagal',
+        description: error.statusMessage ?? 'Terjadi kesalahan.',
+        color: 'error'
+      })
+    } finally {
+      updatingLock.value = false
+    }
+  }
+
   return {
     creating,
     updating,
     updatingStatus,
+    updatingLock,
     deleting,
 
     createAcademicYear,
     updateAcademicYear,
     updateStatus,
+    updateLock,
     deleteAcademicYear
   }
 }

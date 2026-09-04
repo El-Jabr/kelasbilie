@@ -8,7 +8,7 @@ definePageMeta({
 const route = useRoute()
 const teachingId = route.params.teachingId as string
 
-const { data: studentRes } = await useFetch<{ data?: { id?: string } }>('/api/students/me')
+const studentRes = ref<{ data?: { id?: string } } | null>(null)
 const studentId = computed(() => studentRes.value?.data?.id)
 
 interface TeachingRecord {
@@ -18,7 +18,8 @@ interface TeachingRecord {
   [key: string]: unknown
 }
 
-const { data: teachingRes, status: teachingStatus } = await useFetch<{ data?: TeachingRecord }>(`/api/teaching-assignments/${teachingId}`)
+const teachingRes = ref<{ data?: TeachingRecord } | null>(null)
+const teachingStatus = ref('pending')
 const teaching = computed(() => teachingRes.value?.data ?? null)
 
 interface GradeRow {
@@ -35,26 +36,51 @@ interface GradeRow {
   [key: string]: unknown
 }
 
-const { data: componentsRes, status: componentsStatus, refresh } = await useAsyncData<{ data?: GradeRow[] } | null>(
-  `components-${teachingId}`,
-  async () => {
+const componentsRes = ref<{ data?: GradeRow[] } | null>(null)
+const componentsStatus = ref('pending')
+
+async function fetchTeaching() {
+  teachingStatus.value = 'pending'
+  try {
+    teachingRes.value = await $fetch<{ data?: TeachingRecord }>(`/api/teaching-assignments/${teachingId}`)
+    teachingStatus.value = 'success'
+  } catch (error) {
+    console.error(error)
+    teachingStatus.value = 'error'
+  }
+}
+
+async function refresh() {
+  componentsStatus.value = 'pending'
+  try {
     let sId = studentId.value
     if (!sId) {
       const meRes = await $fetch<{ data?: { id?: string } }>('/api/students/me')
       sId = meRes?.data?.id
+      studentRes.value = meRes
     }
-    if (!sId || !teachingId) return null
-    return await $fetch<{ data?: GradeRow[] }>('/api/grades/components', {
+    if (!sId || !teachingId) return
+    componentsRes.value = await $fetch<{ data?: GradeRow[] }>('/api/grades/components', {
       query: {
         studentId: sId,
         teachingId
       }
     })
-  },
-  {
-    watch: [studentId]
+    componentsStatus.value = 'success'
+  } catch (error) {
+    console.error(error)
+    componentsStatus.value = 'error'
   }
-)
+}
+
+watch(studentId, (newId) => {
+  if (newId) refresh()
+})
+
+onMounted(async () => {
+  await fetchTeaching()
+  await refresh()
+})
 
 const components = computed(() => componentsRes.value?.data ?? [])
 

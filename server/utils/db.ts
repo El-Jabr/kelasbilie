@@ -16,7 +16,10 @@ if (typeof process !== 'undefined' && process.emitWarning) {
 
 const prismaClientSingleton = () => {
   const pool = new pg.Pool({
-    connectionString: process.env.DATABASE_URL!
+    connectionString: process.env.DATABASE_URL!,
+    max: process.env.NODE_ENV === 'production' ? 25 : 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
   })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })

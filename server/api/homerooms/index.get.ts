@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (classroomId) where.classroomId = classroomId
   if (teacherId) where.teacherId = teacherId
 
-  const [total, homerooms] = await prisma.$transaction([
+  const [total, homerooms] = await Promise.all([
     prisma.homeroomAssignment.count({ where }),
 
     prisma.homeroomAssignment.findMany({

@@ -26,9 +26,28 @@ export default defineEventHandler(async (event: any) => {
   const autoEnroll = body.autoEnroll !== false
   const defaultPassword = body.defaultPassword?.trim() || 'Bilie#123456'
 
+  try {
+
+  // 0. Cek Koneksi & Token Moodle di awal sebelum memproses data besar
+  try {
+    await MoodleService.fetch('core_webservice_get_site_info')
+  } catch (err: any) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: err.statusMessage || err.message || 'Koneksi ke Moodle gagal. Periksa URL dan Token di Pengaturan Sekolah.'
+    })
+  }
+
   const activeSemester = await prisma.semester.findFirst({
     where: { isActive: true }
   })
+
+  if (!activeSemester) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Tidak ada semester yang aktif. Silakan aktifkan semester terlebih dahulu di menu Kalender Akademik.'
+    })
+  }
 
   // 1. Fetch Teachers & Students from App DB
   let teachers: any[] = []
@@ -258,6 +277,9 @@ export default defineEventHandler(async (event: any) => {
       }
     } catch (err: any) {
       console.error('Gagal membuat user di Moodle (batch), mencoba per-user:', err)
+      if (err.statusMessage && (err.statusMessage.includes('[accessexception]') || err.statusMessage.includes('[invalidtoken]'))) {
+        throw err
+      }
       for (const uParam of usersToCreate) {
         try {
           const singleRes = await MoodleService.createUsers([uParam])
@@ -265,8 +287,11 @@ export default defineEventHandler(async (event: any) => {
             moodleUserMap[uParam.username.toLowerCase()] = singleRes[0].id
             usersCreatedCount++
           }
-        } catch (singleErr) {
+        } catch (singleErr: any) {
           console.error(`Gagal membuat user single [${uParam.username}]:`, singleErr)
+          if (singleErr.statusMessage && (singleErr.statusMessage.includes('[accessexception]') || singleErr.statusMessage.includes('[invalidtoken]'))) {
+            throw singleErr
+          }
         }
       }
     }
@@ -333,11 +358,17 @@ export default defineEventHandler(async (event: any) => {
           enrolmentsCount += batch.length
         } catch (err: any) {
           console.error('Gagal batch enrolment ke Moodle, mencoba per-user:', err)
+          if (err.statusMessage && (err.statusMessage.includes('[accessexception]') || err.statusMessage.includes('[invalidtoken]'))) {
+            throw err
+          }
           for (const en of batch) {
             try {
               await MoodleService.enrolUsers([en])
               enrolmentsCount++
-            } catch (e) {
+            } catch (e: any) {
+              if (e.statusMessage && (e.statusMessage.includes('[accessexception]') || e.statusMessage.includes('[invalidtoken]'))) {
+                throw e
+              }
               // Ignore single enrolment error
             }
           }
@@ -368,14 +399,27 @@ export default defineEventHandler(async (event: any) => {
     }
   })
 
-  return {
-    success: true,
-    message: `Ekspor User Selesai: ${usersCreatedCount} Akun Baru Dibuat di Moodle, ${enrolmentsCount} Enrollment Course Berhasil.`,
-    summary: {
-      totalProcessed: userList.length,
-      usersCreated: usersCreatedCount,
-      usersExisting: userList.length - usersCreatedCount,
-      enrolmentsCount
+    return {
+      success: true,
+      message: `Ekspor User Selesai: ${usersCreatedCount} Akun Baru Dibuat di Moodle, ${enrolmentsCount} Enrollment Course Berhasil.`,
+      summary: {
+        totalProcessed: userList.length,
+        usersCreated: usersCreatedCount,
+        usersExisting: userList.length - usersCreatedCount,
+        enrolmentsCount
+      }
     }
+  } catch (error: any) {
+    // Log error to SyncLog
+    const errorMessage = error.statusMessage || error.message || 'Gagal mengekspor atau enrol user.'
+    await prisma.syncLog.create({
+      data: {
+        resource: 'USER',
+        status: 'ERROR',
+        message: `Error Ekspor/Enroll: ${errorMessage.substring(0, 200)}`
+      }
+    }).catch(e => console.error('Gagal mencatat log error:', e))
+
+    throw error
   }
 })

@@ -1,13 +1,11 @@
-import db from '~~/server/utils/db'
+import { prisma as db } from '~~/server/utils/db'
+import { requireRole } from '~~/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
-  const user = event.context.user
-  if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-    throw createError({ statusCode: 403, message: 'Hanya untuk admin' })
-  }
+  const user = requireRole(event, ['SUPER_ADMIN', 'ADMIN'])
 
   const activeSemester = await db.semester.findFirst({
-    where: { isActive: true },
+    where: { isActive: true }
   })
 
   if (!activeSemester) {
@@ -39,37 +37,58 @@ export default defineEventHandler(async (event) => {
 
   const progressList = []
 
+  // 1. Collect all necessary studentIds and gradeItemIds to avoid N+1 queries
+  const allStudentIds = new Set<string>()
+  const allGradeItemIds = new Set<number>()
+
+  for (const t of teachers) {
+    for (const teaching of t.teachings) {
+      teaching.classroom.students.forEach((s: any) => allStudentIds.add(s.studentId))
+      teaching.course?.gradeItems?.forEach((g: any) => allGradeItemIds.add(g.id))
+    }
+  }
+
+  // 2. Fetch all matching grade components in a single query
+  let filledSet = new Set<string>()
+  if (allStudentIds.size > 0 && allGradeItemIds.size > 0) {
+    const components = await db.gradeComponent.findMany({
+      where: {
+        studentId: { in: Array.from(allStudentIds) },
+        gradeItemId: { in: Array.from(allGradeItemIds) }
+      },
+      select: { studentId: true, gradeItemId: true }
+    })
+    filledSet = new Set(components.map(c => `${c.studentId}_${c.gradeItemId}`))
+  }
+
+  // 3. Calculate progress in memory
   for (const t of teachers) {
     let totalExpected = 0
     let totalFilled = 0
-    
+
     for (const teaching of t.teachings) {
-      const studentsCount = teaching.classroom.students.length
-      const gradeItems = teaching.course?.gradeItems || []
-      const gradeItemsCount = gradeItems.length
+      const studentIds = teaching.classroom.students.map((s: { studentId: string }) => s.studentId)
+      const gradeItemIds = teaching.course?.gradeItems?.map((g: { id: number }) => g.id) || []
 
-      const expected = studentsCount * gradeItemsCount
-      
+      const expected = studentIds.length * gradeItemIds.length
+
       if (expected > 0) {
-        const studentIds = teaching.classroom.students.map(s => s.studentId)
-        const gradeItemIds = gradeItems.map(g => g.id)
-
-        if (studentIds.length > 0 && gradeItemIds.length > 0) {
-           const filled = await db.gradeComponent.count({
-            where: {
-              studentId: { in: studentIds },
-              gradeItemId: { in: gradeItemIds }
+        let filled = 0
+        for (const sId of studentIds) {
+          for (const gId of gradeItemIds) {
+            if (filledSet.has(`${sId}_${gId}`)) {
+              filled++
             }
-          })
-          totalExpected += expected
-          totalFilled += filled
+          }
         }
+        totalExpected += expected
+        totalFilled += filled
       }
     }
-    
+
     // if a teacher has no teachings or no grade items/students, we say 100%
     const percent = totalExpected === 0 ? 100 : Math.round((totalFilled / totalExpected) * 100)
-    
+
     progressList.push({
       teacherId: t.id,
       name: t.user.fullname,
@@ -79,7 +98,7 @@ export default defineEventHandler(async (event) => {
       percent
     })
   }
-  
+
   progressList.sort((a, b) => a.percent - b.percent)
 
   return progressList

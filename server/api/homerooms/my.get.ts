@@ -2,7 +2,7 @@ import { prisma } from '../../utils/db'
 import { requireRole, getUserFromEvent } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
-  requireRole(event, ['TEACHER', 'ADMIN'])
+  requireRole(event, ['TEACHER', 'ADMIN', 'SUPER_ADMIN'])
   const currentUser = getUserFromEvent(event)
 
   const teacher = await prisma.teacher.findFirst({

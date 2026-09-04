@@ -2,42 +2,24 @@
 definePageMeta({
   layout: 'teacher',
   middleware: ['auth', 'role'],
-  role: ['TEACHER', 'ADMIN']
+  role: ['TEACHER', 'ADMIN', 'SUPER_ADMIN']
 })
 
 useSeoMeta({
   title: 'Dashboard Guru'
 })
 
-const user = ref<any>(null)
-const activeSemester = ref<any>(null)
-const teacherProfile = ref<any>(null)
-const progressData = ref<any>(null)
-const pending = ref(true)
+import { storeToRefs } from 'pinia'
+import { useTeacherStore } from '~~/app/stores/teacher'
 
-async function loadData() {
-  pending.value = true
-  try {
-    const [authRes, teacherRes, semRes, progressRes]: [any, any, any, any] = await Promise.all([
-      ($fetch as any)('/api/auth/me').catch(() => null),
-      ($fetch as any)('/api/teachers/me').catch(() => null),
-      ($fetch as any)('/api/semesters/active').catch(() => null),
-      ($fetch as any)('/api/progress/teacher').catch(() => null)
-    ])
+const authStore = useAuthStore()
+const user = computed(() => authStore.user)
 
-    if (authRes) user.value = authRes
-    if (teacherRes?.data) teacherProfile.value = teacherRes.data
-    if (semRes?.data) activeSemester.value = semRes.data
-    if (progressRes) progressData.value = progressRes
-  } catch (err) {
-    console.error('Error loading teacher dashboard data:', err)
-  } finally {
-    pending.value = false
-  }
-}
+const teacherStore = useTeacherStore()
+const { teacherProfile, activeSemester, progressData, isLoading: pending } = storeToRefs(teacherStore)
 
 onMounted(() => {
-  loadData()
+  teacherStore.fetchTeacherData()
 })
 
 const assignments = computed(() => {
@@ -233,11 +215,9 @@ function getProgress(teachingId: string) {
                   {{ getProgress(item.id)?.percent || 0 }}%
                 </span>
               </div>
-              <UProgress 
-                :value="getProgress(item.id)?.percent || 0" 
-                :color="(getProgress(item.id)?.percent || 0) === 100 ? 'success' : 'primary'"
-                size="sm"
-              />
+              <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="h-2 rounded-full" :class="(getProgress(item.id)?.percent || 0) === 100 ? 'bg-success-500' : 'bg-primary-500'" :style="`width: ${getProgress(item.id)?.percent || 0}%`"></div>
+              </div>
               <p class="text-[10px] text-gray-400 text-right mt-1">
                 {{ getProgress(item.id)?.filled || 0 }} dari {{ getProgress(item.id)?.expected || 0 }} nilai
               </p>

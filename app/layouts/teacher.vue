@@ -3,6 +3,7 @@ import { LazyModalLogout } from '#components'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const teacherStore = useTeacherStore()
 const isMobileSidebarOpen = ref(false)
 
 const overlay = useOverlay()
@@ -45,6 +46,7 @@ async function handleLogout() {
         credentials: 'include'
       })
       authStore.logout()
+      teacherStore.reset()
       await navigateTo('/login')
     } catch (error) {
       console.error('[TeacherLayout] Logout gagal:', error)
