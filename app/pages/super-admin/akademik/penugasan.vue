@@ -10,12 +10,12 @@ useSeoMeta({
 })
 
 // ── Teaching Assignment ──────────────────────────────────────────────────
-const { teachingAssignments, loading: loadingTA, semesters, fetchTeachingAssignments } = useTeachingAssignments()
+const { teachingAssignments, loading: loadingTA, semesters, fetchTeachingAssignments, refresh: refreshTA } = useTeachingAssignments()
 const { openCreateDialog: openCreateTA, openEditDialog: openEditTA } = useTeachingAssignmentDialogs()
 const { deleteTeachingAssignment } = useTeachingAssignmentActions()
 
 // ── Homeroom ─────────────────────────────────────────────────────────────
-const { homerooms, loading: loadingHR, fetchHomerooms } = useHomerooms()
+const { homerooms, loading: loadingHR, fetchHomerooms, refresh: refreshHR } = useHomerooms()
 const { openCreateDialog: openCreateHomeroom, openEditDialog: openEditHomeroom, openDeleteDialog: openDeleteHomeroom } = useHomeroomDialogs()
 
 // ── Active Tab ────────────────────────────────────────────────────────────
@@ -168,6 +168,33 @@ onMounted(async () => {
     assignmentStore.fetchProgress(selectedSemesterId.value)
   }
 })
+
+// ── Refresh Handler ───────────────────────────────────────────────────────
+const isRefreshing = ref(false)
+
+async function handleRefresh() {
+  isRefreshing.value = true
+  try {
+    const promises: Promise<any>[] = [refreshTA(), refreshHR()]
+    if (selectedSemesterId.value && selectedSemesterId.value !== 'all') {
+      promises.push(assignmentStore.fetchProgress(selectedSemesterId.value, true))
+    }
+    await Promise.all(promises)
+    toast.add({
+      title: 'Data Diperbarui',
+      description: 'Data penugasan kelas dan progres berhasil dimuat ulang.',
+      color: 'success'
+    })
+  } catch (err: any) {
+    toast.add({
+      title: 'Gagal Memperbarui',
+      description: err?.message || 'Terjadi kesalahan saat memuat ulang data.',
+      color: 'error'
+    })
+  } finally {
+    isRefreshing.value = false
+  }
+}
 </script>
 
 <template>
@@ -186,24 +213,37 @@ onMounted(async () => {
           Kelola guru pengampu mata pelajaran dan wali kelas dalam satu halaman.
         </p>
       </div>
-      <UButton
-        v-if="activeTab === 'teaching'"
-        icon="i-lucide-plus"
-        color="primary"
-        class="cursor-pointer"
-        @click="openCreateTA"
-      >
-        Tambah Penugasan
-      </UButton>
-      <UButton
-        v-else
-        icon="i-lucide-user-plus"
-        color="primary"
-        class="cursor-pointer"
-        @click="openCreateHomeroom"
-      >
-        Assign Wali Kelas
-      </UButton>
+      <div class="flex items-center gap-2">
+        <UButton
+          icon="i-lucide-refresh-cw"
+          color="neutral"
+          variant="outline"
+          :loading="isRefreshing"
+          class="cursor-pointer"
+          title="Muat ulang data penugasan"
+          @click="handleRefresh"
+        >
+          Refresh
+        </UButton>
+        <UButton
+          v-if="activeTab === 'teaching'"
+          icon="i-lucide-plus"
+          color="primary"
+          class="cursor-pointer"
+          @click="openCreateTA"
+        >
+          Tambah Penugasan
+        </UButton>
+        <UButton
+          v-else
+          icon="i-lucide-user-plus"
+          color="primary"
+          class="cursor-pointer"
+          @click="openCreateHomeroom"
+        >
+          Assign Wali Kelas
+        </UButton>
+      </div>
     </div>
 
     <!-- Tabs -->

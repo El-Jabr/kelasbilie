@@ -55,6 +55,29 @@ function getProgress(teachingId: string) {
   return progressData.value?.items?.find((i: any) => i.teachingId === teachingId)
 }
 
+const isRefreshing = ref(false)
+const toast = useToast()
+
+async function handleRefresh() {
+  isRefreshing.value = true
+  try {
+    await teacherStore.fetchTeacherData(true)
+    toast.add({
+      title: 'Data Diperbarui',
+      description: 'Data penugasan mengajar berhasil dimuat ulang.',
+      color: 'success'
+    })
+  } catch (err: any) {
+    toast.add({
+      title: 'Gagal Memperbarui',
+      description: err?.message || 'Terjadi kesalahan saat memuat ulang data.',
+      color: 'error'
+    })
+  } finally {
+    isRefreshing.value = false
+  }
+}
+
 function resetSearch() {
   searchClass.value = ''
 }
@@ -171,14 +194,28 @@ function resetSearch() {
           </UBadge>
         </div>
 
-        <UInput
-          v-if="assignments.length > 2"
-          v-model="searchClass"
-          icon="i-lucide-search"
-          placeholder="Cari mapel atau kelas..."
-          class="w-full sm:w-64"
-          size="sm"
-        />
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <UInput
+            v-if="assignments.length > 2"
+            v-model="searchClass"
+            icon="i-lucide-search"
+            placeholder="Cari mapel atau kelas..."
+            class="w-full sm:w-64"
+            size="sm"
+          />
+          <UButton
+            icon="i-lucide-refresh-cw"
+            color="neutral"
+            variant="outline"
+            size="sm"
+            :loading="isRefreshing"
+            class="cursor-pointer shrink-0"
+            title="Muat ulang data penugasan"
+            @click="handleRefresh"
+          >
+            Refresh
+          </UButton>
+        </div>
       </div>
 
       <!-- Loading State -->

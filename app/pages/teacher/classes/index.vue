@@ -63,6 +63,29 @@ function getActionItems(id: string): DropdownMenuItem[][] {
     ]
   ]
 }
+
+const isRefreshing = ref(false)
+const toast = useToast()
+
+async function handleRefresh() {
+  isRefreshing.value = true
+  try {
+    await store.fetchAssignments(true)
+    toast.add({
+      title: 'Data Diperbarui',
+      description: 'Daftar penugasan kelas berhasil dimuat ulang.',
+      color: 'success'
+    })
+  } catch (err: any) {
+    toast.add({
+      title: 'Gagal Memperbarui',
+      description: err?.message || 'Terjadi kesalahan saat memuat ulang data.',
+      color: 'error'
+    })
+  } finally {
+    isRefreshing.value = false
+  }
+}
 </script>
 
 <template>
@@ -74,12 +97,25 @@ function getActionItems(id: string): DropdownMenuItem[][] {
           Daftar seluruh penugasan mengajar Anda di berbagai semester.
         </p>
       </div>
-      <UInput
-        v-model="search"
-        icon="i-lucide-search"
-        placeholder="Cari mata pelajaran atau kelas..."
-        class="w-full sm:w-64"
-      />
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <UInput
+          v-model="search"
+          icon="i-lucide-search"
+          placeholder="Cari mata pelajaran atau kelas..."
+          class="w-full sm:w-64"
+        />
+        <UButton
+          icon="i-lucide-refresh-cw"
+          color="neutral"
+          variant="outline"
+          :loading="isRefreshing"
+          class="cursor-pointer shrink-0"
+          title="Muat ulang data penugasan"
+          @click="handleRefresh"
+        >
+          Refresh
+        </UButton>
+      </div>
     </div>
 
     <UCard>
