@@ -28,13 +28,17 @@ export const useAssignmentStore = defineStore('assignment', () => {
   const loadingTA = ref(false)
   const loadingHR = ref(false)
 
+  // Progress Cache per Semester
+  const progressCache = ref<Record<string, Record<string, { percent: number, expected: number, filled: number }>>>({})
+  const loadingProgress = ref(false)
+  let progressPromise: Promise<void> | null = null
+
   // In-flight promise tracking for deduplication
   let teachingFetchPromise: Promise<void> | null = null
   let homeroomFetchPromise: Promise<void> | null = null
 
   // ── Action: Fetch Teaching Assignments ─────────────────────────────────
   async function fetchTeachingAssignments(force = false) {
-    // If already loaded and not forced, do nothing
     if (isLoadedTeaching.value && !force) {
       return
     }
@@ -43,7 +47,10 @@ export const useAssignmentStore = defineStore('assignment', () => {
       return teachingFetchPromise
     }
 
-    loadingTA.value = true
+    // Only set loading to true if we don't have data yet (SWR pattern)
+    if (teachingAssignments.value.length === 0) {
+      loadingTA.value = true
+    }
 
     teachingFetchPromise = (async () => {
       try {
@@ -85,7 +92,9 @@ export const useAssignmentStore = defineStore('assignment', () => {
       return homeroomFetchPromise
     }
 
-    loadingHR.value = true
+    if (homerooms.value.length === 0) {
+      loadingHR.value = true
+    }
 
     homeroomFetchPromise = (async () => {
       try {
@@ -119,8 +128,47 @@ export const useAssignmentStore = defineStore('assignment', () => {
     return homeroomFetchPromise
   }
 
+  // ── Action: Fetch Progress with Cache per Semester ─────────────────────
+  async function fetchProgress(semesterId: string, force = false) {
+    if (!semesterId || semesterId === 'all') return {}
+
+    if (progressCache.value[semesterId] && !force) {
+      return progressCache.value[semesterId]
+    }
+
+    if (progressPromise) {
+      return progressPromise
+    }
+
+    if (!progressCache.value[semesterId]) {
+      loadingProgress.value = true
+    }
+
+    progressPromise = (async () => {
+      try {
+        const res = await $fetch<any[]>('/api/progress/teaching-assignments', {
+          query: { semesterId },
+          credentials: 'include'
+        })
+        const map: Record<string, any> = {}
+        res.forEach(item => {
+          map[item.teachingId] = item
+        })
+        progressCache.value[semesterId] = map
+      } catch (err) {
+        console.error('[AssignmentStore] Gagal mengambil progress mengajar:', err)
+      } finally {
+        loadingProgress.value = false
+        progressPromise = null
+      }
+    })()
+
+    return progressPromise
+  }
+
   // ── Action: Refresh All ────────────────────────────────────────────────
   async function refreshAll() {
+    progressCache.value = {}
     await Promise.all([
       fetchTeachingAssignments(true),
       fetchHomerooms(true)
@@ -169,6 +217,8 @@ export const useAssignmentStore = defineStore('assignment', () => {
     isLoadedHomeroom,
     loadingTA,
     loadingHR,
+    progressCache,
+    loadingProgress,
 
     // Computed Options
     teacherOptions,
@@ -180,6 +230,7 @@ export const useAssignmentStore = defineStore('assignment', () => {
     // Actions
     fetchTeachingAssignments,
     fetchHomerooms,
+    fetchProgress,
     refreshAll
   }
 })

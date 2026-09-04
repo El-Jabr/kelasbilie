@@ -13,29 +13,42 @@ export const useUserMasterStore = defineStore('userMaster', () => {
   const searchTeachers = ref('')
   const selectedTeacher = ref<TeacherTableSchema | null>(null)
 
+  // In-flight promise tracking for deduplication
+  let teachersPromise: Promise<void> | null = null
+  let studentsPromise: Promise<void> | null = null
+  let usersPromise: Promise<void> | null = null
+
   async function fetchTeachers(force = false, page = paginationTeachers.value.page) {
-    if (!isLoadedTeachers.value || force) {
+    if (isLoadedTeachers.value && !force) return
+    if (teachersPromise) return teachersPromise
+
+    if (teachers.value.length === 0) {
       loadingTeachers.value = true
     }
 
-    try {
-      const response = await $fetch<PaginatedResponse<TeacherTableSchema>>('/api/teachers', {
-        credentials: 'include',
-        query: {
-          page,
-          limit: paginationTeachers.value.limit,
-          search: searchTeachers.value || undefined
-        }
-      })
+    teachersPromise = (async () => {
+      try {
+        const response = await $fetch<PaginatedResponse<TeacherTableSchema>>('/api/teachers', {
+          credentials: 'include',
+          query: {
+            page,
+            limit: paginationTeachers.value.limit,
+            search: searchTeachers.value || undefined
+          }
+        })
 
-      teachers.value = response.data
-      paginationTeachers.value = response.pagination
-      isLoadedTeachers.value = true
-    } catch (err) {
-      console.error('[UserMasterStore] Gagal mengambil data guru:', err)
-    } finally {
-      loadingTeachers.value = false
-    }
+        teachers.value = response.data
+        paginationTeachers.value = response.pagination
+        isLoadedTeachers.value = true
+      } catch (err) {
+        console.error('[UserMasterStore] Gagal mengambil data guru:', err)
+      } finally {
+        loadingTeachers.value = false
+        teachersPromise = null
+      }
+    })()
+
+    return teachersPromise
   }
 
   // ── 2. STUDENTS MASTER ──────────────────────────────────────────────────
@@ -47,28 +60,36 @@ export const useUserMasterStore = defineStore('userMaster', () => {
   const selectedStudent = ref<StudentTableSchema | null>(null)
 
   async function fetchStudents(force = false, page = paginationStudents.value.page) {
-    if (!isLoadedStudents.value || force) {
+    if (isLoadedStudents.value && !force) return
+    if (studentsPromise) return studentsPromise
+
+    if (students.value.length === 0) {
       loadingStudents.value = true
     }
 
-    try {
-      const response = await $fetch<PaginatedResponse<StudentTableSchema>>('/api/students', {
-        credentials: 'include',
-        query: {
-          page,
-          limit: paginationStudents.value.limit,
-          search: searchStudents.value || undefined
-        }
-      })
+    studentsPromise = (async () => {
+      try {
+        const response = await $fetch<PaginatedResponse<StudentTableSchema>>('/api/students', {
+          credentials: 'include',
+          query: {
+            page,
+            limit: paginationStudents.value.limit,
+            search: searchStudents.value || undefined
+          }
+        })
 
-      students.value = response.data
-      paginationStudents.value = response.pagination
-      isLoadedStudents.value = true
-    } catch (err) {
-      console.error('[UserMasterStore] Gagal mengambil data siswa:', err)
-    } finally {
-      loadingStudents.value = false
-    }
+        students.value = response.data
+        paginationStudents.value = response.pagination
+        isLoadedStudents.value = true
+      } catch (err) {
+        console.error('[UserMasterStore] Gagal mengambil data siswa:', err)
+      } finally {
+        loadingStudents.value = false
+        studentsPromise = null
+      }
+    })()
+
+    return studentsPromise
   }
 
   // ── 3. USERS / ACCOUNTS MASTER ──────────────────────────────────────────
@@ -85,32 +106,40 @@ export const useUserMasterStore = defineStore('userMaster', () => {
   const selectedUser = ref<UserSchema | null>(null)
 
   async function fetchUsers(force = false, page = paginationUsers.value.page) {
-    if (!isLoadedUsers.value || force) {
+    if (isLoadedUsers.value && !force) return
+    if (usersPromise) return usersPromise
+
+    if (users.value.length === 0) {
       loadingUsers.value = true
     }
 
-    try {
-      const response = await $fetch<PaginatedResponse<UserSchema>>('/api/users', {
-        credentials: 'include',
-        query: {
-          page,
-          limit: paginationUsers.value.limit,
-          search: searchUsers.value || undefined,
-          role: roleUsers.value === 'ALL' ? undefined : roleUsers.value,
-          active: activeUsers.value === 'ALL' ? undefined : activeUsers.value,
-          sort: sortUsers.value,
-          order: orderUsers.value
-        }
-      })
+    usersPromise = (async () => {
+      try {
+        const response = await $fetch<PaginatedResponse<UserSchema>>('/api/users', {
+          credentials: 'include',
+          query: {
+            page,
+            limit: paginationUsers.value.limit,
+            search: searchUsers.value || undefined,
+            role: roleUsers.value === 'ALL' ? undefined : roleUsers.value,
+            active: activeUsers.value === 'ALL' ? undefined : activeUsers.value,
+            sort: sortUsers.value,
+            order: orderUsers.value
+          }
+        })
 
-      users.value = response.data
-      paginationUsers.value = response.pagination
-      isLoadedUsers.value = true
-    } catch (err) {
-      console.error('[UserMasterStore] Gagal mengambil data user:', err)
-    } finally {
-      loadingUsers.value = false
-    }
+        users.value = response.data
+        paginationUsers.value = response.pagination
+        isLoadedUsers.value = true
+      } catch (err) {
+        console.error('[UserMasterStore] Gagal mengambil data user:', err)
+      } finally {
+        loadingUsers.value = false
+        usersPromise = null
+      }
+    })()
+
+    return usersPromise
   }
 
   return {

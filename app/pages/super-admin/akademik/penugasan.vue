@@ -136,36 +136,14 @@ async function syncGrades(courseId: number, subjectName?: string, className?: st
   }
 }
 
-// ── Progress Fetching ───────────────────────────────────────────────────────
-const progressMap = ref<Record<string, { percent: number, expected: number, filled: number }>>({})
-const loadingProgress = ref(false)
+// ── Progress Fetching (Cached in Store) ────────────────────────────────────
+const assignmentStore = useAssignmentStore()
+const progressMap = computed(() => assignmentStore.progressCache[selectedSemesterId.value] || {})
+const loadingProgress = computed(() => assignmentStore.loadingProgress)
 
-async function fetchProgress() {
-  if (!selectedSemesterId.value || selectedSemesterId.value === 'all') {
-    progressMap.value = {}
-    return
-  }
-  loadingProgress.value = true
-  try {
-    const res = await $fetch<any[]>('/api/progress/teaching-assignments', {
-      query: { semesterId: selectedSemesterId.value },
-      credentials: 'include'
-    })
-    const map: Record<string, any> = {}
-    res.forEach(item => {
-      map[item.teachingId] = item
-    })
-    progressMap.value = map
-  } catch (err) {
-    console.error('Failed to load progress', err)
-  } finally {
-    loadingProgress.value = false
-  }
-}
-
-watch(selectedSemesterId, () => {
-  if (activeTab.value === 'teaching') {
-    fetchProgress()
+watch(selectedSemesterId, (newId) => {
+  if (activeTab.value === 'teaching' && newId && newId !== 'all') {
+    assignmentStore.fetchProgress(newId)
   }
 })
 
@@ -186,8 +164,8 @@ onMounted(async () => {
     selectedHRSemesterId.value = activeSem.id
   }
 
-  if (activeTab.value === 'teaching') {
-    fetchProgress()
+  if (activeTab.value === 'teaching' && selectedSemesterId.value && selectedSemesterId.value !== 'all') {
+    assignmentStore.fetchProgress(selectedSemesterId.value)
   }
 })
 </script>

@@ -11,19 +11,28 @@ export const useTeacherClassStore = defineStore('teacherClass', () => {
   const pendingTeacher = ref(false)
   const pendingAssignments = ref(false)
 
+  let teacherPromise: Promise<void> | null = null
+  let assignmentsPromise: Promise<void> | null = null
+
   async function fetchTeacher(force = false) {
     if (teacher.value && !force) return
+    if (teacherPromise) return teacherPromise
 
     pendingTeacher.value = true
-    try {
-      const res: any = await $fetch('/api/teachers/me', { credentials: 'include' })
-      teacher.value = res?.data || null
-    } catch (err) {
-      console.error('[TeacherClassStore] Gagal mengambil profil guru:', err)
-      teacher.value = null
-    } finally {
-      pendingTeacher.value = false
-    }
+    teacherPromise = (async () => {
+      try {
+        const res: any = await $fetch('/api/teachers/me', { credentials: 'include' })
+        teacher.value = res?.data || null
+      } catch (err) {
+        console.error('[TeacherClassStore] Gagal mengambil profil guru:', err)
+        teacher.value = null
+      } finally {
+        pendingTeacher.value = false
+        teacherPromise = null
+      }
+    })()
+
+    return teacherPromise
   }
 
   async function fetchAssignments(force = false) {
@@ -36,31 +45,39 @@ export const useTeacherClassStore = defineStore('teacherClass', () => {
       return
     }
 
-    if (!isLoaded.value || force) {
+    if (isLoaded.value && !force) return
+    if (assignmentsPromise) return assignmentsPromise
+
+    if (assignments.value.length === 0) {
       pendingAssignments.value = true
     }
 
-    try {
-      const res: any = await $fetch('/api/teaching-assignments', {
-        credentials: 'include',
-        query: {
-          teacherId: teacher.value.id,
-          search: search.value || undefined,
-          page: page.value,
-          limit: pagination.value.limit
-        }
-      })
+    assignmentsPromise = (async () => {
+      try {
+        const res: any = await $fetch('/api/teaching-assignments', {
+          credentials: 'include',
+          query: {
+            teacherId: teacher.value.id,
+            search: search.value || undefined,
+            page: page.value,
+            limit: pagination.value.limit
+          }
+        })
 
-      assignments.value = res?.data || []
-      if (res?.pagination) {
-        pagination.value = res.pagination
+        assignments.value = res?.data || []
+        if (res?.pagination) {
+          pagination.value = res.pagination
+        }
+        isLoaded.value = true
+      } catch (err) {
+        console.error('[TeacherClassStore] Gagal mengambil daftar kelas ajar:', err)
+      } finally {
+        pendingAssignments.value = false
+        assignmentsPromise = null
       }
-      isLoaded.value = true
-    } catch (err) {
-      console.error('[TeacherClassStore] Gagal mengambil daftar kelas ajar:', err)
-    } finally {
-      pendingAssignments.value = false
-    }
+    })()
+
+    return assignmentsPromise
   }
 
   async function refreshAll() {

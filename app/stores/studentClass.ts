@@ -26,8 +26,14 @@ export const useStudentClassStore = defineStore('studentClass', () => {
   const pendingUnassigned = ref(false)
   const pendingMembers = ref(false)
 
+  // In-memory cache for plotting
+  const unassignedCache = ref<Record<string, any[]>>({})
+  const classMembersCache = ref<Record<string, any[]>>({})
+
   let supportingFetchPromise: Promise<void> | null = null
   let scFetchPromise: Promise<void> | null = null
+  let unassignedPromise: Promise<void> | null = null
+  let membersPromise: Promise<void> | null = null
 
   // ── Action: Load Supporting Master Data ────────────────────────────────
   async function loadSupportingData(force = false) {
@@ -36,15 +42,16 @@ export const useStudentClassStore = defineStore('studentClass', () => {
 
     supportingFetchPromise = (async () => {
       try {
-        const [stRes, clRes, semRes]: any = await Promise.all([
+        const academicStore = useAcademicStore()
+        const [stRes]: any = await Promise.all([
           $fetch('/api/students?limit=1000', { credentials: 'include' }).catch(() => ({ data: [] })),
-          $fetch('/api/classes', { credentials: 'include' }).catch(() => ({ data: [] })),
-          $fetch('/api/semesters', { credentials: 'include' }).catch(() => ({ data: [] }))
+          academicStore.fetchClasses(force),
+          academicStore.fetchSemesters(force)
         ])
 
         if (stRes?.data) students.value = stRes.data
-        if (clRes?.data) classes.value = clRes.data
-        if (semRes?.data) semesters.value = semRes.data
+        classes.value = academicStore.classes
+        semesters.value = academicStore.semesters
 
         isLoadedSupporting.value = true
       } catch (err) {
@@ -60,11 +67,12 @@ export const useStudentClassStore = defineStore('studentClass', () => {
   // ── Action: Refresh Student Classes Table ──────────────────────────────
   async function refreshSC(force?: boolean | unknown) {
     const isForce = force === true
-    if (!isLoadedSC.value || isForce) {
+    if (isLoadedSC.value && !isForce) return
+    if (scFetchPromise) return scFetchPromise
+
+    if (studentClasses.value.length === 0) {
       pendingSC.value = true
     }
-
-    if (scFetchPromise) return scFetchPromise
 
     scFetchPromise = (async () => {
       try {
@@ -96,53 +104,94 @@ export const useStudentClassStore = defineStore('studentClass', () => {
   }
 
   // ── Action: Fetch Unassigned Students for Plotting ─────────────────────
-  async function fetchUnassigned(semesterId: string, search = '') {
+  async function fetchUnassigned(semesterId: string, search = '', force = false) {
     if (!semesterId) {
       unassignedStudents.value = []
       return
     }
 
-    pendingUnassigned.value = true
-    try {
-      const res: any = await $fetch('/api/students/unassigned', {
-        query: {
-          semesterId,
-          search: search || undefined
-        },
-        credentials: 'include'
-      })
-      unassignedStudents.value = res?.data || (Array.isArray(res) ? res : [])
-    } catch (err) {
-      console.error('[StudentClassStore] Gagal mengambil siswa unassigned:', err)
-    } finally {
-      pendingUnassigned.value = false
+    const cacheKey = `${semesterId}_${search.trim()}`
+    if (unassignedCache.value[cacheKey] && !force) {
+      unassignedStudents.value = unassignedCache.value[cacheKey]
+      return
     }
+
+    if (unassignedPromise) return unassignedPromise
+
+    if (unassignedStudents.value.length === 0) {
+      pendingUnassigned.value = true
+    }
+
+    unassignedPromise = (async () => {
+      try {
+        const res: any = await $fetch('/api/students/unassigned', {
+          query: {
+            semesterId,
+            search: search || undefined
+          },
+          credentials: 'include'
+        })
+        const data = res?.data || (Array.isArray(res) ? res : [])
+        unassignedStudents.value = data
+        unassignedCache.value[cacheKey] = data
+      } catch (err) {
+        console.error('[StudentClassStore] Gagal mengambil siswa unassigned:', err)
+      } finally {
+        pendingUnassigned.value = false
+        unassignedPromise = null
+      }
+    })()
+
+    return unassignedPromise
   }
 
   // ── Action: Fetch Class Members for Plotting ───────────────────────────
-  async function fetchClassMembers(classroomId: string, semesterId: string, search = '') {
+  async function fetchClassMembers(classroomId: string, semesterId: string, search = '', force = false) {
     if (!classroomId || !semesterId) {
       classMembers.value = []
       return
     }
 
-    pendingMembers.value = true
-    try {
-      const res: any = await $fetch('/api/student-classes', {
-        query: {
-          classroomId,
-          semesterId,
-          search: search || undefined,
-          limit: 300
-        },
-        credentials: 'include'
-      })
-      classMembers.value = res?.data || (Array.isArray(res) ? res : [])
-    } catch (err) {
-      console.error('[StudentClassStore] Gagal mengambil anggota kelas:', err)
-    } finally {
-      pendingMembers.value = false
+    const cacheKey = `${classroomId}_${semesterId}_${search.trim()}`
+    if (classMembersCache.value[cacheKey] && !force) {
+      classMembers.value = classMembersCache.value[cacheKey]
+      return
     }
+
+    if (membersPromise) return membersPromise
+
+    if (classMembers.value.length === 0) {
+      pendingMembers.value = true
+    }
+
+    membersPromise = (async () => {
+      try {
+        const res: any = await $fetch('/api/student-classes', {
+          query: {
+            classroomId,
+            semesterId,
+            search: search || undefined,
+            limit: 300
+          },
+          credentials: 'include'
+        })
+        const data = res?.data || (Array.isArray(res) ? res : [])
+        classMembers.value = data
+        classMembersCache.value[cacheKey] = data
+      } catch (err) {
+        console.error('[StudentClassStore] Gagal mengambil anggota kelas:', err)
+      } finally {
+        pendingMembers.value = false
+        membersPromise = null
+      }
+    })()
+
+    return membersPromise
+  }
+
+  function clearPlottingCache() {
+    unassignedCache.value = {}
+    classMembersCache.value = {}
   }
 
   // ── Computed Dropdown Options ──────────────────────────────────────────
@@ -216,6 +265,7 @@ export const useStudentClassStore = defineStore('studentClass', () => {
     refreshSC,
     fetchUnassigned,
     fetchClassMembers,
+    clearPlottingCache,
     resetFilter
   }
 })

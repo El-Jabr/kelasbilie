@@ -31,34 +31,45 @@ export const useTeacherHomeroomStore = defineStore('teacherHomeroom', () => {
     return options
   })
 
+  let homeroomPromise: Promise<void> | null = null
+  let gradesPromise: Promise<void> | null = null
+
   async function fetchHomeroom(force = false) {
-    if (!isLoaded.value || force) {
+    if (isLoaded.value && !force) return
+    if (homeroomPromise) return homeroomPromise
+
+    if (!homeroom.value) {
       pendingHomeroom.value = true
     }
 
-    try {
-      const res: any = await $fetch('/api/homerooms/my', { credentials: 'include' })
-      homeroom.value = res?.data || null
+    homeroomPromise = (async () => {
+      try {
+        const res: any = await $fetch('/api/homerooms/my', { credentials: 'include' })
+        homeroom.value = res?.data || null
 
-      if (!homeroom.value) {
-        pendingGrades.value = false
+        if (!homeroom.value) {
+          pendingGrades.value = false
+          isLoaded.value = true
+          return
+        }
+
+        await Promise.all([
+          fetchTeachings(force),
+          refreshGrades(force)
+        ])
+
         isLoaded.value = true
-        return
+      } catch (err) {
+        console.error('[TeacherHomeroomStore] Gagal mengambil homeroom:', err)
+        homeroom.value = null
+        pendingGrades.value = false
+      } finally {
+        pendingHomeroom.value = false
+        homeroomPromise = null
       }
+    })()
 
-      await Promise.all([
-        fetchTeachings(force),
-        refreshGrades(force)
-      ])
-
-      isLoaded.value = true
-    } catch (err) {
-      console.error('[TeacherHomeroomStore] Gagal mengambil homeroom:', err)
-      homeroom.value = null
-      pendingGrades.value = false
-    } finally {
-      pendingHomeroom.value = false
-    }
+    return homeroomPromise
   }
 
   async function fetchTeachings(force = false) {
@@ -85,24 +96,31 @@ export const useTeacherHomeroomStore = defineStore('teacherHomeroom', () => {
       return
     }
 
-    if (!isLoaded.value || force) {
+    if (gradesPromise) return gradesPromise
+
+    if (!inspectionData.value) {
       pendingGrades.value = true
     }
 
-    try {
-      const res: any = await $fetch('/api/grades/inspection', {
-        query: {
-          classroomId: classroomId.value,
-          teachingId: (selectedTeachingId.value && selectedTeachingId.value !== 'ALL') ? selectedTeachingId.value : undefined
-        },
-        credentials: 'include'
-      })
-      inspectionData.value = res || null
-    } catch (err) {
-      console.error('[TeacherHomeroomStore] Gagal mengambil grades inspection:', err)
-    } finally {
-      pendingGrades.value = false
-    }
+    gradesPromise = (async () => {
+      try {
+        const res: any = await $fetch('/api/grades/inspection', {
+          query: {
+            classroomId: classroomId.value,
+            teachingId: (selectedTeachingId.value && selectedTeachingId.value !== 'ALL') ? selectedTeachingId.value : undefined
+          },
+          credentials: 'include'
+        })
+        inspectionData.value = res || null
+      } catch (err) {
+        console.error('[TeacherHomeroomStore] Gagal mengambil grades inspection:', err)
+      } finally {
+        pendingGrades.value = false
+        gradesPromise = null
+      }
+    })()
+
+    return gradesPromise
   }
 
   async function refreshAll() {

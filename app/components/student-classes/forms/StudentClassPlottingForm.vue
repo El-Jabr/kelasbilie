@@ -124,9 +124,6 @@ onMounted(async () => {
   if (!selectedClassroomId.value && classes.value.length > 0) {
     selectedClassroomId.value = classes.value[0].id
   }
-
-  // Trigger initial fetch
-  executeFetchPlotting()
 })
 
 // ACTION: Batch Assign Unassigned Students to Classroom
@@ -146,14 +143,9 @@ async function assignSelectedStudents() {
     const res: any = await doFetch('/api/student-classes/bulk', {
       method: 'POST',
       body: {
-        classroomId: targetClassroomId.value,
-        semesterId: targetSemesterId.value,
         studentIds: selectedUnassignedIds.value,
-        items: selectedUnassignedIds.value.map(studentId => ({
-          studentId,
-          classroomId: targetClassroomId.value,
-          semesterId: targetSemesterId.value
-        }))
+        classroomId: targetClassroomId.value,
+        semesterId: targetSemesterId.value
       }
     })
 
@@ -165,9 +157,10 @@ async function assignSelectedStudents() {
 
     selectedUnassignedIds.value = []
     selectAllUnassigned.value = false
+    store.clearPlottingCache()
     await Promise.all([
-      store.fetchUnassigned(targetSemesterId.value, searchUnassigned.value),
-      store.fetchClassMembers(targetClassroomId.value, targetSemesterId.value, searchMembers.value),
+      store.fetchUnassigned(targetSemesterId.value, searchUnassigned.value, true),
+      store.fetchClassMembers(targetClassroomId.value, targetSemesterId.value, searchMembers.value, true),
       store.refreshSC(true)
     ])
   } catch (err: any) {
@@ -204,9 +197,10 @@ async function removeSelectedMembers() {
 
     selectedMemberClassIds.value = []
     selectAllMembers.value = false
+    store.clearPlottingCache()
     await Promise.all([
-      store.fetchUnassigned(targetSemesterId.value, searchUnassigned.value),
-      store.fetchClassMembers(targetClassroomId.value, targetSemesterId.value, searchMembers.value),
+      store.fetchUnassigned(targetSemesterId.value, searchUnassigned.value, true),
+      store.fetchClassMembers(targetClassroomId.value, targetSemesterId.value, searchMembers.value, true),
       store.refreshSC(true)
     ])
   } catch (err: any) {

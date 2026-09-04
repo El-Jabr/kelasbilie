@@ -17,32 +17,46 @@ export const useAcademicStore = defineStore('academic', () => {
   const orderAY = ref<'asc' | 'desc'>('desc')
   const selectedAcademicYear = ref<AcademicYearSchema | null>(null)
 
+  // In-flight promise tracking for deduplication
+  let ayPromise: Promise<void> | null = null
+  let semPromise: Promise<void> | null = null
+  let clPromise: Promise<void> | null = null
+  let subPromise: Promise<void> | null = null
+
   async function fetchAcademicYears(force = false, page = paginationAY.value.page) {
-    if (!isLoadedAY.value || force) {
+    if (isLoadedAY.value && !force) return
+    if (ayPromise) return ayPromise
+
+    if (academicYears.value.length === 0) {
       loadingAY.value = true
     }
 
-    try {
-      const response = await $fetch<PaginatedResponse<AcademicYearSchema>>('/api/academic-years', {
-        credentials: 'include',
-        query: {
-          page,
-          limit: paginationAY.value.limit,
-          search: searchAY.value || undefined,
-          active: activeAY.value === 'ALL' ? undefined : activeAY.value,
-          sort: sortAY.value,
-          order: orderAY.value
-        }
-      })
+    ayPromise = (async () => {
+      try {
+        const response = await $fetch<PaginatedResponse<AcademicYearSchema>>('/api/academic-years', {
+          credentials: 'include',
+          query: {
+            page,
+            limit: paginationAY.value.limit,
+            search: searchAY.value || undefined,
+            active: activeAY.value === 'ALL' ? undefined : activeAY.value,
+            sort: sortAY.value,
+            order: orderAY.value
+          }
+        })
 
-      academicYears.value = response.data
-      paginationAY.value = response.pagination
-      isLoadedAY.value = true
-    } catch (err) {
-      console.error('[AcademicStore] Gagal mengambil tahun ajaran:', err)
-    } finally {
-      loadingAY.value = false
-    }
+        academicYears.value = response.data
+        paginationAY.value = response.pagination
+        isLoadedAY.value = true
+      } catch (err) {
+        console.error('[AcademicStore] Gagal mengambil tahun ajaran:', err)
+      } finally {
+        loadingAY.value = false
+        ayPromise = null
+      }
+    })()
+
+    return ayPromise
   }
 
   // ── 2. SEMESTERS ────────────────────────────────────────────────────────
@@ -55,29 +69,37 @@ export const useAcademicStore = defineStore('academic', () => {
   const selectedSemester = ref<SemesterSchema | null>(null)
 
   async function fetchSemesters(force = false, page = paginationSem.value.page) {
-    if (!isLoadedSem.value || force) {
+    if (isLoadedSem.value && !force) return
+    if (semPromise) return semPromise
+
+    if (semesters.value.length === 0) {
       loadingSem.value = true
     }
 
-    try {
-      const response = await $fetch<PaginatedResponse<SemesterSchema>>('/api/semesters', {
-        credentials: 'include',
-        query: {
-          page,
-          limit: paginationSem.value.limit,
-          academicYearId: filterAcademicYearId.value === 'ALL' ? undefined : filterAcademicYearId.value,
-          active: activeSem.value === 'ALL' ? undefined : activeSem.value
-        }
-      })
+    semPromise = (async () => {
+      try {
+        const response = await $fetch<PaginatedResponse<SemesterSchema>>('/api/semesters', {
+          credentials: 'include',
+          query: {
+            page,
+            limit: paginationSem.value.limit,
+            academicYearId: filterAcademicYearId.value === 'ALL' ? undefined : filterAcademicYearId.value,
+            active: activeSem.value === 'ALL' ? undefined : activeSem.value
+          }
+        })
 
-      semesters.value = response.data
-      paginationSem.value = response.pagination
-      isLoadedSem.value = true
-    } catch (err) {
-      console.error('[AcademicStore] Gagal mengambil data semester:', err)
-    } finally {
-      loadingSem.value = false
-    }
+        semesters.value = response.data
+        paginationSem.value = response.pagination
+        isLoadedSem.value = true
+      } catch (err) {
+        console.error('[AcademicStore] Gagal mengambil data semester:', err)
+      } finally {
+        loadingSem.value = false
+        semPromise = null
+      }
+    })()
+
+    return semPromise
   }
 
   // ── 3. CLASSES ──────────────────────────────────────────────────────────
@@ -92,31 +114,39 @@ export const useAcademicStore = defineStore('academic', () => {
   const selectedClass = ref<ClassSchema | null>(null)
 
   async function fetchClasses(force = false, page = paginationCl.value.page) {
-    if (!isLoadedCl.value || force) {
+    if (isLoadedCl.value && !force) return
+    if (clPromise) return clPromise
+
+    if (classes.value.length === 0) {
       loadingCl.value = true
     }
 
-    try {
-      const response = await $fetch<PaginatedResponse<ClassSchema>>('/api/classes', {
-        credentials: 'include',
-        query: {
-          page,
-          limit: paginationCl.value.limit,
-          search: searchCl.value || undefined,
-          level: levelCl.value || undefined,
-          sort: sortCl.value,
-          order: orderCl.value
-        }
-      })
+    clPromise = (async () => {
+      try {
+        const response = await $fetch<PaginatedResponse<ClassSchema>>('/api/classes', {
+          credentials: 'include',
+          query: {
+            page,
+            limit: paginationCl.value.limit,
+            search: searchCl.value || undefined,
+            level: levelCl.value || undefined,
+            sort: sortCl.value,
+            order: orderCl.value
+          }
+        })
 
-      classes.value = response.data
-      paginationCl.value = response.pagination
-      isLoadedCl.value = true
-    } catch (err) {
-      console.error('[AcademicStore] Gagal mengambil data kelas:', err)
-    } finally {
-      loadingCl.value = false
-    }
+        classes.value = response.data
+        paginationCl.value = response.pagination
+        isLoadedCl.value = true
+      } catch (err) {
+        console.error('[AcademicStore] Gagal mengambil data kelas:', err)
+      } finally {
+        loadingCl.value = false
+        clPromise = null
+      }
+    })()
+
+    return clPromise
   }
 
   // ── 4. SUBJECTS ─────────────────────────────────────────────────────────
@@ -130,30 +160,38 @@ export const useAcademicStore = defineStore('academic', () => {
   const selectedSubject = ref<SubjectSchema | null>(null)
 
   async function fetchSubjects(force = false, page = paginationSub.value.page) {
-    if (!isLoadedSub.value || force) {
+    if (isLoadedSub.value && !force) return
+    if (subPromise) return subPromise
+
+    if (subjects.value.length === 0) {
       loadingSub.value = true
     }
 
-    try {
-      const response = await $fetch<PaginatedResponse<SubjectSchema>>('/api/subjects', {
-        credentials: 'include',
-        query: {
-          page,
-          limit: paginationSub.value.limit,
-          search: searchSub.value || undefined,
-          sort: sortSub.value,
-          order: orderSub.value
-        }
-      })
+    subPromise = (async () => {
+      try {
+        const response = await $fetch<PaginatedResponse<SubjectSchema>>('/api/subjects', {
+          credentials: 'include',
+          query: {
+            page,
+            limit: paginationSub.value.limit,
+            search: searchSub.value || undefined,
+            sort: sortSub.value,
+            order: orderSub.value
+          }
+        })
 
-      subjects.value = response.data
-      paginationSub.value = response.pagination
-      isLoadedSub.value = true
-    } catch (err) {
-      console.error('[AcademicStore] Gagal mengambil data mapel:', err)
-    } finally {
-      loadingSub.value = false
-    }
+        subjects.value = response.data
+        paginationSub.value = response.pagination
+        isLoadedSub.value = true
+      } catch (err) {
+        console.error('[AcademicStore] Gagal mengambil data mapel:', err)
+      } finally {
+        loadingSub.value = false
+        subPromise = null
+      }
+    })()
+
+    return subPromise
   }
 
   // ── COMPUTED OPTIONS ────────────────────────────────────────────────────
