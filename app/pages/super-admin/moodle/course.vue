@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
+import { useMoodleStore, type MoodleCourse } from '~/stores/moodle'
+
 definePageMeta({
   layout: 'admin'
 })
@@ -8,50 +11,24 @@ useSeoMeta({
 })
 
 const toast = useToast()
-const pending = ref(true)
-const isSyncing = ref(false)
-interface Course {
-  id: number | string
-  fullname?: string
-  shortname?: string
-  categoryId?: number | string
-  category?: { name?: string }
-  visible?: boolean
-  lastSync?: string
-  [key: string]: unknown
-}
-
-const courses = ref<Course[]>([])
-
-async function loadCourses() {
-  pending.value = true
-  try {
-    const res = await $fetch<{ data: Course[] }>('/api/moodle', {
-      credentials: 'include'
-    })
-    if (res?.data) {
-      courses.value = res.data
-    }
-  } catch (err) {
-    console.error('Gagal mengambil data Course Moodle:', err)
-  } finally {
-    pending.value = false
-  }
-}
+const moodleStore = useMoodleStore()
+const {
+  courses,
+  loadingCourses: pending,
+  isSyncingCourse: isSyncing,
+  courseSearch: search,
+  coursePage: page,
+  coursePageCount: pageCount
+} = storeToRefs(moodleStore)
 
 async function handleSync() {
-  isSyncing.value = true
   try {
-    const res = await $fetch<{ message?: string }>('/api/moodle?resource=COURSE', {
-      method: 'POST',
-      credentials: 'include'
-    })
+    const res = await moodleStore.syncCourses()
     toast.add({
       title: 'Sinkronisasi Sukses',
       description: res.message || 'Course Moodle berhasil diperbarui.',
       color: 'success'
     })
-    await loadCourses()
   } catch (e) {
     const error = e as { data?: { statusMessage?: string }, message?: string }
     toast.add({
@@ -59,18 +36,12 @@ async function handleSync() {
       description: error.data?.statusMessage || error.message || 'Terjadi kesalahan saat sync.',
       color: 'error'
     })
-  } finally {
-    isSyncing.value = false
   }
 }
 
 onMounted(() => {
-  loadCourses()
+  moodleStore.fetchCourses()
 })
-
-const search = ref('')
-const page = ref(1)
-const pageCount = ref(10)
 
 const columns: { accessorKey: string, header: string }[] = [
   { accessorKey: 'id', header: 'ID Moodle' },
@@ -85,7 +56,7 @@ const filteredCourses = computed(() => {
   let list = courses.value
   if (search.value) {
     const kw = search.value.toLowerCase()
-    list = list.filter((c: Course) =>
+    list = list.filter((c: MoodleCourse) =>
       c.fullname?.toLowerCase().includes(kw)
       || c.shortname?.toLowerCase().includes(kw)
       || String(c.id).includes(kw)

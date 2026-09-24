@@ -1,5 +1,49 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
+import { useStudentClassStore } from '~~/app/stores/studentClass'
+
+interface SemesterItem {
+  id: string
+  type: string
+  isActive?: boolean
+  academicYear?: { name: string } | null
+}
+
+interface ClassroomItem {
+  id: string
+  name: string
+  level: number | string
+}
+
+interface UnassignedStudentItem {
+  id: string
+  nis?: string
+  user?: {
+    fullname?: string
+  }
+}
+
+interface ClassMemberItem {
+  id: string
+  student?: {
+    nis?: string
+    user?: {
+      fullname?: string
+    }
+  }
+}
+
 const toast = useToast()
+const store = useStudentClassStore()
+
+const {
+  classes,
+  semesters,
+  unassignedStudents,
+  classMembers,
+  pendingUnassigned,
+  pendingMembers
+} = storeToRefs(store)
 
 const selectedSemesterId = ref<string>('')
 const selectedClassroomId = ref<string>('')
@@ -16,51 +60,24 @@ const selectAllMembers = ref(false)
 const isAssigning = ref(false)
 const isRemoving = ref(false)
 
-// Options Dropdowns
-const semesterOptions = ref<{ label: string, value: string }[]>([])
-const classOptions = ref<{ label: string, value: string }[]>([])
+// Options Dropdowns directly from Store
+const semesterOptions = computed(() => (semesters.value as SemesterItem[]).map(s => ({
+  label: `${s.academicYear?.name || ''} - ${s.type} ${s.isActive ? '(AKTIF)' : ''}`.trim(),
+  value: s.id
+})))
 
-// 1. Fetch Semesters and Classrooms Dropdowns
-async function loadDropdowns() {
-  try {
-    const semRes: any = await $fetch('/api/semesters', { credentials: 'include' })
-    if (semRes?.data) {
-      semesterOptions.value = semRes.data.map((s: any) => ({
-        label: `${s.academicYear?.name} - ${s.type} ${s.isActive ? '(AKTIF)' : ''}`,
-        value: s.id
-      }))
-      const activeSem = semRes.data.find((s: any) => s.isActive)
-      if (activeSem) selectedSemesterId.value = activeSem.id
-    }
+const classOptions = computed(() => (classes.value as ClassroomItem[]).map(c => ({
+  label: `Kelas ${c.name} (Tingkat ${c.level})`,
+  value: c.id
+})))
 
-    const classRes: any = await $fetch('/api/classes', { credentials: 'include' })
-    if (classRes?.data) {
-      classOptions.value = classRes.data.map((c: any) => ({
-        label: `Kelas ${c.name} (Tingkat ${c.level})`,
-        value: c.id
-      }))
-      if (classRes.data.length > 0 && !selectedClassroomId.value) {
-        selectedClassroomId.value = classRes.data[0].id
-      }
-    }
-    await nextTick()
-    refreshUnassigned()
-    refreshMembers()
-  } catch (err) {
-    console.error('Gagal memuat dropdown plotting:', err)
-  }
-}
-
-onMounted(() => {
-  loadDropdowns()
-})
-
-function extractId(val: any): string {
+function extractId(val: unknown): string {
   if (!val) return ''
   if (typeof val === 'string') return val.trim()
   if (typeof val === 'object') {
-    if (val.value) return String(val.value).trim()
-    if (val.id) return String(val.id).trim()
+    const obj = val as Record<string, unknown>
+    if (obj.value) return String(obj.value).trim()
+    if (obj.id) return String(obj.id).trim()
   }
   return String(val).trim()
 }
@@ -68,33 +85,9 @@ function extractId(val: any): string {
 const targetSemesterId = computed(() => extractId(selectedSemesterId.value))
 const targetClassroomId = computed(() => extractId(selectedClassroomId.value))
 
-// 2. Fetch Unassigned Students
-const { data: unassignedRes, pending: pendingUnassigned, refresh: refreshUnassigned } = await useFetch('/api/students/unassigned', {
-  query: {
-    semesterId: targetSemesterId,
-    search: searchUnassigned
-  },
-  watch: [targetSemesterId, searchUnassigned]
-})
-
-const unassignedStudents = computed(() => unassignedRes.value?.data ?? (Array.isArray(unassignedRes.value) ? unassignedRes.value : []))
-
-// 3. Fetch Class Members (StudentClass records in target classroom & semester)
-const { data: membersRes, pending: pendingMembers, refresh: refreshMembers } = await useFetch('/api/student-classes', {
-  query: {
-    classroomId: targetClassroomId,
-    semesterId: targetSemesterId,
-    search: searchMembers,
-    limit: 200
-  },
-  watch: [targetClassroomId, targetSemesterId, searchMembers]
-})
-
-const classMembers = computed(() => membersRes.value?.data ?? (Array.isArray(membersRes.value) ? membersRes.value : []))
-
 // Filtered lists
-const filteredUnassigned = computed(() => unassignedStudents.value)
-const filteredMembers = computed(() => classMembers.value)
+const filteredUnassigned = computed<UnassignedStudentItem[]>(() => unassignedStudents.value as UnassignedStudentItem[])
+const filteredMembers = computed<ClassMemberItem[]>(() => classMembers.value as ClassMemberItem[])
 
 // Checkbox select all handlers
 function toggleSelectAllUnassigned() {
@@ -130,14 +123,41 @@ watch(selectedMemberClassIds, (newVal) => {
   selectAllMembers.value = newVal.length === filteredMembers.value.length
 })
 
-// Reset selection & refresh list on classroom or semester change
-watch([targetClassroomId, targetSemesterId, searchUnassigned, searchMembers], () => {
+// Unified Debounced Watcher for Plotting Data (Eliminates triple-fetching & race conditions)
+const executeFetchPlotting = useDebounceFn(() => {
   selectedUnassignedIds.value = []
   selectedMemberClassIds.value = []
   selectAllUnassigned.value = false
   selectAllMembers.value = false
-  refreshUnassigned()
-  refreshMembers()
+
+  if (targetSemesterId.value) {
+    store.fetchUnassigned(targetSemesterId.value, searchUnassigned.value)
+  }
+  if (targetClassroomId.value && targetSemesterId.value) {
+    store.fetchClassMembers(targetClassroomId.value, targetSemesterId.value, searchMembers.value)
+  }
+}, 250)
+
+watch([targetSemesterId, targetClassroomId, searchUnassigned, searchMembers], () => {
+  executeFetchPlotting()
+})
+
+// Init: Ensure supporting data is loaded and defaults are set
+onMounted(async () => {
+  await store.loadSupportingData()
+
+  // Set default active semester if not selected
+  if (!selectedSemesterId.value) {
+    const sems = semesters.value as SemesterItem[]
+    const activeSem = sems.find(s => s.isActive) || sems[0]
+    if (activeSem) selectedSemesterId.value = activeSem.id
+  }
+
+  // Set default class if not selected
+  if (!selectedClassroomId.value && classes.value.length > 0) {
+    const cls = classes.value as ClassroomItem[]
+    if (cls[0]) selectedClassroomId.value = cls[0].id
+  }
 })
 
 // ACTION: Batch Assign Unassigned Students to Classroom
@@ -153,18 +173,12 @@ async function assignSelectedStudents() {
 
   isAssigning.value = true
   try {
-    const doFetch: any = $fetch
-    const res: any = await doFetch('/api/student-classes/bulk', {
+    const res = await $fetch<{ message?: string }>('/api/student-classes/bulk', {
       method: 'POST',
       body: {
-        classroomId: targetClassroomId.value,
-        semesterId: targetSemesterId.value,
         studentIds: selectedUnassignedIds.value,
-        items: selectedUnassignedIds.value.map(studentId => ({
-          studentId,
-          classroomId: targetClassroomId.value,
-          semesterId: targetSemesterId.value
-        }))
+        classroomId: targetClassroomId.value,
+        semesterId: targetSemesterId.value
       }
     })
 
@@ -176,11 +190,19 @@ async function assignSelectedStudents() {
 
     selectedUnassignedIds.value = []
     selectAllUnassigned.value = false
-    await Promise.all([refreshUnassigned(), refreshMembers()])
-  } catch (err: any) {
+    store.clearPlottingCache()
+    await Promise.all([
+      store.fetchUnassigned(targetSemesterId.value, searchUnassigned.value, true),
+      store.fetchClassMembers(targetClassroomId.value, targetSemesterId.value, searchMembers.value, true),
+      store.refreshSC(true)
+    ])
+  } catch (err: unknown) {
+    const errorMsg = err && typeof err === 'object' && 'statusMessage' in err
+      ? String((err as { statusMessage?: unknown }).statusMessage)
+      : 'Gagal merubah rombel siswa.'
     toast.add({
       title: 'Gagal',
-      description: err.statusMessage || 'Gagal merubah rombel siswa.',
+      description: errorMsg,
       color: 'error'
     })
   } finally {
@@ -197,8 +219,7 @@ async function removeSelectedMembers() {
 
   isRemoving.value = true
   try {
-    const doFetch: any = $fetch
-    const res: any = await doFetch('/api/student-classes/batch-delete', {
+    const res = await $fetch<{ message?: string }>('/api/student-classes/batch-delete', {
       method: 'POST',
       body: { ids: selectedMemberClassIds.value }
     })
@@ -211,11 +232,19 @@ async function removeSelectedMembers() {
 
     selectedMemberClassIds.value = []
     selectAllMembers.value = false
-    await Promise.all([refreshUnassigned(), refreshMembers()])
-  } catch (err: any) {
+    store.clearPlottingCache()
+    await Promise.all([
+      store.fetchUnassigned(targetSemesterId.value, searchUnassigned.value, true),
+      store.fetchClassMembers(targetClassroomId.value, targetSemesterId.value, searchMembers.value, true),
+      store.refreshSC(true)
+    ])
+  } catch (err: unknown) {
+    const errorMsg = err && typeof err === 'object' && 'statusMessage' in err
+      ? String((err as { statusMessage?: unknown }).statusMessage)
+      : 'Gagal mengeluarkan siswa.'
     toast.add({
       title: 'Gagal',
-      description: err.statusMessage || 'Gagal mengeluarkan siswa.',
+      description: errorMsg,
       color: 'error'
     })
   } finally {
@@ -258,88 +287,133 @@ async function removeSelectedMembers() {
     <!-- Dual Column Transfer Panel -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       <!-- LEFT COLUMN: Siswa Belum Ada Kelas -->
-      <UCard class="lg:col-span-5 border border-amber-200 dark:border-amber-900/50 shadow-sm">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-user-x" class="w-5 h-5 text-amber-500" />
-              <h3 class="font-bold text-sm text-gray-900 dark:text-white">
-                Siswa Belum Punya Kelas
-              </h3>
-            </div>
-            <UBadge color="warning" variant="subtle" size="sm" class="font-bold font-mono">
-              {{ filteredUnassigned.length }} Siswa
-            </UBadge>
-          </div>
-        </template>
+      <div
+        class="relative lg:col-span-5 rounded-2xl p-[2px] overflow-hidden border border-amber-200 dark:border-amber-900/50 transition-all duration-300"
+        :class="pendingUnassigned ? 'border-transparent dark:border-transparent shadow-lg shadow-amber-500/10' : ''"
+      >
+        <!-- Rotating Border Beam while loading -->
+        <div
+          v-if="pendingUnassigned"
+          class="absolute -inset-[150%] bg-[conic-gradient(from_0deg,transparent_0deg,transparent_260deg,#f59e0b_360deg)] animate-spin"
+          style="animation-duration: 2.5s;"
+        />
 
-        <!-- Search & Select All -->
-        <div class="space-y-3 mb-3">
-          <UInput
-            v-model="searchUnassigned"
-            icon="i-lucide-search"
-            placeholder="Cari nama / NIS siswa..."
-            class="w-full"
-          />
-
-          <div class="flex items-center justify-between text-xs px-1">
-            <label class="flex items-center gap-2 cursor-pointer font-medium text-gray-600 dark:text-gray-400">
-              <input
-                type="checkbox"
-                v-model="selectAllUnassigned"
-                @change="toggleSelectAllUnassigned"
-                class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-              />
-              Pilih Semua ({{ filteredUnassigned.length }})
-            </label>
-
-            <span class="text-emerald-600 dark:text-emerald-400 font-bold">
-              {{ selectedUnassignedIds.length }} Terpilih
-            </span>
-          </div>
-        </div>
-
-        <!-- Scrollable Student List -->
-        <div class="h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
-          <div v-if="pendingUnassigned" class="p-8 text-center text-xs text-gray-400">
-            <UIcon name="i-lucide-loader-2" class="w-6 h-6 animate-spin text-amber-500 mx-auto mb-2" />
-            Memuat daftar siswa belum ada kelas...
-          </div>
-
-          <div v-else-if="filteredUnassigned.length === 0" class="p-8 text-center text-xs text-gray-400">
-            Tidak ada siswa belum berkelas yang ditemukan.
-          </div>
-
-          <div
-            v-for="s in filteredUnassigned"
-            :key="s.id"
-            class="flex items-center justify-between p-3 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 cursor-pointer transition-colors"
-            @click="() => {
-              const idx = selectedUnassignedIds.indexOf(s.id)
-              if (idx > -1) selectedUnassignedIds.splice(idx, 1)
-              else selectedUnassignedIds.push(s.id)
-            }"
-          >
-            <div class="flex items-center gap-3">
-              <input
-                type="checkbox"
-                :value="s.id"
-                v-model="selectedUnassignedIds"
-                class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-                @click.stop
-              />
-              <div>
-                <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ s.user?.fullname || '-' }}</p>
-                <p class="text-xs font-mono text-gray-400">NIS: {{ s.nis || '-' }}</p>
+        <UCard class="relative z-10 w-full h-full rounded-[14px] bg-white dark:bg-gray-900 border-0 shadow-none">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <UIcon
+                  name="i-lucide-user-x"
+                  class="w-5 h-5 text-amber-500"
+                />
+                <h3 class="font-bold text-sm text-gray-900 dark:text-white">
+                  Siswa Belum Punya Kelas
+                </h3>
               </div>
+              <UBadge
+                color="warning"
+                variant="subtle"
+                size="sm"
+                class="font-bold font-mono flex items-center gap-1.5"
+              >
+                <UIcon
+                  v-if="pendingUnassigned"
+                  name="i-lucide-loader-2"
+                  class="w-3.5 h-3.5 animate-spin text-amber-600"
+                />
+                {{ filteredUnassigned.length }} Siswa
+              </UBadge>
+            </div>
+          </template>
+
+          <!-- Search & Select All -->
+          <div class="space-y-3 mb-3">
+            <UInput
+              v-model="searchUnassigned"
+              icon="i-lucide-search"
+              placeholder="Cari nama / NIS siswa..."
+              class="w-full"
+            />
+
+            <div class="flex items-center justify-between text-xs px-1">
+              <label class="flex items-center gap-2 cursor-pointer font-medium text-gray-600 dark:text-gray-400">
+                <input
+                  v-model="selectAllUnassigned"
+                  type="checkbox"
+                  class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                  @change="toggleSelectAllUnassigned"
+                >
+                Pilih Semua ({{ filteredUnassigned.length }})
+              </label>
+
+              <span class="text-emerald-600 dark:text-emerald-400 font-bold">
+                {{ selectedUnassignedIds.length }} Terpilih
+              </span>
+            </div>
+          </div>
+
+          <!-- Scrollable Student List (Preserved at all times) -->
+          <div
+            class="h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 transition-opacity duration-200"
+            :class="pendingUnassigned ? 'opacity-75' : ''"
+          >
+            <!-- Empty state when list has 0 items -->
+            <div
+              v-if="filteredUnassigned.length === 0"
+              class="p-8 text-center text-xs text-gray-400"
+            >
+              <template v-if="pendingUnassigned">
+                <UIcon
+                  name="i-lucide-loader-2"
+                  class="w-6 h-6 animate-spin text-amber-500 mx-auto mb-2"
+                />
+                Memuat daftar siswa belum ada kelas...
+              </template>
+              <template v-else>
+                Tidak ada siswa belum berkelas yang ditemukan.
+              </template>
             </div>
 
-            <UBadge color="warning" variant="subtle" size="xs">
-              Unassigned
-            </UBadge>
+            <!-- Student List Items -->
+            <div
+              v-for="s in filteredUnassigned"
+              :key="s.id"
+              class="flex items-center justify-between p-3 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 cursor-pointer transition-colors"
+              @click="() => {
+                const idx = selectedUnassignedIds.indexOf(s.id)
+                if (idx > -1) selectedUnassignedIds.splice(idx, 1)
+                else selectedUnassignedIds.push(s.id)
+              }"
+            >
+              <div class="flex items-center gap-3">
+                <input
+                  v-model="selectedUnassignedIds"
+                  type="checkbox"
+                  :value="s.id"
+                  class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                  @click.stop
+                >
+                <div>
+                  <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                    {{ s.user?.fullname || '-' }}
+                  </p>
+                  <p class="text-xs font-mono text-gray-400">
+                    NIS: {{ s.nis || '-' }}
+                  </p>
+                </div>
+              </div>
+
+              <UBadge
+                color="warning"
+                variant="subtle"
+                size="xs"
+              >
+                Unassigned
+              </UBadge>
+            </div>
           </div>
-        </div>
-      </UCard>
+        </UCard>
+      </div>
 
       <!-- MIDDLE COLUMN: Action Buttons -->
       <div class="lg:col-span-2 flex flex-col items-center justify-center gap-3 py-4 lg:py-24">
@@ -372,88 +446,133 @@ async function removeSelectedMembers() {
       </div>
 
       <!-- RIGHT COLUMN: Anggota Kelas Terpilih -->
-      <UCard class="lg:col-span-5 border border-emerald-200 dark:border-emerald-900/50 shadow-sm">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-users" class="w-5 h-5 text-emerald-500" />
-              <h3 class="font-bold text-sm text-gray-900 dark:text-white">
-                Anggota Kelas Terpilih
-              </h3>
-            </div>
-            <UBadge color="success" variant="subtle" size="sm" class="font-bold font-mono">
-              {{ filteredMembers.length }} Siswa
-            </UBadge>
-          </div>
-        </template>
+      <div
+        class="relative lg:col-span-5 rounded-2xl p-[2px] overflow-hidden border border-emerald-200 dark:border-emerald-900/50 transition-all duration-300"
+        :class="pendingMembers ? 'border-transparent dark:border-transparent shadow-lg shadow-emerald-500/10' : ''"
+      >
+        <!-- Rotating Border Beam while loading -->
+        <div
+          v-if="pendingMembers"
+          class="absolute -inset-[150%] bg-[conic-gradient(from_0deg,transparent_0deg,transparent_260deg,#10b981_360deg)] animate-spin"
+          style="animation-duration: 2.5s;"
+        />
 
-        <!-- Search & Select All -->
-        <div class="space-y-3 mb-3">
-          <UInput
-            v-model="searchMembers"
-            icon="i-lucide-search"
-            placeholder="Cari nama / NIS di kelas ini..."
-            class="w-full"
-          />
-
-          <div class="flex items-center justify-between text-xs px-1">
-            <label class="flex items-center gap-2 cursor-pointer font-medium text-gray-600 dark:text-gray-400">
-              <input
-                type="checkbox"
-                v-model="selectAllMembers"
-                @change="toggleSelectAllMembers"
-                class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-              />
-              Pilih Semua ({{ filteredMembers.length }})
-            </label>
-
-            <span class="text-emerald-600 dark:text-emerald-400 font-bold">
-              {{ selectedMemberClassIds.length }} Terpilih
-            </span>
-          </div>
-        </div>
-
-        <!-- Scrollable Student List -->
-        <div class="h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
-          <div v-if="pendingMembers" class="p-8 text-center text-xs text-gray-400">
-            <UIcon name="i-lucide-loader-2" class="w-6 h-6 animate-spin text-emerald-500 mx-auto mb-2" />
-            Memuat anggota kelas...
-          </div>
-
-          <div v-else-if="filteredMembers.length === 0" class="p-8 text-center text-xs text-gray-400">
-            Belum ada siswa terdaftar di kelas ini.
-          </div>
-
-          <div
-            v-for="m in filteredMembers"
-            :key="m.id"
-            class="flex items-center justify-between p-3 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 cursor-pointer transition-colors"
-            @click="() => {
-              const idx = selectedMemberClassIds.indexOf(m.id)
-              if (idx > -1) selectedMemberClassIds.splice(idx, 1)
-              else selectedMemberClassIds.push(m.id)
-            }"
-          >
-            <div class="flex items-center gap-3">
-              <input
-                type="checkbox"
-                :value="m.id"
-                v-model="selectedMemberClassIds"
-                class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-                @click.stop
-              />
-              <div>
-                <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ m.student?.user?.fullname || '-' }}</p>
-                <p class="text-xs font-mono text-gray-400">NIS: {{ m.student?.nis || '-' }}</p>
+        <UCard class="relative z-10 w-full h-full rounded-[14px] bg-white dark:bg-gray-900 border-0 shadow-none">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <UIcon
+                  name="i-lucide-users"
+                  class="w-5 h-5 text-emerald-500"
+                />
+                <h3 class="font-bold text-sm text-gray-900 dark:text-white">
+                  Anggota Kelas Terpilih
+                </h3>
               </div>
+              <UBadge
+                color="success"
+                variant="subtle"
+                size="sm"
+                class="font-bold font-mono flex items-center gap-1.5"
+              >
+                <UIcon
+                  v-if="pendingMembers"
+                  name="i-lucide-loader-2"
+                  class="w-3.5 h-3.5 animate-spin text-emerald-600"
+                />
+                {{ filteredMembers.length }} Siswa
+              </UBadge>
+            </div>
+          </template>
+
+          <!-- Search & Select All -->
+          <div class="space-y-3 mb-3">
+            <UInput
+              v-model="searchMembers"
+              icon="i-lucide-search"
+              placeholder="Cari nama / NIS di kelas ini..."
+              class="w-full"
+            />
+
+            <div class="flex items-center justify-between text-xs px-1">
+              <label class="flex items-center gap-2 cursor-pointer font-medium text-gray-600 dark:text-gray-400">
+                <input
+                  v-model="selectAllMembers"
+                  type="checkbox"
+                  class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                  @change="toggleSelectAllMembers"
+                >
+                Pilih Semua ({{ filteredMembers.length }})
+              </label>
+
+              <span class="text-emerald-600 dark:text-emerald-400 font-bold">
+                {{ selectedMemberClassIds.length }} Terpilih
+              </span>
+            </div>
+          </div>
+
+          <!-- Scrollable Student List (Preserved at all times) -->
+          <div
+            class="h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 transition-opacity duration-200"
+            :class="pendingMembers ? 'opacity-75' : ''"
+          >
+            <!-- Empty state when list has 0 items -->
+            <div
+              v-if="filteredMembers.length === 0"
+              class="p-8 text-center text-xs text-gray-400"
+            >
+              <template v-if="pendingMembers">
+                <UIcon
+                  name="i-lucide-loader-2"
+                  class="w-6 h-6 animate-spin text-emerald-500 mx-auto mb-2"
+                />
+                Memuat anggota kelas...
+              </template>
+              <template v-else>
+                Belum ada siswa terdaftar di kelas ini.
+              </template>
             </div>
 
-            <UBadge color="success" variant="subtle" size="xs">
-              Aktif
-            </UBadge>
+            <!-- Student List Items -->
+            <div
+              v-for="m in filteredMembers"
+              :key="m.id"
+              class="flex items-center justify-between p-3 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 cursor-pointer transition-colors"
+              @click="() => {
+                const idx = selectedMemberClassIds.indexOf(m.id)
+                if (idx > -1) selectedMemberClassIds.splice(idx, 1)
+                else selectedMemberClassIds.push(m.id)
+              }"
+            >
+              <div class="flex items-center gap-3">
+                <input
+                  v-model="selectedMemberClassIds"
+                  type="checkbox"
+                  :value="m.id"
+                  class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                  @click.stop
+                >
+                <div>
+                  <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                    {{ m.student?.user?.fullname || '-' }}
+                  </p>
+                  <p class="text-xs font-mono text-gray-400">
+                    NIS: {{ m.student?.nis || '-' }}
+                  </p>
+                </div>
+              </div>
+
+              <UBadge
+                color="success"
+                variant="subtle"
+                size="xs"
+              >
+                Aktif
+              </UBadge>
+            </div>
           </div>
-        </div>
-      </UCard>
+        </UCard>
+      </div>
     </div>
   </div>
 </template>

@@ -189,9 +189,9 @@ export default defineEventHandler(async (event) => {
         teacherName: teaching.teacher?.user?.fullname || '-',
         courseId: teaching.courseId,
         grades: {
-          PH: phScore,
-          STS: stsScore,
-          SAS: sasScore
+          ph: phScore,
+          sts: stsScore,
+          sas: sasScore
         },
         finalScore
       }

@@ -8,23 +8,55 @@ definePageMeta({
 const route = useRoute()
 const teachingId = route.params.id as string
 
-const { data: teachingRes, pending: pendingTeaching } = await useFetch(`/api/teaching-assignments/${teachingId}`)
+const teachingRes = ref<any>(null)
+const pendingTeaching = ref(true)
 const teaching = computed(() => teachingRes.value?.data)
 
 const search = ref('')
 const page = ref(1)
 
-const { data: studentsRes, pending: pendingStudents } = await useFetch('/api/student-classes', {
-  query: computed(() => ({
-    classroomId: teaching.value?.classroomId,
-    semesterId: teaching.value?.semesterId,
-    page: page.value,
-    limit: 50
-  })),
-  immediate: !!teaching.value?.classroomId
+const studentsRes = ref<any>(null)
+const pendingStudents = ref(true)
+
+async function fetchTeaching() {
+  pendingTeaching.value = true
+  try {
+    teachingRes.value = await $fetch(`/api/teaching-assignments/${teachingId}`)
+  } catch (error) {
+    console.error(error)
+  } finally {
+    pendingTeaching.value = false
+  }
+}
+
+async function fetchStudents() {
+  if (!teaching.value?.classroomId) return
+  pendingStudents.value = true
+  try {
+    studentsRes.value = await $fetch('/api/student-classes', {
+      query: {
+        classroomId: teaching.value?.classroomId,
+        semesterId: teaching.value?.semesterId,
+        page: page.value,
+        limit: 50
+      }
+    })
+  } catch (error) {
+    console.error(error)
+  } finally {
+    pendingStudents.value = false
+  }
+}
+
+watch([page, () => teaching.value?.classroomId], () => {
+  fetchStudents()
 })
 
-const studentClasses = computed(() => studentsRes.value?.data ?? [])
+onMounted(async () => {
+  await fetchTeaching()
+})
+
+const studentClasses = computed<any[]>(() => studentsRes.value?.data ?? [])
 const pagination = computed(() => studentsRes.value?.pagination ?? { page: 1, limit: 50, total: 0, pages: 1 })
 
 const columns = [
@@ -86,29 +118,44 @@ const columns = [
     </div>
 
     <!-- Overview Card -->
-    <div v-if="teaching" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div
+      v-if="teaching"
+      class="grid grid-cols-1 sm:grid-cols-3 gap-4"
+    >
       <UCard>
-        <div class="text-xs text-gray-500">Kelas / Ruang</div>
+        <div class="text-xs text-gray-500">
+          Kelas / Ruang
+        </div>
         <div class="text-lg font-bold text-gray-900 dark:text-white mt-1">
           {{ teaching.classroom?.name }}
         </div>
-        <div class="text-xs text-emerald-600 mt-0.5">Tingkat {{ teaching.classroom?.level }} • Ruang {{ teaching.classroom?.room }}</div>
+        <div class="text-xs text-emerald-600 mt-0.5">
+          Tingkat {{ teaching.classroom?.level }} • Ruang {{ teaching.classroom?.room }}
+        </div>
       </UCard>
 
       <UCard>
-        <div class="text-xs text-gray-500">Semester & Tahun Ajaran</div>
+        <div class="text-xs text-gray-500">
+          Semester & Tahun Ajaran
+        </div>
         <div class="text-lg font-bold text-gray-900 dark:text-white mt-1">
           Semester {{ teaching.semester?.type }}
         </div>
-        <div class="text-xs text-gray-500 mt-0.5">{{ teaching.semester?.academicYear?.name }}</div>
+        <div class="text-xs text-gray-500 mt-0.5">
+          {{ teaching.semester?.academicYear?.name }}
+        </div>
       </UCard>
 
       <UCard>
-        <div class="text-xs text-gray-500">Moodle Course</div>
+        <div class="text-xs text-gray-500">
+          Moodle Course
+        </div>
         <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1 line-clamp-1">
           {{ teaching.course?.fullname || 'Belum Terhubung' }}
         </div>
-        <div class="text-xs text-gray-500 mt-0.5">{{ teaching.course ? `${teaching.course.gradeItems?.length || 0} Grade Items` : '-' }}</div>
+        <div class="text-xs text-gray-500 mt-0.5">
+          {{ teaching.course ? `${teaching.course.gradeItems?.length || 0} Grade Items` : '-' }}
+        </div>
       </UCard>
     </div>
 
@@ -117,7 +164,10 @@ const columns = [
       <template #header>
         <div class="flex items-center justify-between">
           <h2 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <UIcon name="i-lucide-users" class="w-5 h-5 text-emerald-500" />
+            <UIcon
+              name="i-lucide-users"
+              class="w-5 h-5 text-emerald-500"
+            />
             Daftar Siswa Terdaftar ({{ studentClasses.length }})
           </h2>
         </div>
@@ -157,7 +207,10 @@ const columns = [
         </template>
       </UTable>
 
-      <template v-if="pagination.pages > 1" #footer>
+      <template
+        v-if="pagination.pages > 1"
+        #footer
+      >
         <div class="flex justify-between items-center px-4 py-2">
           <span class="text-xs text-gray-500">
             Total {{ pagination.total }} siswa

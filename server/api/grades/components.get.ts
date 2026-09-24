@@ -116,7 +116,7 @@ export default defineEventHandler(async (event) => {
       })
 
       if (gradeItems.length > 0) {
-        const itemsWithNullScores = gradeItems.map((item) => ({
+        const itemsWithNullScores = gradeItems.map(item => ({
           id: `item-${item.id}`,
           studentId,
           gradeItemId: item.id,

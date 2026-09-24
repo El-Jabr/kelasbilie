@@ -11,7 +11,7 @@ const {
 const {
   openEditDialog,
   openStatusDialog,
-  // openLockDialog,
+  openLockDialog,
   openDeleteDialog
 } = useAcademicYearDialogs()
 
@@ -55,11 +55,11 @@ const items = computed<DropdownMenuItem[][]>(() => [
 
       color: academicYear.isLocked
         ? 'warning'
-        : 'neutral'
+        : 'neutral',
 
-      // onSelect: () => {
-      //   openLockDialog(academicYear)
-      // }
+      onSelect: () => {
+        openLockDialog(academicYear)
+      }
     }
   ],
   [

@@ -22,7 +22,7 @@ vi.mock('~/server/utils/db', () => ({
     studentClass: {
       findFirst: vi.fn()
     },
-    $transaction: vi.fn((promises) => Promise.all(promises))
+    $transaction: vi.fn(promises => Promise.all(promises))
   }
 }))
 

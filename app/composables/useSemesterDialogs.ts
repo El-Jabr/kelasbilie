@@ -26,6 +26,11 @@ export function useSemesterDialogs() {
     () => false
   )
 
+  const lockDialogOpen = useState(
+    'semesters:lock-dialog',
+    () => false
+  )
+
   function openCreateDialog() {
     createDialogOpen.value = true
   }
@@ -70,6 +75,18 @@ export function useSemesterDialogs() {
     selectedSemester.value = null
   }
 
+  function openLockDialog(
+    semester: SemesterTableSchema
+  ) {
+    selectedSemester.value = semester
+    lockDialogOpen.value = true
+  }
+
+  function closeLockDialog() {
+    lockDialogOpen.value = false
+    selectedSemester.value = null
+  }
+
   return {
     selectedSemester,
 
@@ -77,6 +94,7 @@ export function useSemesterDialogs() {
     editDialogOpen,
     deleteDialogOpen,
     statusDialogOpen,
+    lockDialogOpen,
 
     openCreateDialog,
     closeCreateDialog,
@@ -88,6 +106,9 @@ export function useSemesterDialogs() {
     closeDeleteDialog,
 
     openStatusDialog,
-    closeStatusDialog
+    closeStatusDialog,
+
+    openLockDialog,
+    closeLockDialog
   }
 }

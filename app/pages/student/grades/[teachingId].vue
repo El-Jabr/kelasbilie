@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useStudentStore, type GradeComponentRow } from '~/stores/student'
+
 definePageMeta({
   layout: 'student',
   middleware: ['auth', 'role'],
@@ -8,8 +10,8 @@ definePageMeta({
 const route = useRoute()
 const teachingId = route.params.teachingId as string
 
-const { data: studentRes } = await useFetch<{ data?: { id?: string } }>('/api/students/me')
-const studentId = computed(() => studentRes.value?.data?.id)
+const studentStore = useStudentStore()
+const { sasLabel } = useAssessmentTerm()
 
 interface TeachingRecord {
   subject?: { code?: string, name?: string }
@@ -18,45 +20,31 @@ interface TeachingRecord {
   [key: string]: unknown
 }
 
-const { data: teachingRes, status: teachingStatus } = await useFetch<{ data?: TeachingRecord }>(`/api/teaching-assignments/${teachingId}`)
-const teaching = computed(() => teachingRes.value?.data ?? null)
+const teaching = computed<TeachingRecord | null>(() => {
+  return (studentStore.teachingsCache[teachingId] as TeachingRecord) || null
+})
 
-interface GradeRow {
-  id: string
-  gradeItem?: {
-    name?: string
-    category?: string
-    itemType?: string
-  }
-  grade?: number
-  score?: number | null
-  lastUpdated?: string
-  lastSync?: string | Date | null
-  [key: string]: unknown
+const studentId = computed(() => studentStore.studentId)
+const cacheKey = computed(() => `${studentId.value}__${teachingId}`)
+const components = computed<GradeComponentRow[]>(() => {
+  return studentStore.componentsCache[cacheKey.value] || []
+})
+const isComponentsLoaded = computed(() => !!studentStore.componentsCache[cacheKey.value])
+
+async function fetchTeaching(force = false) {
+  await studentStore.fetchTeaching(teachingId, force)
 }
 
-const { data: componentsRes, status: componentsStatus, refresh } = await useAsyncData<{ data?: GradeRow[] } | null>(
-  `components-${teachingId}`,
-  async () => {
-    let sId = studentId.value
-    if (!sId) {
-      const meRes = await $fetch<{ data?: { id?: string } }>('/api/students/me')
-      sId = meRes?.data?.id
-    }
-    if (!sId || !teachingId) return null
-    return await $fetch<{ data?: GradeRow[] }>('/api/grades/components', {
-      query: {
-        studentId: sId,
-        teachingId
-      }
-    })
-  },
-  {
-    watch: [studentId]
-  }
-)
+async function refresh(force = false) {
+  await studentStore.fetchComponents(teachingId, force)
+}
 
-const components = computed(() => componentsRes.value?.data ?? [])
+onMounted(async () => {
+  await Promise.all([
+    fetchTeaching(),
+    refresh()
+  ])
+})
 
 function getCategoryBadgeColor(cat: string) {
   if (cat === 'PH') return 'info'
@@ -84,7 +72,7 @@ const filteredComponents = computed(() => {
   let list = components.value
   if (search.value) {
     const kw = search.value.toLowerCase()
-    list = list.filter((r: GradeRow) => {
+    list = list.filter((r: GradeComponentRow) => {
       const gi = r.gradeItem
       return (gi?.name || '').toLowerCase().includes(kw)
         || (gi?.category || '').toLowerCase().includes(kw)
@@ -155,9 +143,9 @@ watch(search, () => {
             color="neutral"
             variant="solid"
             label="Refresh Nilai"
-            :loading="componentsStatus === 'pending'"
+            :loading="studentStore.pendingComponents"
             class="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur cursor-pointer"
-            @click="() => refresh()"
+            @click="() => refresh(true)"
           />
         </div>
       </div>
@@ -165,7 +153,7 @@ watch(search, () => {
 
     <!-- Loading State -->
     <div
-      v-if="teachingStatus === 'pending' || componentsStatus === 'pending'"
+      v-if="(!teaching || !isComponentsLoaded) && (studentStore.pendingTeaching || studentStore.pendingComponents)"
       class="flex items-center justify-center py-16"
     >
       <UIcon
@@ -263,7 +251,7 @@ watch(search, () => {
                     size="sm"
                     class="font-bold"
                   >
-                    {{ comp.gradeItem?.category || 'PH' }}
+                    {{ comp.gradeItem?.category === 'SAS' ? sasLabel : (comp.gradeItem?.category || 'PH') }}
                   </UBadge>
                 </td>
                 <td class="py-3 px-4 text-center">

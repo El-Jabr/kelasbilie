@@ -35,11 +35,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    const used =
-      semester._count.studentClasses +
-      semester._count.teachingAssignments +
-      semester._count.homeroomAssignments +
-      semester._count.gradeSummaries
+    const used
+      = semester._count.studentClasses
+        + semester._count.teachingAssignments
+        + semester._count.homeroomAssignments
+        + semester._count.gradeSummaries
 
     if (used > 0) {
       throw createError({

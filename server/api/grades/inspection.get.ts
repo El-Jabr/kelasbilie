@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
   const classroomId = String(query.classroomId || '').trim()
   const teachingId = String(query.teachingId || '').trim()
   const search = String(query.search || '').trim()
+  const requestedSemesterId = String(query.semesterId || '').trim()
 
   if (!classroomId || classroomId === 'ALL') {
     return {
@@ -16,54 +17,60 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Active semester
-  const activeSemester = await prisma.semester.findFirst({
-    where: { isActive: true },
-    include: { academicYear: true }
-  })
-  if (!activeSemester) {
-    throw createError({ statusCode: 404, statusMessage: 'Semester aktif tidak ditemukan.' })
+  // 1. Fetch requested semester or fallback to activeSemester
+  let activeSemester = null
+  if (requestedSemesterId && requestedSemesterId !== 'ALL' && requestedSemesterId !== 'ACTIVE') {
+    activeSemester = await prisma.semester.findUnique({
+      where: { id: requestedSemesterId },
+      include: { academicYear: true }
+    })
   }
 
-  // 1. Fetch Students in Classroom
-  const studentClasses = await prisma.studentClass.findMany({
-    where: {
-      classroomId,
-      semesterId: activeSemester.id,
-      ...(search && {
-        student: {
-          OR: [
-            { nis: { contains: search, mode: 'insensitive' } },
-            { user: { fullname: { contains: search, mode: 'insensitive' } } }
-          ]
-        }
-      })
-    },
-    include: {
-      student: {
-        include: { user: true }
-      }
-    },
-    orderBy: {
-      student: {
-        user: { fullname: 'asc' }
-      }
-    }
-  })
+  if (!activeSemester) {
+    activeSemester = await prisma.semester.findFirst({
+      where: { isActive: true },
+      include: { academicYear: true }
+    })
+  }
 
-  // 2. Fetch Teaching Assignments for Classroom
-  const teachings = await prisma.teachingAssignment.findMany({
-    where: { classroomId, semesterId: activeSemester.id },
-    include: {
-      subject: true,
-      teacher: { include: { user: true } },
-      course: {
-        include: {
-          gradeItems: true
+  if (!activeSemester) {
+    throw createError({ statusCode: 404, statusMessage: 'Semester tidak ditemukan.' })
+  }
+
+  const [studentClasses, teachings] = await Promise.all([
+    prisma.studentClass.findMany({
+      where: {
+        classroomId,
+        semesterId: activeSemester.id,
+        ...(search && {
+          student: {
+            OR: [
+              { nis: { contains: search, mode: 'insensitive' } },
+              { user: { fullname: { contains: search, mode: 'insensitive' } } }
+            ]
+          }
+        })
+      },
+      include: {
+        student: {
+          include: { user: true }
+        }
+      },
+      orderBy: {
+        student: {
+          user: { fullname: 'asc' }
         }
       }
-    }
-  })
+    }),
+    prisma.teachingAssignment.findMany({
+      where: { classroomId, semesterId: activeSemester.id },
+      include: {
+        subject: true,
+        teacher: { include: { user: true } },
+        classroom: true
+      }
+    })
+  ])
 
   // Case A: Specific Subject/Teaching Assignment Selected
   if (teachingId && teachingId !== 'ALL') {
@@ -72,52 +79,67 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: 'Penugasan mengajar tidak ditemukan.' })
     }
 
-    // Ambil langsung dari prisma.gradeItem untuk memastikan semua item (termasuk yang baru di-sync) terbawa
-    const allItems = await prisma.gradeItem.findMany({
-      where: { courseId: selectedTeaching.courseId },
-      orderBy: { id: 'asc' }
-    })
+    const studentIds = studentClasses.map(sc => sc.studentId)
+
+    // Parallelize grade items and summaries (guard courseId if null)
+    const [allItems, summaries] = await Promise.all([
+      selectedTeaching.courseId
+        ? prisma.gradeItem.findMany({
+            where: { courseId: selectedTeaching.courseId },
+            orderBy: { id: 'asc' }
+          })
+        : Promise.resolve([]),
+      studentIds.length > 0
+        ? prisma.gradeSummary.findMany({
+            where: {
+              teachingId,
+              studentId: { in: studentIds },
+              semesterId: activeSemester.id
+            }
+          })
+        : Promise.resolve([])
+    ])
+
+    const itemIds = allItems.map(g => g.id)
+    const components = (studentIds.length > 0 && itemIds.length > 0)
+      ? await prisma.gradeComponent.findMany({
+          where: {
+            studentId: { in: studentIds },
+            gradeItemId: { in: itemIds }
+          }
+        })
+      : []
 
     const phGradeItems = allItems.filter(g => g.category === 'PH')
     const stsGradeItems = allItems.filter(g => g.category === 'STS')
     const sasGradeItems = allItems.filter(g => g.category === 'SAS')
     const uncategorizedItems = allItems.filter(g => !g.category)
-
-    // Kolom item detail hanya menampilkan selain STS dan SAS (misal PH, Tugas, Kuis)
     const detailGradeItems = allItems.filter(g => g.category !== 'STS' && g.category !== 'SAS')
 
-    const itemIds = allItems.map(g => g.id)
-    const studentIds = studentClasses.map(sc => sc.studentId)
+    // Create fast lookup maps O(1)
+    const componentMap = new Map<string, typeof components[0]>()
+    for (const c of components) {
+      componentMap.set(`${c.studentId}_${c.gradeItemId}`, c)
+    }
 
-    // Fetch Grade Components
-    const components = await prisma.gradeComponent.findMany({
-      where: {
-        studentId: { in: studentIds },
-        gradeItemId: { in: itemIds }
-      }
-    })
+    const summaryMap = new Map<string, number>()
+    for (const s of summaries) {
+      summaryMap.set(`${s.studentId}_${s.category}`, s.score)
+    }
 
-    // Fetch Grade Summaries
-    const summaries = await prisma.gradeSummary.findMany({
-      where: {
-        teachingId,
-        studentId: { in: studentIds },
-        semesterId: activeSemester.id
-      }
-    })
+    const stsItemIds = new Set(stsGradeItems.map(s => s.id))
+    const sasItemIds = new Set(sasGradeItems.map(s => s.id))
 
-    const studentsResult = studentClasses.map(sc => {
+    const studentsResult = studentClasses.map((sc) => {
       const studentId = sc.studentId
 
       const itemScores: Record<number, number | null> = {}
       const phScores: Record<number, number> = {}
       const phValues: number[] = []
-
-      // Map itemDetails
       const itemDetails: Record<number, { score: number | null, moodleScore: number | null, isManual: boolean }> = {}
 
       for (const gi of allItems) {
-        const comp = components.find(c => c.studentId === studentId && c.gradeItemId === gi.id)
+        const comp = componentMap.get(`${studentId}_${gi.id}`)
         if (comp) {
           const roundedScore = comp.score !== null ? Math.round(comp.score) : null
           itemScores[gi.id] = roundedScore
@@ -141,7 +163,7 @@ export default defineEventHandler(async (event) => {
         const sum = phValues.reduce((a, b) => a + b, 0)
         averagePh = Math.round(sum / phValues.length)
       } else {
-        const summaryPh = summaries.find(s => s.studentId === studentId && s.category === 'PH')?.score
+        const summaryPh = summaryMap.get(`${studentId}_PH`)
         if (summaryPh !== undefined && summaryPh !== null) {
           averagePh = Math.round(summaryPh)
         }
@@ -149,11 +171,18 @@ export default defineEventHandler(async (event) => {
 
       // STS Score
       let stsScore: number | null = null
-      const stsComp = components.find(c => c.studentId === studentId && stsGradeItems.some(s => s.id === c.gradeItemId))
-      if (stsComp !== undefined && stsComp.score !== null) {
-        stsScore = Math.round(stsComp.score)
+      let stsCompScore: number | null = null
+      for (const sId of stsItemIds) {
+        const comp = componentMap.get(`${studentId}_${sId}`)
+        if (comp && comp.score !== null) {
+          stsCompScore = comp.score
+          break
+        }
+      }
+      if (stsCompScore !== null) {
+        stsScore = Math.round(stsCompScore)
       } else {
-        const summarySts = summaries.find(s => s.studentId === studentId && s.category === 'STS')?.score
+        const summarySts = summaryMap.get(`${studentId}_STS`)
         if (summarySts !== undefined && summarySts !== null) {
           stsScore = Math.round(summarySts)
         }
@@ -161,11 +190,18 @@ export default defineEventHandler(async (event) => {
 
       // SAS Score
       let sasScore: number | null = null
-      const sasComp = components.find(c => c.studentId === studentId && sasGradeItems.some(s => s.id === c.gradeItemId))
-      if (sasComp !== undefined && sasComp.score !== null) {
-        sasScore = Math.round(sasComp.score)
+      let sasCompScore: number | null = null
+      for (const saId of sasItemIds) {
+        const comp = componentMap.get(`${studentId}_${saId}`)
+        if (comp && comp.score !== null) {
+          sasCompScore = comp.score
+          break
+        }
+      }
+      if (sasCompScore !== null) {
+        sasScore = Math.round(sasCompScore)
       } else {
-        const summarySas = summaries.find(s => s.studentId === studentId && s.category === 'SAS')?.score
+        const summarySas = summaryMap.get(`${studentId}_SAS`)
         if (summarySas !== undefined && summarySas !== null) {
           sasScore = Math.round(summarySas)
         }
@@ -212,21 +248,35 @@ export default defineEventHandler(async (event) => {
   const teachingIds = teachings.map(t => t.id)
   const studentIds = studentClasses.map(sc => sc.studentId)
 
-  const summaries = await prisma.gradeSummary.findMany({
-    where: {
-      teachingId: { in: teachingIds },
-      studentId: { in: studentIds },
-      semesterId: activeSemester.id
-    }
-  })
+  const summaries = (teachingIds.length > 0 && studentIds.length > 0)
+    ? await prisma.gradeSummary.findMany({
+        where: {
+          teachingId: { in: teachingIds },
+          studentId: { in: studentIds },
+          semesterId: activeSemester.id
+        },
+        select: {
+          studentId: true,
+          teachingId: true,
+          category: true,
+          score: true
+        }
+      })
+    : []
 
-  const studentsResult = studentClasses.map(sc => {
+  // Fast map lookup O(1)
+  const summaryLookup = new Map<string, number>()
+  for (const s of summaries) {
+    summaryLookup.set(`${s.studentId}_${s.teachingId}_${s.category}`, s.score)
+  }
+
+  const studentsResult = studentClasses.map((sc) => {
     const subjectGrades: Record<string, { ph: number | null, sts: number | null, sas: number | null, final: number | null }> = {}
 
     for (const t of teachings) {
-      const rawPh = summaries.find(s => s.studentId === sc.studentId && s.teachingId === t.id && s.category === 'PH')?.score ?? null
-      const rawSts = summaries.find(s => s.studentId === sc.studentId && s.teachingId === t.id && s.category === 'STS')?.score ?? null
-      const rawSas = summaries.find(s => s.studentId === sc.studentId && s.category === 'SAS')?.score ?? null
+      const rawPh = summaryLookup.get(`${sc.studentId}_${t.id}_PH`) ?? null
+      const rawSts = summaryLookup.get(`${sc.studentId}_${t.id}_STS`) ?? null
+      const rawSas = summaryLookup.get(`${sc.studentId}_${t.id}_SAS`) ?? null
 
       const ph = rawPh !== null ? Math.round(rawPh) : null
       const sts = rawSts !== null ? Math.round(rawSts) : null
@@ -256,6 +306,7 @@ export default defineEventHandler(async (event) => {
     semester: activeSemester,
     teachings: teachings.map(t => ({
       id: t.id,
+      courseId: t.courseId,
       subjectCode: t.subject.code,
       subjectName: t.subject.name,
       teacherName: t.teacher?.user?.fullname || '-'

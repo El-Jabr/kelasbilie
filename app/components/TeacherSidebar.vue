@@ -23,46 +23,61 @@ const user = computed(() => ({
   role: authStore.user?.role ?? 'TEACHER'
 }))
 
-const navItems = computed<NavigationMenuItem[]>(() => {
+const navGroups = computed(() => {
   const isSuperOrAdmin = user.value.role === 'SUPER_ADMIN' || user.value.role === 'ADMIN'
 
-  const items: NavigationMenuItem[] = [
+  const groups = [
     {
-      label: 'Dashboard Guru',
-      icon: 'i-lucide-home',
-      to: '/teacher',
-      active: route.path === '/teacher'
+      title: 'Portal Guru',
+      items: [
+        {
+          label: 'Dashboard Guru',
+          icon: 'i-lucide-home',
+          to: '/teacher',
+          active: route.path === '/teacher'
+        },
+        {
+          label: 'Kelas Mengajar',
+          icon: 'i-lucide-book-open',
+          to: '/teacher/classes',
+          active: route.path.startsWith('/teacher/classes')
+        },
+        {
+          label: 'Rekap Wali Kelas',
+          icon: 'i-lucide-award',
+          to: '/teacher/homeroom',
+          active: route.path.startsWith('/teacher/homeroom')
+        }
+      ]
     },
     {
-      label: 'Kelas Mengajar',
-      icon: 'i-lucide-book-open',
-      to: '/teacher/classes',
-      active: route.path.startsWith('/teacher/classes')
-    },
-    {
-      label: 'Rekap Wali Kelas',
-      icon: 'i-lucide-award',
-      to: '/teacher/homeroom',
-      active: route.path.startsWith('/teacher/homeroom')
-    },
-    {
-      label: 'Profil Saya',
-      icon: 'i-lucide-user',
-      to: '/teacher/profile',
-      active: route.path === '/teacher/profile'
+      title: 'Akun',
+      items: [
+        {
+          label: 'Profil Saya',
+          icon: 'i-lucide-user',
+          to: '/teacher/profile',
+          active: route.path === '/teacher/profile'
+        }
+      ]
     }
   ]
 
   if (isSuperOrAdmin) {
-    items.push({
-      label: 'Ke Panel Admin',
-      icon: 'i-lucide-shield',
-      to: '/super-admin',
-      active: route.path.startsWith('/super-admin')
+    groups.push({
+      title: 'Sistem',
+      items: [
+        {
+          label: 'Ke Panel Admin',
+          icon: 'i-lucide-shield',
+          to: '/super-admin',
+          active: route.path.startsWith('/super-admin')
+        }
+      ]
     })
   }
 
-  return items
+  return groups
 })
 
 async function handleLogout() {
@@ -92,7 +107,10 @@ async function handleLogout() {
   <aside class="flex flex-col h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 w-64 select-none">
     <!-- Header Tanpa Logo Aplikasi -->
     <div class="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
-      <NuxtLink to="/teacher" class="flex items-center gap-3">
+      <NuxtLink
+        to="/teacher"
+        class="flex items-center gap-3"
+      >
         <div class="flex flex-col">
           <span class="font-bold text-base leading-none text-gray-900 dark:text-white">Kelas Bilie</span>
           <span class="text-[10px] font-semibold tracking-wider uppercase text-emerald-600 dark:text-emerald-400 mt-0.5">
@@ -112,12 +130,24 @@ async function handleLogout() {
     </div>
 
     <!-- Navigation List -->
-    <div class="flex-1 overflow-y-auto p-3 space-y-1">
-      <UNavigationMenu
-        :items="navItems"
-        orientation="vertical"
-        class="w-full"
-      />
+    <div class="flex-1 overflow-y-auto p-3 space-y-4">
+      <div
+        v-for="(group, idx) in navGroups"
+        :key="idx"
+        class="space-y-1"
+      >
+        <p
+          v-if="group.title"
+          class="px-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2"
+        >
+          {{ group.title }}
+        </p>
+        <UNavigationMenu
+          :items="group.items"
+          orientation="vertical"
+          class="w-full"
+        />
+      </div>
     </div>
 
     <!-- Sidebar Footer / User Profile -->

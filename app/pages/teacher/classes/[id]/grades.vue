@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useGradesStore } from '~/stores/grades'
+
 definePageMeta({
   layout: 'teacher',
   middleware: ['auth', 'role'],
@@ -8,6 +10,7 @@ definePageMeta({
 const route = useRoute()
 const toast = useToast()
 const teachingId = route.params.id as string
+const gradesStore = useGradesStore()
 
 const isSaving = ref(false)
 const isAddingItem = ref(false)
@@ -17,16 +20,56 @@ const newItemName = ref('')
 // Scores Map: key `${studentId}_${gradeItemId}` -> score
 const scoresMap = ref<Record<string, number | null>>({})
 
-// Direct fetch using teaching assignment detail
-const { data: teachingRes } = await useFetch(`/api/teaching-assignments/${teachingId}`)
+const teachingRes = ref<any>(null)
 const teaching = computed(() => teachingRes.value?.data)
 
-const { data: fullInspectionRes, pending: pendingData, refresh: refreshData } = await useFetch('/api/grades/inspection', {
-  query: computed(() => ({
-    classroomId: teaching.value?.classroomId,
-    teachingId: teachingId
-  })),
-  immediate: !!teaching.value?.classroomId
+const fullInspectionRes = ref<any>(null)
+const pendingData = ref(true)
+
+const { sasLabel } = useAssessmentTerm(computed(() => teaching.value?.semester?.type || fullInspectionRes.value?.semester?.type))
+
+async function fetchTeaching() {
+  try {
+    teachingRes.value = await $fetch(`/api/teaching-assignments/${teachingId}`)
+    if (!teaching.value?.classroomId) {
+      pendingData.value = false
+    }
+  } catch (error) {
+    console.error(error)
+    pendingData.value = false
+  }
+}
+
+async function refreshData(force = false) {
+  if (!teaching.value?.classroomId) {
+    pendingData.value = false
+    return
+  }
+  pendingData.value = true
+  try {
+    fullInspectionRes.value = await gradesStore.fetchInspection(
+      teaching.value.classroomId,
+      teachingId,
+      '',
+      force
+    )
+  } catch (error) {
+    console.error(error)
+  } finally {
+    pendingData.value = false
+  }
+}
+
+watch(() => teaching.value?.classroomId, (cid) => {
+  if (cid) {
+    refreshData()
+  } else {
+    pendingData.value = false
+  }
+})
+
+onMounted(async () => {
+  await fetchTeaching()
 })
 
 const inspectionData = computed<any>(() => fullInspectionRes.value)
@@ -172,7 +215,8 @@ async function saveAllGrades() {
       color: 'success'
     })
 
-    await refreshData()
+    gradesStore.invalidateCache(teaching.value.classroomId)
+    await refreshData(true)
   } catch (err: any) {
     toast.add({
       title: 'Gagal Menyimpan',
@@ -247,7 +291,7 @@ function updateScore(key: string, val: any) {
           <div class="flex items-center gap-2">
             <UIcon name="i-lucide-table" class="hidden sm:inline-block w-5 h-5 text-emerald-500" />
             <h2 class="text-base font-bold text-gray-900 dark:text-white">
-              Tabel Input Nilai (Formula: 50% Rata PH + 25% STS + 25% SAS)
+              Tabel Input Nilai (Formula: 50% Rata PH + 25% STS + 25% {{ sasLabel }})
             </h2>
           </div>
           <UBadge color="success" variant="subtle" size="sm">
@@ -289,9 +333,9 @@ function updateScore(key: string, val: any) {
                 STS (25%)
               </th>
 
-              <!-- SAS Column -->
+              <!-- SAS/SAT Column -->
               <th class="py-2 px-3 text-center bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-r border-gray-200 dark:border-gray-700" rowspan="2">
-                SAS (25%)
+                {{ sasLabel }} (25%)
               </th>
 
               <!-- Final Grade Column -->
@@ -448,7 +492,7 @@ function updateScore(key: string, val: any) {
       <template #footer>
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <div>
-            💡 <span class="font-semibold">Catatan Guru:</span> Masukkan/edit nilai pada kolom PH, STS, atau SAS, lalu klik <span class="font-bold text-emerald-600">Simpan Nilai</span>. Nilai Moodle ditampilkan sebagai referensi.
+            💡 <span class="font-semibold">Catatan Guru:</span> Masukkan/edit nilai pada kolom PH, STS, atau {{ sasLabel }}, lalu klik <span class="font-bold text-emerald-600">Simpan Nilai</span>. Nilai Moodle ditampilkan sebagai referensi.
           </div>
           <UButton
             color="success"

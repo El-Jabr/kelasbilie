@@ -22,12 +22,15 @@ const emit = defineEmits<{ close: [boolean] }>()
         <div
           class="p-2.5 rounded-2xl shrink-0"
           :class="[
-            color === 'warning' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400' :
-            color === 'primary' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400' :
-            'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400'
+            color === 'warning' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
+            : color === 'primary' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
+              : 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400'
           ]"
         >
-          <UIcon :name="icon || (color === 'warning' ? 'i-lucide-alert-triangle' : 'i-lucide-badge-alert')" class="w-8 h-8" />
+          <UIcon
+            :name="icon || (color === 'warning' ? 'i-lucide-alert-triangle' : 'i-lucide-badge-alert')"
+            class="w-8 h-8"
+          />
         </div>
         <div class="space-y-1">
           <p class="text-sm font-medium text-gray-800 dark:text-gray-200">

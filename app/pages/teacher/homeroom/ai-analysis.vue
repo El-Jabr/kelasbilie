@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
+import { useAiAnalysisStore } from '~/stores/aiAnalysis'
+import { LazyModalConfirm } from '#components'
+
 definePageMeta({
   layout: 'teacher',
   middleware: ['auth', 'role'],
@@ -12,18 +16,52 @@ useSeoMeta({
 const toast = useToast()
 const forceRefresh = ref(false)
 
-const isAnalyzing = ref(false)
-const analysisData = ref<any>(null)
-const isCached = ref(false)
-const generatedAt = ref('')
+const aiStore = useAiAnalysisStore()
+const homeroomStore = useTeacherHomeroomStore()
+const { homeroom, selectedSemesterId, semesterOptions } = storeToRefs(homeroomStore)
 
-const homeroom = ref<any>(null)
+const { isAnalyzingClass: isAnalyzing } = storeToRefs(aiStore)
+
+const classAnalysis = computed(() => {
+  const cid = homeroom.value?.classroomId
+  if (!cid) return null
+  const semKey = selectedSemesterId.value === 'ACTIVE' ? 'active' : selectedSemesterId.value
+  return aiStore.classAnalysisCache[`${cid}__${semKey}`] || null
+})
+
+interface AIClassAnalysisData {
+  ringkasan?: {
+    rataRataKelas?: number
+    jumlahLulus?: number
+    jumlahRemidi?: number
+    mapelTerlemah?: string
+    mapelTerkuat?: string
+  }
+  komparasiHistoris?: {
+    adaData?: boolean
+    semesterSebelumnya?: string | null
+    rataRataSebelumnya?: number
+    rataRataSekarang?: number
+    selisih?: number
+    statusPerubahan?: string
+    catatanTren?: string
+  }
+  narasi?: string
+  siswaPerhatianKhusus?: Array<{ nama: string, alasan: string, saran: string }>
+  rekomendasiKelas?: Array<{ prioritas: string, tindakan: string, mapel: string }>
+}
+
+const analysisData = computed<AIClassAnalysisData | null>(() => classAnalysis.value?.data ?? null)
+const isCached = computed(() => classAnalysis.value?.cached || false)
+const generatedAt = computed(() => classAnalysis.value?.generatedAt || '')
 
 onMounted(async () => {
   try {
-    const res: any = await $fetch('/api/homerooms/my')
-    if (res.data) {
-      homeroom.value = res.data
+    await homeroomStore.fetchSemesters()
+    if (!homeroomStore.isLoaded) {
+      await homeroomStore.fetchHomeroom()
+    }
+    if (homeroom.value?.classroomId) {
       analyzeClass()
     }
   } catch (err) {
@@ -31,39 +69,30 @@ onMounted(async () => {
   }
 })
 
+watch(selectedSemesterId, async () => {
+  await homeroomStore.fetchHomeroom(true)
+  if (homeroom.value?.classroomId) {
+    analyzeClass()
+  }
+})
+
 async function analyzeClass() {
   if (!homeroom.value?.classroomId) return
 
-  isAnalyzing.value = true
-  analysisData.value = null
-  
+  const targetSemester = selectedSemesterId.value !== 'ACTIVE' ? selectedSemesterId.value : undefined
   try {
-    const res: any = await $fetch('/api/ai/analyze-class', {
-      method: 'POST',
-      body: {
-        classroomId: homeroom.value.classroomId,
-        forceRefresh: forceRefresh.value
-      }
-    })
-    
-    analysisData.value = res.data
-    isCached.value = res.cached
-    generatedAt.value = new Date(res.generatedAt).toLocaleString('id-ID')
+    await aiStore.analyzeClass(homeroom.value.classroomId, targetSemester, forceRefresh.value)
     forceRefresh.value = false
-    
     toast.add({ title: 'Analisis Berhasil', color: 'success' })
-  } catch (error: any) {
-    toast.add({ 
-      title: 'Analisis Gagal', 
-      description: error.data?.statusMessage || 'Terjadi kesalahan saat memanggil AI.', 
-      color: 'error' 
+  } catch (error: unknown) {
+    const err = error as { data?: { statusMessage?: string } }
+    toast.add({
+      title: 'Analisis Gagal',
+      description: err.data?.statusMessage || 'Terjadi kesalahan saat memanggil AI.',
+      color: 'error'
     })
-  } finally {
-    isAnalyzing.value = false
   }
 }
-
-import { LazyModalConfirm } from '#components'
 
 const overlay = useOverlay()
 const confirmModal = overlay.create(LazyModalConfirm)
@@ -107,93 +136,115 @@ const persentaseRemidi = computed(() => {
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2 text-gray-900 dark:text-white">
-          <UIcon name="i-lucide-brain-circuit" class="w-8 h-8 text-primary-500" />
+          <UIcon
+            name="i-lucide-brain-circuit"
+            class="w-8 h-8 text-primary-500"
+          />
           AI Analisis Performa Kelas (Wali Kelas)
         </h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" v-if="homeroom">
+        <p
+          v-if="homeroom"
+          class="text-sm text-gray-500 dark:text-gray-400 mt-1"
+        >
           Kelas Binaan: <strong class="text-gray-800 dark:text-gray-200">{{ homeroom.classroom?.name }}</strong> • Laporan cerdas performa akademik & rekomendasi AI.
         </p>
       </div>
-      <div class="w-full md:w-auto">
+      <div class="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+        <USelect
+          v-model="selectedSemesterId"
+          :items="semesterOptions"
+          label-key="label"
+          value-key="value"
+          class="w-full sm:w-60"
+        />
         <UButton
           to="/teacher/homeroom"
           color="neutral"
           variant="outline"
-          class="w-full md:w-auto flex justify-center font-semibold cursor-pointer"
+          class="w-full sm:w-auto flex justify-center font-semibold cursor-pointer shrink-0"
         >
           <template #leading>
-            <UIcon name="i-lucide-arrow-left" class="w-4 h-4" />
+            <UIcon
+              name="i-lucide-arrow-left"
+              class="w-4 h-4"
+            />
           </template>
-          Kembali ke Rekap Nilai
+          Kembali ke Rekap
         </UButton>
       </div>
     </div>
 
     <!-- Empty / Loading State -->
-    <div v-if="isAnalyzing && !analysisData" class="py-16 text-center space-y-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
-      <UIcon name="i-lucide-loader-2" class="w-10 h-10 animate-spin text-primary-500 mx-auto" />
+    <div
+      v-if="isAnalyzing && !analysisData"
+      class="py-16 text-center space-y-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm"
+    >
+      <UIcon
+        name="i-lucide-loader-2"
+        class="w-10 h-10 animate-spin text-primary-500 mx-auto"
+      />
       <div class="space-y-1">
-        <h3 class="font-bold text-gray-900 dark:text-white">AI Sedang Menganalisis Performa Kelas...</h3>
-        <p class="text-xs text-gray-500">Mengkalkulasi rata-rata, distribusi kelulusan, dan rekomendasi pedagogi.</p>
+        <h3 class="font-bold text-gray-900 dark:text-white">
+          AI Sedang Menganalisis Performa Kelas...
+        </h3>
+        <p class="text-xs text-gray-500">
+          Mengevaluasi seluruh nilai siswa, mengidentifikasi siswa berisiko, dan menyusun strategi kelas.
+        </p>
       </div>
-    </div>
-
-    <!-- Not Homeroom State -->
-    <div v-else-if="!homeroom" class="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
-      <div class="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center mx-auto mb-4">
-        <UIcon name="i-lucide-alert-circle" class="w-8 h-8" />
-      </div>
-      <h3 class="text-lg font-bold text-gray-900 dark:text-white">Bukan Wali Kelas</h3>
-      <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto mt-1">
-        Anda tidak terdaftar sebagai wali kelas untuk semester aktif ini.
-      </p>
     </div>
 
     <!-- Hasil Analisis -->
-    <div v-else-if="analysisData" class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
+    <div
+      v-else-if="analysisData"
+      class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
+    >
       <!-- Metadata Cache Banner -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
         <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-          <UIcon :name="isCached ? 'i-lucide-history' : 'i-lucide-zap'" :class="['w-4 h-4', isCached ? 'text-blue-500' : 'text-emerald-500']" />
+          <UIcon
+            :name="isCached ? 'i-lucide-history' : 'i-lucide-zap'"
+            :class="['w-4 h-4', isCached ? 'text-blue-500' : 'text-emerald-500']"
+          />
           <span>Status AI: <strong>{{ isCached ? 'Data dari Cache' : 'Generasi Baru' }}</strong></span>
           <span class="text-gray-400">•</span>
           <span>Waktu Diperbarui: {{ generatedAt }}</span>
         </div>
-        <UButton size="xs" color="neutral" variant="outline" :loading="isAnalyzing" class="w-full sm:w-auto justify-center font-semibold cursor-pointer" @click="handleForceRefresh">
+        <UButton
+          size="xs"
+          color="neutral"
+          variant="outline"
+          :loading="isAnalyzing"
+          class="w-full sm:w-auto justify-center font-semibold cursor-pointer"
+          @click="handleForceRefresh"
+        >
           <template #leading>
-            <UIcon name="i-lucide-refresh-cw" class="w-3.5 h-3.5" />
+            <UIcon
+              name="i-lucide-refresh-cw"
+              class="w-3.5 h-3.5"
+            />
           </template>
           Force Refresh AI
         </UButton>
       </div>
 
-      <!-- VISUAL DASHBOARD STATS & GRAFIK CARD -->
+      <!-- Ringkasan Statistik Kelas Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        <!-- Card 1: Rata-rata & Performa Kelas -->
-        <UCard class="relative overflow-hidden border border-primary-200 dark:border-primary-900 bg-gradient-to-br from-primary-50/50 via-white to-primary-100/30 dark:from-primary-950/30 dark:via-gray-800 dark:to-primary-900/20 shadow-sm">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-primary-700 dark:text-primary-300 uppercase tracking-wider">Rata-rata Performa Kelas</span>
-            <UBadge color="primary" variant="subtle" size="xs" class="font-bold">
-              {{ (analysisData.ringkasan?.rataRataKelas || 0) >= 75 ? 'Optimal' : 'Perlu Perhatian' }}
-            </UBadge>
-          </div>
-
-          <div class="flex items-baseline gap-2">
-            <span class="text-4xl font-extrabold text-primary-600 dark:text-primary-400 tracking-tight font-mono">
-              {{ analysisData.ringkasan?.rataRataKelas || 0 }}
-            </span>
-            <span class="text-xs text-gray-500 font-mono">/ 100 Poin</span>
-          </div>
-
-          <!-- Progress Bar Chart Visual -->
-          <div class="mt-4 space-y-1.5">
-            <div class="flex justify-between text-xs text-gray-500 font-medium">
-              <span>Capaian KKM (75)</span>
-              <span>{{ analysisData.ringkasan?.rataRataKelas || 0 }}%</span>
+        <!-- Card 1: Rata-Rata Nilai Kelas -->
+        <UCard class="border border-gray-200 dark:border-gray-700 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Rata-Rata Nilai Kelas</span>
+            <div class="p-2 rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-400">
+              <UIcon
+                name="i-lucide-award"
+                class="w-5 h-5"
+              />
             </div>
-            <div class="w-full bg-gray-200 dark:bg-gray-700 h-2.5 rounded-full overflow-hidden">
+          </div>
+          <div class="mt-2">
+            <div class="text-3xl font-extrabold text-gray-900 dark:text-white font-mono">
+              {{ analysisData.ringkasan?.rataRataKelas || 0 }}
+            </div>
+            <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden mt-3">
               <div
                 class="h-full rounded-full transition-all duration-1000"
                 :class="(analysisData.ringkasan?.rataRataKelas || 0) >= 75 ? 'bg-emerald-500' : 'bg-amber-500'"
@@ -203,7 +254,7 @@ const persentaseRemidi = computed(() => {
           </div>
         </UCard>
 
-        <!-- Card 2: Grafik Proporsi Kelulusan (Visual Dual Stacked Bar Chart) -->
+        <!-- Card 2: Grafik Proporsi Kelulusan -->
         <UCard class="border border-gray-200 dark:border-gray-700 shadow-sm">
           <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Grafik Distribusi Kelulusan</span>
@@ -248,7 +299,10 @@ const persentaseRemidi = computed(() => {
           <div class="space-y-3">
             <div class="p-2.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between">
               <div class="flex items-center gap-2 min-w-0">
-                <UIcon name="i-lucide-trending-up" class="w-4 h-4 text-emerald-600 shrink-0" />
+                <UIcon
+                  name="i-lucide-trending-up"
+                  class="w-4 h-4 text-emerald-600 shrink-0"
+                />
                 <span class="text-xs text-gray-600 dark:text-gray-400 shrink-0">Mapel Terkuat:</span>
                 <strong class="text-xs font-bold text-emerald-700 dark:text-emerald-300 truncate">{{ analysisData.ringkasan?.mapelTerkuat || '-' }}</strong>
               </div>
@@ -256,7 +310,10 @@ const persentaseRemidi = computed(() => {
 
             <div class="p-2.5 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-900/40 flex items-center justify-between">
               <div class="flex items-center gap-2 min-w-0">
-                <UIcon name="i-lucide-trending-down" class="w-4 h-4 text-rose-600 shrink-0" />
+                <UIcon
+                  name="i-lucide-trending-down"
+                  class="w-4 h-4 text-rose-600 shrink-0"
+                />
                 <span class="text-xs text-gray-600 dark:text-gray-400 shrink-0">Mapel Terlemah:</span>
                 <strong class="text-xs font-bold text-rose-700 dark:text-rose-300 truncate">{{ analysisData.ringkasan?.mapelTerlemah || '-' }}</strong>
               </div>
@@ -265,11 +322,78 @@ const persentaseRemidi = computed(() => {
         </UCard>
       </div>
 
+      <!-- Komparasi Historis Kelas dengan Semester Sebelumnya -->
+      <UCard
+        v-if="analysisData.komparasiHistoris?.adaData"
+        class="border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-50/40 to-sky-50/40 dark:from-indigo-950/20 dark:to-sky-950/20 shadow-sm"
+      >
+        <template #header>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <UIcon
+                name="i-lucide-history"
+                class="w-5 h-5 text-indigo-500"
+              />
+              <h3 class="text-base font-bold text-gray-900 dark:text-white">
+                Komparasi Agregat Semester Sebelumnya ({{ analysisData.komparasiHistoris.semesterSebelumnya }})
+              </h3>
+            </div>
+            <UBadge
+              :color="analysisData.komparasiHistoris.statusPerubahan === 'meningkat' ? 'success' : (analysisData.komparasiHistoris.statusPerubahan === 'menurun' ? 'error' : 'neutral')"
+              variant="subtle"
+            >
+              <UIcon
+                :name="analysisData.komparasiHistoris.statusPerubahan === 'meningkat' ? 'i-lucide-trending-up' : (analysisData.komparasiHistoris.statusPerubahan === 'menurun' ? 'i-lucide-trending-down' : 'i-lucide-minus')"
+                class="w-3.5 h-3.5 mr-1"
+              />
+              {{ analysisData.komparasiHistoris.statusPerubahan === 'meningkat' ? 'Tren Kelas Meningkat' : (analysisData.komparasiHistoris.statusPerubahan === 'menurun' ? 'Tren Kelas Menurun' : 'Tren Kelas Stabil') }}
+            </UBadge>
+          </div>
+        </template>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 font-medium">
+              Rata-rata Kelas Semester Lalu
+            </div>
+            <div class="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1 font-mono">
+              {{ analysisData.komparasiHistoris.rataRataSebelumnya }}
+            </div>
+          </div>
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 font-medium">
+              Rata-rata Kelas Semester Ini
+            </div>
+            <div class="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1 font-mono">
+              {{ analysisData.komparasiHistoris.rataRataSekarang }}
+            </div>
+          </div>
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 font-medium">
+              Selisih Perkembangan Kelas
+            </div>
+            <div
+              class="text-xl font-bold mt-1 font-mono"
+              :class="(analysisData.komparasiHistoris.selisih ?? 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' : ((analysisData.komparasiHistoris.selisih ?? 0) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-600 dark:text-gray-300')"
+            >
+              {{ (analysisData.komparasiHistoris.selisih ?? 0) > 0 ? '+' : '' }}{{ analysisData.komparasiHistoris.selisih }}
+            </div>
+          </div>
+        </div>
+
+        <p class="text-xs text-gray-600 dark:text-gray-300 italic">
+          💡 {{ analysisData.komparasiHistoris.catatanTren }}
+        </p>
+      </UCard>
+
       <!-- Evaluasi Umum / Narasi AI -->
       <UCard class="border border-primary-200/70 dark:border-primary-900/60 bg-white dark:bg-gray-800 shadow-sm">
         <template #header>
           <div class="flex items-center gap-2">
-            <UIcon name="i-lucide-sparkles" class="w-5 h-5 text-primary-500" />
+            <UIcon
+              name="i-lucide-sparkles"
+              class="w-5 h-5 text-primary-500"
+            />
             <h3 class="text-base font-bold text-gray-900 dark:text-white">
               Evaluasi & Rangkuman Kualitatif AI
             </h3>
@@ -285,16 +409,27 @@ const persentaseRemidi = computed(() => {
         <template #header>
           <div class="flex items-center justify-between">
             <h3 class="text-base font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
-              <UIcon name="i-lucide-alert-triangle" class="w-5 h-5 text-amber-500" />
+              <UIcon
+                name="i-lucide-alert-triangle"
+                class="w-5 h-5 text-amber-500"
+              />
               Siswa Perlu Perhatian Khusus
             </h3>
-            <UBadge color="warning" variant="subtle" size="xs" class="font-bold">
+            <UBadge
+              color="warning"
+              variant="subtle"
+              size="xs"
+              class="font-bold"
+            >
               {{ analysisData.siswaPerhatianKhusus?.length || 0 }} Siswa
             </UBadge>
           </div>
         </template>
 
-        <div v-if="analysisData.siswaPerhatianKhusus?.length" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div
+          v-if="analysisData.siswaPerhatianKhusus?.length"
+          class="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
           <div
             v-for="(siswa, idx) in analysisData.siswaPerhatianKhusus"
             :key="idx"
@@ -302,23 +437,40 @@ const persentaseRemidi = computed(() => {
           >
             <div class="flex items-center justify-between">
               <div class="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
-                <UIcon name="i-lucide-user" class="w-4 h-4 text-amber-500" />
+                <UIcon
+                  name="i-lucide-user"
+                  class="w-4 h-4 text-amber-500"
+                />
                 {{ siswa.nama }}
               </div>
-              <UBadge color="warning" variant="subtle" size="xs">Pendampingan</UBadge>
+              <UBadge
+                color="warning"
+                variant="subtle"
+                size="xs"
+              >
+                Pendampingan
+              </UBadge>
             </div>
             <p class="text-xs text-gray-600 dark:text-gray-300">
               <strong class="text-gray-800 dark:text-gray-200">Alasan:</strong> {{ siswa.alasan }}
             </p>
             <div class="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-xs text-amber-900 dark:text-amber-200 font-medium">
               <span class="font-bold flex items-center gap-1 mb-0.5">
-                <UIcon name="i-lucide-lightbulb" class="w-3.5 h-3.5 text-amber-600" /> Saran AI:
+                <UIcon
+                  name="i-lucide-lightbulb"
+                  class="w-3.5 h-3.5 text-amber-600"
+                /> Saran AI:
               </span>
               {{ siswa.saran }}
             </div>
           </div>
         </div>
-        <p v-else class="text-xs text-gray-500 italic text-center py-4">Tidak ada siswa yang memerlukan perhatian khusus.</p>
+        <p
+          v-else
+          class="text-xs text-gray-500 italic text-center py-4"
+        >
+          Tidak ada siswa yang memerlukan perhatian khusus.
+        </p>
       </UCard>
 
       <!-- Rekomendasi Tindakan Kelas -->
@@ -326,16 +478,27 @@ const persentaseRemidi = computed(() => {
         <template #header>
           <div class="flex items-center justify-between">
             <h3 class="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <UIcon name="i-lucide-check-circle-2" class="w-5 h-5 text-emerald-500" />
+              <UIcon
+                name="i-lucide-check-circle-2"
+                class="w-5 h-5 text-emerald-500"
+              />
               Rekomendasi Tindakan Kelas per Mata Pelajaran
             </h3>
-            <UBadge color="success" variant="subtle" size="xs" class="font-bold">
+            <UBadge
+              color="success"
+              variant="subtle"
+              size="xs"
+              class="font-bold"
+            >
               {{ analysisData.rekomendasiKelas?.length || 0 }} Rekomendasi
             </UBadge>
           </div>
         </template>
 
-        <div v-if="analysisData.rekomendasiKelas?.length" class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
+        <div
+          v-if="analysisData.rekomendasiKelas?.length"
+          class="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden"
+        >
           <div
             v-for="(rek, idx) in analysisData.rekomendasiKelas"
             :key="idx"
@@ -355,13 +518,19 @@ const persentaseRemidi = computed(() => {
               <div class="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
                 <span>{{ rek.mapel }}</span>
               </div>
-              <p class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{{ rek.tindakan }}</p>
+              <p class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                {{ rek.tindakan }}
+              </p>
             </div>
           </div>
         </div>
-        <p v-else class="text-xs text-gray-500 italic text-center py-4">Belum ada rekomendasi khusus.</p>
+        <p
+          v-else
+          class="text-xs text-gray-500 italic text-center py-4"
+        >
+          Belum ada rekomendasi khusus.
+        </p>
       </UCard>
-
     </div>
   </div>
 </template>

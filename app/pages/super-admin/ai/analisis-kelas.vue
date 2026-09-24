@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { LazyModalConfirm } from '#components'
 
+import { storeToRefs } from 'pinia'
+import { useAiAnalysisStore } from '~/stores/aiAnalysis'
+
 definePageMeta({
   layout: 'admin'
 })
@@ -10,61 +13,44 @@ useSeoMeta({
 })
 
 const toast = useToast()
+const aiStore = useAiAnalysisStore()
 
-const selectedClassroom = ref('')
-const selectedSemester = ref('')
+const {
+  selectedClassroomId: selectedClassroom,
+  selectedSemesterId: selectedSemester,
+  currentClassAnalysis,
+  isAnalyzingClass: isAnalyzing,
+  classroomOptions,
+  semesterOptions
+} = storeToRefs(aiStore)
+
 const forceRefresh = ref(false)
 
-const isAnalyzing = ref(false)
-interface AnalysisData {
+interface AIClassAnalysisData {
   ringkasan?: {
+    rataRataKelas?: number
     jumlahLulus?: number
     jumlahRemidi?: number
-    rataRataKelas?: number
-    mapelTerkuat?: string
     mapelTerlemah?: string
+    mapelTerkuat?: string
+  }
+  komparasiHistoris?: {
+    adaData?: boolean
+    semesterSebelumnya?: string | null
+    rataRataSebelumnya?: number
+    rataRataSekarang?: number
+    selisih?: number
+    statusPerubahan?: string
+    catatanTren?: string
   }
   narasi?: string
-  rekomendasiKelas?: {
-    prioritas?: string
-    mapel?: string
-    tindakan?: string
-  }[]
-  siswaPerhatianKhusus?: {
-    nama?: string
-    alasan?: string
-    saran?: string
-  }[]
-  [key: string]: unknown
+  siswaPerhatianKhusus?: Array<{ nama: string, alasan: string, saran: string }>
+  rekomendasiKelas?: Array<{ prioritas: string, tindakan: string, mapel: string }>
 }
-const analysisData = ref<AnalysisData | null>(null)
-const isCached = ref(false)
-const generatedAt = ref('')
 
-const { data: filterData } = await useAsyncData('kelas-filters', async () => {
-  const [classRes, semRes] = await Promise.all([
-    $fetch<{ data?: { id: string, name: string }[] }>('/api/classes?limit=1000'),
-    $fetch<{ data?: { id: string, type: string, isActive: boolean, academicYear: { name: string } }[] }>('/api/semesters?limit=1000')
-  ])
-  return {
-    classes: classRes.data || [],
-    semesters: semRes.data || []
-  }
-})
-
-const classrooms = computed(() => filterData.value?.classes || [])
-const semesters = computed(() => filterData.value?.semesters || [])
-
-const classroomOptions = computed(() => classrooms.value.map((c: { name: string, id: string }) => ({ label: c.name, value: c.id })))
-const semesterOptions = computed(() => semesters.value.map((s: { type: string, academicYear: { name: string }, isActive: boolean, id: string }) => ({ label: `${s.type} ${s.academicYear.name}${s.isActive ? ' (Aktif)' : ''}`, value: s.id })))
-
-// Auto select active semester
-watchEffect(() => {
-  if (semesters.value.length && !selectedSemester.value) {
-    const activeSem = semesters.value.find((s: { isActive?: boolean }) => s.isActive)
-    if (activeSem) selectedSemester.value = activeSem.id
-  }
-})
+const analysisData = computed<AIClassAnalysisData | null>(() => currentClassAnalysis.value?.data ?? null)
+const isCached = computed(() => currentClassAnalysis.value?.cached ?? false)
+const generatedAt = computed(() => currentClassAnalysis.value?.generatedAt ?? '')
 
 async function analyzeClass() {
   if (!selectedClassroom.value) {
@@ -72,24 +58,9 @@ async function analyzeClass() {
     return
   }
 
-  isAnalyzing.value = true
-  analysisData.value = null
-
   try {
-    const res = await $fetch<{ data?: AnalysisData, cached?: boolean, generatedAt?: string }>('/api/ai/analyze-class', {
-      method: 'POST',
-      body: {
-        classroomId: selectedClassroom.value,
-        semesterId: selectedSemester.value || undefined,
-        forceRefresh: forceRefresh.value
-      }
-    })
-
-    analysisData.value = res.data ?? null
-    isCached.value = res.cached ?? false
-    generatedAt.value = new Date(res.generatedAt ?? '').toLocaleString('id-ID')
+    await aiStore.analyzeClass(selectedClassroom.value, selectedSemester.value, forceRefresh.value)
     forceRefresh.value = false
-
     toast.add({ title: 'Analisis Berhasil', color: 'success' })
   } catch (e) {
     const error = e as { data?: { statusMessage?: string } }
@@ -98,10 +69,12 @@ async function analyzeClass() {
       description: error.data?.statusMessage || 'Terjadi kesalahan saat memanggil AI.',
       color: 'error'
     })
-  } finally {
-    isAnalyzing.value = false
   }
 }
+
+onMounted(() => {
+  aiStore.fetchFilters()
+})
 
 const overlay = useOverlay()
 const confirmModal = overlay.create(LazyModalConfirm)
@@ -361,6 +334,70 @@ const persentaseRemidi = computed(() => {
           </div>
         </UCard>
       </div>
+
+      <!-- Komparasi Historis Kelas dengan Semester Sebelumnya -->
+      <UCard
+        v-if="analysisData.komparasiHistoris?.adaData"
+        class="border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-50/40 to-sky-50/40 dark:from-indigo-950/20 dark:to-sky-950/20 shadow-sm"
+      >
+        <template #header>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <UIcon
+                name="i-lucide-history"
+                class="w-5 h-5 text-indigo-500"
+              />
+              <h3 class="text-base font-bold text-gray-900 dark:text-white">
+                Komparasi Agregat Semester Sebelumnya ({{ analysisData.komparasiHistoris.semesterSebelumnya }})
+              </h3>
+            </div>
+            <UBadge
+              :color="analysisData.komparasiHistoris.statusPerubahan === 'meningkat' ? 'success' : (analysisData.komparasiHistoris.statusPerubahan === 'menurun' ? 'error' : 'neutral')"
+              variant="subtle"
+            >
+              <UIcon
+                :name="analysisData.komparasiHistoris.statusPerubahan === 'meningkat' ? 'i-lucide-trending-up' : (analysisData.komparasiHistoris.statusPerubahan === 'menurun' ? 'i-lucide-trending-down' : 'i-lucide-minus')"
+                class="w-3.5 h-3.5 mr-1"
+              />
+              {{ analysisData.komparasiHistoris.statusPerubahan === 'meningkat' ? 'Tren Kelas Meningkat' : (analysisData.komparasiHistoris.statusPerubahan === 'menurun' ? 'Tren Kelas Menurun' : 'Tren Kelas Stabil') }}
+            </UBadge>
+          </div>
+        </template>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 font-medium">
+              Rata-rata Kelas Semester Lalu
+            </div>
+            <div class="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1 font-mono">
+              {{ analysisData.komparasiHistoris.rataRataSebelumnya }}
+            </div>
+          </div>
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 font-medium">
+              Rata-rata Kelas Semester Ini
+            </div>
+            <div class="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1 font-mono">
+              {{ analysisData.komparasiHistoris.rataRataSekarang }}
+            </div>
+          </div>
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 font-medium">
+              Selisih Perkembangan Kelas
+            </div>
+            <div
+              class="text-xl font-bold mt-1 font-mono"
+              :class="(analysisData.komparasiHistoris.selisih ?? 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' : ((analysisData.komparasiHistoris.selisih ?? 0) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-600 dark:text-gray-300')"
+            >
+              {{ (analysisData.komparasiHistoris.selisih ?? 0) > 0 ? '+' : '' }}{{ analysisData.komparasiHistoris.selisih }}
+            </div>
+          </div>
+        </div>
+
+        <p class="text-xs text-gray-600 dark:text-gray-300 italic">
+          💡 {{ analysisData.komparasiHistoris.catatanTren }}
+        </p>
+      </UCard>
 
       <!-- Evaluasi Umum / Narasi AI -->
       <UCard class="border border-primary-200/70 dark:border-primary-900/60 bg-white dark:bg-gray-800 shadow-sm">

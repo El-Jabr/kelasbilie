@@ -10,8 +10,8 @@ export default defineEventHandler((event) => {
 
   // Skip log endpoint monitoring sendiri untuk menghindari infinite loop
   if (
-    url.pathname.startsWith('/api/monitoring/debug-logs') ||
-    url.pathname.startsWith('/api/monitoring/client-log')
+    url.pathname.startsWith('/api/monitoring/debug-logs')
+    || url.pathname.startsWith('/api/monitoring/client-log')
   ) {
     return
   }

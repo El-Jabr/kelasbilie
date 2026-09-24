@@ -1,18 +1,8 @@
 <script setup lang="ts">
 import { LazyModalConfirm } from '#components'
 
-interface Student {
-  id: string
-  nis: string
-  user: { fullname: string }
-}
-
-interface Semester {
-  id: string
-  type: string
-  isActive: boolean
-  academicYear: { name: string }
-}
+import { storeToRefs } from 'pinia'
+import { useAiAnalysisStore } from '~/stores/aiAnalysis'
 
 interface AIRecommendation {
   tipe: string
@@ -27,6 +17,15 @@ interface AIAnalysisData {
   kekuatan: string[]
   kelemahan: string[]
   rekomendasi: AIRecommendation[]
+  komparasiHistoris?: {
+    adaData?: boolean
+    semesterSebelumnya?: string | null
+    rataRataSebelumnya?: number
+    rataRataSekarang?: number
+    selisih?: number
+    statusPerubahan?: string
+    catatanTren?: string
+  }
 }
 
 definePageMeta({
@@ -38,40 +37,22 @@ useSeoMeta({
 })
 
 const toast = useToast()
+const aiStore = useAiAnalysisStore()
 
-const selectedStudent = ref('')
-const selectedSemester = ref('')
+const {
+  selectedStudentId: selectedStudent,
+  selectedSemesterId: selectedSemester,
+  currentStudentAnalysis,
+  isAnalyzingStudent: isAnalyzing,
+  studentOptions,
+  semesterOptions
+} = storeToRefs(aiStore)
+
 const forceRefresh = ref(false)
 
-const isAnalyzing = ref(false)
-const analysisData = ref<AIAnalysisData | null>(null)
-const isCached = ref(false)
-const generatedAt = ref('')
-
-const { data: filterData } = await useAsyncData('siswa-filters', async () => {
-  const [studRes, semRes] = await Promise.all([
-    $fetch<{ data: Student[] }>('/api/students?limit=1000'),
-    $fetch<{ data: Semester[] }>('/api/semesters?limit=1000')
-  ])
-  return {
-    students: studRes.data || [],
-    semesters: semRes.data || []
-  }
-})
-
-const students = computed(() => filterData.value?.students || [])
-const semesters = computed(() => filterData.value?.semesters || [])
-
-const studentOptions = computed(() => students.value.map((s: Student) => ({ label: `${s.user.fullname} (${s.nis})`, value: s.id })))
-const semesterOptions = computed(() => semesters.value.map((s: Semester) => ({ label: `${s.type} ${s.academicYear.name}${s.isActive ? ' (Aktif)' : ''}`, value: s.id })))
-
-// Auto select active semester
-watchEffect(() => {
-  if (semesters.value.length && !selectedSemester.value) {
-    const activeSem = semesters.value.find((s: Semester) => s.isActive)
-    if (activeSem) selectedSemester.value = activeSem.id
-  }
-})
+const analysisData = computed<AIAnalysisData | null>(() => currentStudentAnalysis.value?.data || null)
+const isCached = computed(() => currentStudentAnalysis.value?.cached || false)
+const generatedAt = computed(() => currentStudentAnalysis.value?.generatedAt || '')
 
 async function analyzeStudent() {
   if (!selectedStudent.value) {
@@ -79,24 +60,9 @@ async function analyzeStudent() {
     return
   }
 
-  isAnalyzing.value = true
-  analysisData.value = null
-
   try {
-    const res = await $fetch<{ data: AIAnalysisData, cached: boolean, generatedAt: string }>('/api/ai/analyze-student', {
-      method: 'POST',
-      body: {
-        studentId: selectedStudent.value,
-        semesterId: selectedSemester.value || undefined,
-        forceRefresh: forceRefresh.value
-      }
-    })
-
-    analysisData.value = res.data
-    isCached.value = res.cached
-    generatedAt.value = new Date(res.generatedAt).toLocaleString('id-ID')
+    await aiStore.analyzeStudent(selectedStudent.value, selectedSemester.value, forceRefresh.value)
     forceRefresh.value = false
-
     toast.add({ title: 'Analisis Berhasil', color: 'success' })
   } catch (error: unknown) {
     const err = error as { data?: { statusMessage?: string } }
@@ -105,10 +71,12 @@ async function analyzeStudent() {
       description: err.data?.statusMessage || 'Terjadi kesalahan saat memanggil AI.',
       color: 'error'
     })
-  } finally {
-    isAnalyzing.value = false
   }
 }
+
+onMounted(() => {
+  aiStore.fetchFilters()
+})
 
 const overlay = useOverlay()
 const confirmModal = overlay.create(LazyModalConfirm)
@@ -309,6 +277,70 @@ function getTrenColor(tren: string) {
           </div>
         </UCard>
       </div>
+
+      <!-- Komparasi Historis Semester Sebelumnya -->
+      <UCard
+        v-if="analysisData.komparasiHistoris?.adaData"
+        class="border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-50/40 to-sky-50/40 dark:from-indigo-950/20 dark:to-sky-950/20 shadow-sm"
+      >
+        <template #header>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <UIcon
+                name="i-lucide-history"
+                class="w-5 h-5 text-indigo-500"
+              />
+              <h3 class="text-base font-bold text-gray-900 dark:text-white">
+                Komparasi Semester Sebelumnya ({{ analysisData.komparasiHistoris.semesterSebelumnya }})
+              </h3>
+            </div>
+            <UBadge
+              :color="analysisData.komparasiHistoris.statusPerubahan === 'meningkat' ? 'success' : (analysisData.komparasiHistoris.statusPerubahan === 'menurun' ? 'error' : 'neutral')"
+              variant="subtle"
+            >
+              <UIcon
+                :name="analysisData.komparasiHistoris.statusPerubahan === 'meningkat' ? 'i-lucide-trending-up' : (analysisData.komparasiHistoris.statusPerubahan === 'menurun' ? 'i-lucide-trending-down' : 'i-lucide-minus')"
+                class="w-3.5 h-3.5 mr-1"
+              />
+              {{ analysisData.komparasiHistoris.statusPerubahan === 'meningkat' ? 'Performa Meningkat' : (analysisData.komparasiHistoris.statusPerubahan === 'menurun' ? 'Performa Menurun' : 'Performa Stabil') }}
+            </UBadge>
+          </div>
+        </template>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 font-medium">
+              Rata-rata Semester Lalu
+            </div>
+            <div class="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1 font-mono">
+              {{ analysisData.komparasiHistoris.rataRataSebelumnya }}
+            </div>
+          </div>
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 font-medium">
+              Rata-rata Semester Ini
+            </div>
+            <div class="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1 font-mono">
+              {{ analysisData.komparasiHistoris.rataRataSekarang }}
+            </div>
+          </div>
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 font-medium">
+              Selisih Perkembangan
+            </div>
+            <div
+              class="text-xl font-bold mt-1 font-mono"
+              :class="(analysisData.komparasiHistoris.selisih ?? 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' : ((analysisData.komparasiHistoris.selisih ?? 0) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-600 dark:text-gray-300')"
+            >
+              {{ (analysisData.komparasiHistoris.selisih ?? 0) > 0 ? '+' : '' }}{{ analysisData.komparasiHistoris.selisih }}
+            </div>
+          </div>
+        </div>
+
+        <p class="text-xs text-gray-600 dark:text-gray-300 italic">
+          💡 {{ analysisData.komparasiHistoris.catatanTren }}
+        </p>
+      </UCard>
 
       <!-- Evaluasi Siswa / Narasi AI -->
       <UCard class="border border-primary-200/70 dark:border-primary-900/60 bg-white dark:bg-gray-800 shadow-sm">

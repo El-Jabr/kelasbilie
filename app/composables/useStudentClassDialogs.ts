@@ -1,7 +1,14 @@
-export function useStudentClassDialogs() {
+export interface StudentClassRecord {
+  id: string
+  studentId?: string
+  classroomId?: string
+  semesterId?: string
+}
+
+export function useStudentClassDialogs<T extends StudentClassRecord = StudentClassRecord>() {
   const isSingleModalOpen = useState('student-classes:isSingleModalOpen', () => false)
   const editingId = useState<string | null>('student-classes:editingId', () => null)
-  const selectedStudentClass = useState<any | null>('student-classes:selected', () => null)
+  const selectedStudentClass = useState<T | null>('student-classes:selected', () => null)
 
   function openSingleCreateModal() {
     editingId.value = null
@@ -9,7 +16,7 @@ export function useStudentClassDialogs() {
     isSingleModalOpen.value = true
   }
 
-  function openSingleEditModal(item: any) {
+  function openSingleEditModal(item: T) {
     editingId.value = item.id
     selectedStudentClass.value = item
     isSingleModalOpen.value = true

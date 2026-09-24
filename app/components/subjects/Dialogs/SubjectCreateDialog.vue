@@ -49,10 +49,20 @@ async function save() {
         <template #header>
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-lg font-semibold">Tambah Mata Pelajaran</h2>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Isi form di bawah untuk membuat mata pelajaran baru.</p>
+              <h2 class="text-lg font-semibold">
+                Tambah Mata Pelajaran
+              </h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Isi form di bawah untuk membuat mata pelajaran baru.
+              </p>
             </div>
-            <UButton color="neutral" variant="ghost" icon="i-lucide-x" class="-my-1" @click="closeCreateDialog" />
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-lucide-x"
+              class="-my-1"
+              @click="closeCreateDialog"
+            />
           </div>
         </template>
 
@@ -63,7 +73,10 @@ async function save() {
           class="space-y-4"
           @submit="save"
         >
-          <SubjectsFormsSubjectForm :model-value="form" @update:model-value="Object.assign(form, $event)" />
+          <SubjectsFormsSubjectForm
+            :model-value="form"
+            @update:model-value="Object.assign(form, $event)"
+          />
         </UForm>
 
         <template #footer>

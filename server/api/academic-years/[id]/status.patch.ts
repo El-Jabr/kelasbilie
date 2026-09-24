@@ -46,30 +46,34 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
-    if (body.isActive) {
-      // Nonaktifkan semua tahun ajaran terlebih dahulu
-      await tx.academicYear.updateMany({
-        data: {
-          isActive: false
-        }
-      })
-    }
-
-    return tx.academicYear.update({
-      where: {
-        id
-      },
+  if (body.isActive) {
+    // Nonaktifkan semua tahun ajaran terlebih dahulu
+    await prisma.academicYear.updateMany({
       data: {
-        isActive: body.isActive
-      },
-      select: {
-        id: true,
-        name: true,
-        isActive: true,
-        isLocked: true
+        isActive: false
       }
     })
+    // Nonaktifkan semua semester dari tahun ajaran lain
+    await prisma.semester.updateMany({
+      data: {
+        isActive: false
+      }
+    })
+  }
+
+  const updated = await prisma.academicYear.update({
+    where: {
+      id
+    },
+    data: {
+      isActive: body.isActive
+    },
+    select: {
+      id: true,
+      name: true,
+      isActive: true,
+      isLocked: true
+    }
   })
 
   return {

@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const [total, studentClasses] = await prisma.$transaction([
+  const [total, studentClasses] = await Promise.all([
     prisma.studentClass.count({ where }),
 
     prisma.studentClass.findMany({

@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const [total, subjects] = await prisma.$transaction([
+  const [total, subjects] = await Promise.all([
     prisma.subject.count({ where }),
 
     prisma.subject.findMany({
@@ -50,12 +50,31 @@ export default defineEventHandler(async (event) => {
       orderBy: {
         [sort]: order
       },
-      include: {
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        kkm: true,
+        createdAt: true,
+        updatedAt: true,
         teachings: {
-          include: {
-            classroom: true,
-            course: true,
-            semester: true
+          take: 10,
+          select: {
+            id: true,
+            classroom: {
+              select: {
+                id: true,
+                name: true,
+                level: true
+              }
+            },
+            course: {
+              select: {
+                id: true,
+                fullname: true,
+                shortname: true
+              }
+            }
           }
         }
       }

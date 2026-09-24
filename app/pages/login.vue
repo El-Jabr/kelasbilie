@@ -19,40 +19,22 @@ const authStore = useAuthStore()
 
 // Definisi field-field pada form login
 const fields = [{
-  name: 'email',
+  name: 'username',
   type: 'text' as const,
-  label: 'Email',
-  placeholder: 'Enter your email',
+  label: 'Username',
+  placeholder: 'Masukkan username Anda',
   required: true
 }, {
   name: 'password',
   label: 'Password',
   type: 'password' as const,
-  placeholder: 'Enter your password'
-}, {
-  name: 'remember',
-  label: 'Remember me',
-  type: 'checkbox' as const
+  placeholder: 'Masukkan password Anda'
 }]
-
-// const providers = [{
-//   label: 'Google',
-//   icon: 'i-simple-icons-google',
-//   onClick: () => {
-//     toast.add({ title: 'Google', description: 'Login with Google' })
-//   }
-// }, {
-//   label: 'GitHub',
-//   icon: 'i-simple-icons-github',
-//   onClick: () => {
-//     toast.add({ title: 'GitHub', description: 'Login with GitHub' })
-//   }
-// }]
 
 // Zod schema untuk validasi form login di sisi frontend
 const schema = z.object({
-  email: z.email('Invalid email'),
-  password: z.string().min(6, 'Must be at least 6 characters')
+  username: z.string().min(3, 'Username minimal 3 karakter'),
+  password: z.string().min(6, 'Password minimal 6 karakter')
 })
 
 type Schema = z.output<typeof schema>
@@ -62,11 +44,11 @@ type Schema = z.output<typeof schema>
  * Dipanggil oleh komponen UAuthForm saat user klik tombol "Sign In".
  *
  * Alur:
- * 1. Kirim POST ke /api/auth/login dengan email + password
+ * 1. Kirim POST ke /api/auth/login dengan username + password
  * 2. Server memvalidasi kredensial, membuat JWT, menyimpan JWT ke HTTP-only Cookie
- * 3. Server mengembalikan data user { id, email, role, fullname }
+ * 3. Server mengembalikan data user { id, username, role, fullname }
  * 4. Frontend menyimpan data user ke Pinia store via authStore.setUser()
- * 5. Redirect ke halaman utama '/'
+ * 5. Redirect ke halaman utama sesuai role
  *
  * @param payload - Data form yang sudah divalidasi oleh Zod schema
  */
@@ -81,7 +63,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     })
 
     // Simpan data user ke Pinia store (BUKAN useState!)
-    // res.data berisi { id, email, role, fullname } dari server
+    // res.data berisi { id, username, role, fullname } dari server
     authStore.setUser(res.data)
 
     // Tampilkan notifikasi sukses ke user
@@ -101,12 +83,11 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     } else {
       await navigateTo('/')
     }
-  }
-  catch (error: any) {
+  } catch (error: any) {
     // Tampilkan pesan error dari server, atau fallback ke pesan default
     toast.add({
       title: 'Login gagal',
-      description: error.data?.message || error.message || 'Email atau password salah',
+      description: error.data?.message || error.message || 'Username atau password salah',
       color: 'error'
     })
   }
@@ -118,24 +99,16 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     :fields="fields"
     :schema="schema"
     :loading-auto="true"
-    title="Welcome back"
+    title="Selamat Datang"
+    description="Masuk ke portal akademik Kelas Bilie"
     icon="i-lucide-lock"
     @submit="onSubmit"
   >
-
-    <template #password-hint>
-      <ULink
-        to="/"
-        class="text-primary font-medium"
-        tabindex="-1"
-      >Forgot password?</ULink>
-    </template>
-
     <template #footer>
-      By signing in, you agree to our <ULink
+      Dengan masuk, Anda menyetujui <ULink
         to="/"
         class="text-primary font-medium"
-      >Terms of Service</ULink>.
+      >Ketentuan Penggunaan</ULink>.
     </template>
   </UAuthForm>
 </template>

@@ -20,9 +20,9 @@ const state = reactive<CreateHomeroomAssignmentSchema>({
 
 watch(selectedHomeroom, (homeroom) => {
   if (homeroom) {
-    state.teacherId = homeroom.teacherId
-    state.classroomId = homeroom.classroomId
-    state.semesterId = homeroom.semesterId
+    state.teacherId = homeroom.teacherId || ''
+    state.classroomId = homeroom.classroomId || ''
+    state.semesterId = homeroom.semesterId || ''
   }
 })
 

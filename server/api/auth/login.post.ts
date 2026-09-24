@@ -8,26 +8,26 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
 
   const user = await prisma.user.findUnique({
-    where: { email: body.email }
+    where: { username: body.username }
   })
 
   if (!user) {
-    logger.warn({ email: body.email }, '[AUTH] Login gagal: Email tidak ditemukan')
+    logger.warn({ username: body.username }, '[AUTH] Login gagal: Username tidak ditemukan')
     await logActivity({
       event,
-      userName: body.email || 'Unknown User',
+      userName: body.username || 'Unknown User',
       category: 'AUTH',
       action: 'LOGIN',
-      description: `Login gagal: Email ${body.email} tidak ditemukan`,
+      description: `Login gagal: Username ${body.username} tidak ditemukan`,
       status: 'FAILED',
-      errorMessage: 'Email tidak ditemukan'
+      errorMessage: 'Username tidak ditemukan'
     })
-    throw createError({ statusCode: 401, message: 'Email tidak ditemukan' })
+    throw createError({ statusCode: 401, message: 'Username tidak ditemukan' })
   }
 
   const valid = await bcrypt.compare(body.password, user.password)
   if (!valid) {
-    logger.warn({ email: body.email, userId: user.id }, '[AUTH] Login gagal: Password salah')
+    logger.warn({ username: body.username, userId: user.id }, '[AUTH] Login gagal: Password salah')
     await logActivity({
       event,
       userId: user.id,
@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
       id: user.id,
       role: user.role,
       fullname: user.fullname,
-      email: user.email ?? ''
+      username: user.username
     },
     config.jwtSecret,
     { expiresIn: '1d' }
@@ -66,7 +66,7 @@ export default defineEventHandler(async (event) => {
     path: '/'
   })
 
-  logger.info({ email: user.email, userId: user.id, role: user.role }, `[AUTH] Login berhasil untuk ${user.email}`)
+  logger.info({ username: user.username, userId: user.id, role: user.role }, `[AUTH] Login berhasil untuk ${user.username}`)
 
   await logActivity({
     event,
@@ -82,7 +82,7 @@ export default defineEventHandler(async (event) => {
     success: true,
     data: {
       id: user.id,
-      email: user.email,
+      username: user.username,
       role: user.role,
       fullname: user.fullname
     }

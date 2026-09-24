@@ -70,7 +70,11 @@ function formatDate(dateStr?: string | Date) {
       </template>
 
       <template #level-cell="{ row }">
-        <UBadge color="primary" variant="subtle" size="xs">
+        <UBadge
+          color="primary"
+          variant="subtle"
+          size="xs"
+        >
           Tingkat {{ row.original.level }}
         </UBadge>
       </template>

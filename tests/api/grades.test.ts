@@ -23,7 +23,7 @@ vi.mock('~/server/utils/db', () => ({
     student: { findUnique: vi.fn() },
     classroom: { findUnique: vi.fn() },
     semester: { findFirst: vi.fn(), findUnique: vi.fn() },
-    $transaction: vi.fn((promises) => Promise.all(promises))
+    $transaction: vi.fn(promises => Promise.all(promises))
   }
 }))
 

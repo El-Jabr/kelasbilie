@@ -5,6 +5,9 @@ export default defineEventHandler(async (event) => {
   requireRole(event, ['SUPER_ADMIN', 'ADMIN', 'TEACHER'])
 
   const classroomId = getRouterParam(event, 'classroomId')
+  const query = getQuery(event)
+  const requestedSemesterId = String(query.semesterId || '').trim()
+
   if (!classroomId) {
     throw createError({ statusCode: 400, statusMessage: 'Classroom ID wajib diisi.' })
   }
@@ -17,13 +20,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Kelas tidak ditemukan.' })
   }
 
-  const activeSemester = await prisma.semester.findFirst({
-    where: { isActive: true },
-    include: { academicYear: true }
-  })
+  let activeSemester = null
+  if (requestedSemesterId && requestedSemesterId !== 'ALL' && requestedSemesterId !== 'ACTIVE') {
+    activeSemester = await prisma.semester.findUnique({
+      where: { id: requestedSemesterId },
+      include: { academicYear: true }
+    })
+  }
 
   if (!activeSemester) {
-    throw createError({ statusCode: 404, statusMessage: 'Tidak ada semester aktif.' })
+    activeSemester = await prisma.semester.findFirst({
+      where: { isActive: true },
+      include: { academicYear: true }
+    })
+  }
+
+  if (!activeSemester) {
+    throw createError({ statusCode: 404, statusMessage: 'Semester tidak ditemukan.' })
   }
 
   // Ambil semua siswa di kelas ini pada semester aktif
@@ -69,7 +82,7 @@ export default defineEventHandler(async (event) => {
   })
 
   // Grouping grades by studentId and subjectId
-  const studentsWithGrades = studentClasses.map(sc => {
+  const studentsWithGrades = studentClasses.map((sc) => {
     const studentGrades: Record<string, any> = {}
 
     for (const ta of teachingAssignments) {

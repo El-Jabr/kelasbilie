@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useIntervalFn } from '@vueuse/core'
+import { LazyModalConfirm } from '#components'
 
 definePageMeta({
   layout: 'admin'
@@ -28,9 +28,28 @@ const queryParams = computed(() => ({
   limit: 200
 }))
 
-const { data, status, refresh } = await useFetch('/api/monitoring/debug-logs', {
-  query: queryParams,
-  watch: [selectedLevel, searchQuery]
+const data = ref<any>(null)
+const status = ref('pending')
+
+async function refresh() {
+  status.value = 'pending'
+  try {
+    data.value = await $fetch('/api/monitoring/debug-logs', {
+      query: queryParams.value
+    })
+    status.value = 'success'
+  } catch (error) {
+    console.error(error)
+    status.value = 'error'
+  }
+}
+
+watch([selectedLevel, searchQuery], () => {
+  refresh()
+})
+
+onMounted(() => {
+  refresh()
 })
 
 const logs = computed<Record<string, any>[]>(() => (data.value?.logs || []) as any[])
@@ -51,9 +70,9 @@ const stats = computed(() => {
   const allLogs: any[] = (data.value?.logs || []) as any[]
   return {
     total: allLogs.length,
-    info: allLogs.filter((l) => l.level === 'info').length,
-    warn: allLogs.filter((l) => l.level === 'warn' || l.level === 'warning').length,
-    error: allLogs.filter((l) => l.level === 'error').length
+    info: allLogs.filter(l => l.level === 'info').length,
+    warn: allLogs.filter(l => l.level === 'warn' || l.level === 'warning').length,
+    error: allLogs.filter(l => l.level === 'error').length
   }
 })
 
@@ -91,8 +110,6 @@ function getLevelBadgeColor(level?: string) {
       return 'neutral'
   }
 }
-
-import { LazyModalConfirm } from '#components'
 
 const overlay = useOverlay()
 const confirmModal = overlay.create(LazyModalConfirm)
@@ -152,7 +169,10 @@ async function triggerTestBackendError() {
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <UIcon name="i-lucide-terminal" class="hidden sm:inline-block w-7 h-7 text-emerald-500" />
+          <UIcon
+            name="i-lucide-terminal"
+            class="hidden sm:inline-block w-7 h-7 text-emerald-500"
+          />
           System Debugging Log (Pino)
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -168,17 +188,20 @@ async function triggerTestBackendError() {
               <span
                 v-if="isAutoRefresh"
                 class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"
-              ></span>
+              />
               <span
                 class="relative inline-flex rounded-full h-2 w-2"
                 :class="isAutoRefresh ? 'bg-emerald-500' : 'bg-gray-400'"
-              ></span>
+              />
             </span>
             <span class="text-gray-700 dark:text-gray-300">
               Auto Refresh (5s)
             </span>
           </div>
-          <USwitch v-model="isAutoRefresh" size="xs" />
+          <USwitch
+            v-model="isAutoRefresh"
+            size="xs"
+          />
         </div>
 
         <div class="flex items-center gap-2">
@@ -191,7 +214,10 @@ async function triggerTestBackendError() {
             @click="refresh()"
           >
             <template #leading>
-              <UIcon name="i-lucide-refresh-cw" class="hidden sm:inline-block" />
+              <UIcon
+                name="i-lucide-refresh-cw"
+                class="hidden sm:inline-block"
+              />
             </template>
             Refresh
           </UButton>
@@ -205,7 +231,10 @@ async function triggerTestBackendError() {
             @click="handleResetLogs"
           >
             <template #leading>
-              <UIcon name="i-lucide-trash-2" class="hidden sm:inline-block" />
+              <UIcon
+                name="i-lucide-trash-2"
+                class="hidden sm:inline-block"
+              />
             </template>
             Reset Log
           </UButton>
@@ -217,34 +246,62 @@ async function triggerTestBackendError() {
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
       <div class="p-3 sm:p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-between">
         <div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Total Log</p>
-          <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ stats.total }}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">
+            Total Log
+          </p>
+          <p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">
+            {{ stats.total }}
+          </p>
         </div>
-        <UIcon name="i-lucide-layers" class="hidden sm:block w-8 h-8 text-gray-400 opacity-50" />
+        <UIcon
+          name="i-lucide-layers"
+          class="hidden sm:block w-8 h-8 text-gray-400 opacity-50"
+        />
       </div>
 
       <div class="p-3 sm:p-4 rounded-xl bg-white dark:bg-gray-900 border border-emerald-200 dark:border-emerald-950/50 flex items-center justify-between">
         <div>
-          <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Info Level</p>
-          <p class="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{{ stats.info }}</p>
+          <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+            Info Level
+          </p>
+          <p class="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+            {{ stats.info }}
+          </p>
         </div>
-        <UIcon name="i-lucide-info" class="hidden sm:block w-8 h-8 text-emerald-500 opacity-50" />
+        <UIcon
+          name="i-lucide-info"
+          class="hidden sm:block w-8 h-8 text-emerald-500 opacity-50"
+        />
       </div>
 
       <div class="p-3 sm:p-4 rounded-xl bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-950/50 flex items-center justify-between">
         <div>
-          <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Warning Level</p>
-          <p class="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{{ stats.warn }}</p>
+          <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">
+            Warning Level
+          </p>
+          <p class="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">
+            {{ stats.warn }}
+          </p>
         </div>
-        <UIcon name="i-lucide-alert-triangle" class="hidden sm:block w-8 h-8 text-amber-500 opacity-50" />
+        <UIcon
+          name="i-lucide-alert-triangle"
+          class="hidden sm:block w-8 h-8 text-amber-500 opacity-50"
+        />
       </div>
 
       <div class="p-3 sm:p-4 rounded-xl bg-white dark:bg-gray-900 border border-red-200 dark:border-red-950/50 flex items-center justify-between">
         <div>
-          <p class="text-xs text-red-600 dark:text-red-400 font-medium">Error Level</p>
-          <p class="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{{ stats.error }}</p>
+          <p class="text-xs text-red-600 dark:text-red-400 font-medium">
+            Error Level
+          </p>
+          <p class="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
+            {{ stats.error }}
+          </p>
         </div>
-        <UIcon name="i-lucide-alert-circle" class="hidden sm:block w-8 h-8 text-red-500 opacity-50" />
+        <UIcon
+          name="i-lucide-alert-circle"
+          class="hidden sm:block w-8 h-8 text-red-500 opacity-50"
+        />
       </div>
     </div>
 
@@ -277,7 +334,10 @@ async function triggerTestBackendError() {
           @click="triggerTestFrontendError"
         >
           <template #leading>
-            <UIcon name="i-lucide-bug" class="hidden sm:inline-block" />
+            <UIcon
+              name="i-lucide-bug"
+              class="hidden sm:inline-block"
+            />
           </template>
           Simulasi Error Frontend
         </UButton>
@@ -289,7 +349,10 @@ async function triggerTestBackendError() {
           @click="triggerTestBackendError"
         >
           <template #leading>
-            <UIcon name="i-lucide-server-crash" class="hidden sm:inline-block" />
+            <UIcon
+              name="i-lucide-server-crash"
+              class="hidden sm:inline-block"
+            />
           </template>
           Simulasi Error Backend
         </UButton>
@@ -298,17 +361,32 @@ async function triggerTestBackendError() {
 
     <!-- Log List / Table -->
     <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-      <div v-if="status === 'pending' && !logs.length" class="p-8 text-center text-gray-500">
-        <UIcon name="i-lucide-loader" class="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-500" />
+      <div
+        v-if="status === 'pending' && !logs.length"
+        class="p-8 text-center text-gray-500"
+      >
+        <UIcon
+          name="i-lucide-loader"
+          class="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-500"
+        />
         Memuat log...
       </div>
 
-      <div v-else-if="!logs.length" class="p-8 text-center text-gray-500">
-        <UIcon name="i-lucide-inbox" class="w-8 h-8 mx-auto mb-2 text-gray-400" />
+      <div
+        v-else-if="!logs.length"
+        class="p-8 text-center text-gray-500"
+      >
+        <UIcon
+          name="i-lucide-inbox"
+          class="w-8 h-8 mx-auto mb-2 text-gray-400"
+        />
         Tidak ada data log yang ditemukan.
       </div>
 
-      <div v-else class="divide-y divide-gray-100 dark:divide-gray-800 font-mono text-xs overflow-x-auto">
+      <div
+        v-else
+        class="divide-y divide-gray-100 dark:divide-gray-800 font-mono text-xs overflow-x-auto"
+      >
         <div
           v-for="(log, index) in logs"
           :key="index"
@@ -327,7 +405,10 @@ async function triggerTestBackendError() {
 
             <div class="flex flex-col min-w-0 flex-1">
               <div class="flex items-center gap-2 flex-wrap">
-                <span v-if="log['type']" class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-600 dark:text-gray-400 font-semibold uppercase">
+                <span
+                  v-if="log['type']"
+                  class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-600 dark:text-gray-400 font-semibold uppercase"
+                >
                   {{ log['type'] }}
                 </span>
                 <span class="text-gray-900 dark:text-gray-100 font-medium break-words text-wrap">
@@ -349,7 +430,10 @@ async function triggerTestBackendError() {
             <span class="text-[11px] text-gray-400 dark:text-gray-500">
               {{ formatDate(log['time']) }}
             </span>
-            <UIcon name="i-lucide-chevron-right" class="w-4 h-4 text-gray-400" />
+            <UIcon
+              name="i-lucide-chevron-right"
+              class="w-4 h-4 text-gray-400"
+            />
           </div>
         </div>
       </div>
@@ -361,20 +445,29 @@ async function triggerTestBackendError() {
         <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
           <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-800">
             <div class="flex items-center gap-2">
-              <UBadge :color="getLevelBadgeColor(selectedLog?.['level'])" class="uppercase font-bold">
+              <UBadge
+                :color="getLevelBadgeColor(selectedLog?.['level'])"
+                class="uppercase font-bold"
+              >
                 {{ selectedLog?.['level'] }}
               </UBadge>
-              <h3 class="font-bold text-gray-900 dark:text-white">Detail Debug Log</h3>
+              <h3 class="font-bold text-gray-900 dark:text-white">
+                Detail Debug Log
+              </h3>
             </div>
           </div>
 
           <div class="space-y-2">
-            <p class="text-xs font-semibold text-gray-500">Waktu Log:</p>
+            <p class="text-xs font-semibold text-gray-500">
+              Waktu Log:
+            </p>
             <p class="text-xs font-mono text-gray-800 dark:text-gray-200">
               {{ formatDate(selectedLog?.['time']) }}
             </p>
 
-            <p class="text-xs font-semibold text-gray-500 mt-3">Raw JSON Payload:</p>
+            <p class="text-xs font-semibold text-gray-500 mt-3">
+              Raw JSON Payload:
+            </p>
             <pre class="bg-gray-950 text-emerald-400 p-4 rounded-lg text-xs overflow-x-auto font-mono select-all">{{ JSON.stringify(selectedLog, null, 2) }}</pre>
           </div>
         </div>

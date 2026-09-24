@@ -9,23 +9,11 @@ const {
 }>()
 
 const {
-  openEditDialog,
   openStatusDialog,
-  // openLockDialog,
-  openDeleteDialog
+  openLockDialog
 } = useSemesterDialogs()
 
 const items = computed<DropdownMenuItem[][]>(() => [
-  [
-    {
-      label: 'Edit Semester',
-      icon: 'i-lucide-pencil',
-      disabled: semester.isLocked,
-      onSelect: () => {
-        openEditDialog(semester)
-      }
-    }
-  ],
   [
     {
       label: semester.isActive
@@ -55,21 +43,10 @@ const items = computed<DropdownMenuItem[][]>(() => [
 
       color: semester.isLocked
         ? 'warning'
-        : 'neutral'
+        : 'neutral',
 
-      // onSelect: () => {
-      //   openLockDialog(semester)
-      // }
-    }
-  ],
-  [
-    {
-      label: 'Hapus',
-      icon: 'i-lucide-trash-2',
-      color: 'error',
-      disabled: semester.isLocked,
       onSelect: () => {
-        openDeleteDialog(semester)
+        openLockDialog(semester)
       }
     }
   ]

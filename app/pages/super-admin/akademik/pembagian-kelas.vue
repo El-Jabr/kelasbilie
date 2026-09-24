@@ -26,11 +26,14 @@ onMounted(async () => {
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-          <UIcon name="i-lucide-users" class="hidden sm:inline-block w-7 h-7 text-emerald-500" />
-          Pembagian Kelas Siswa (Rombel)
+          <UIcon
+            name="i-lucide-users"
+            class="hidden sm:inline-block w-7 h-7 text-emerald-500"
+          />
+          Pembagian Kelas Siswa
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          Alokasikan rombongan belajar siswa per semester secara massal, plotting transfer list, atau clone semester.
+          Masukkan siswa ke kelas untuk semester ini — bisa satu per satu, banyak sekaligus, atau otomatis naik kelas.
         </p>
       </div>
 
@@ -43,7 +46,7 @@ onMounted(async () => {
           class="cursor-pointer font-bold shadow-sm"
           @click="() => { activeTab = 'plotting' }"
         >
-          🚀 Plotting Massal Rombel
+          Atur Kelas Siswa
         </UButton>
 
         <UButton
@@ -67,8 +70,11 @@ onMounted(async () => {
         :class="activeTab === 'plotting' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'"
         @click="activeTab = 'plotting'"
       >
-        <UIcon name="i-lucide-arrow-right-left" class="w-4 h-4" />
-        Plotting Rombel (Transfer List)
+        <UIcon
+          name="i-lucide-arrow-right-left"
+          class="w-4 h-4"
+        />
+        Atur Pembagian Kelas
       </button>
 
       <button
@@ -77,8 +83,11 @@ onMounted(async () => {
         :class="activeTab === 'table' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'"
         @click="activeTab = 'table'"
       >
-        <UIcon name="i-lucide-table" class="w-4 h-4" />
-        Daftar Pembagian Kelas ({{ pagination.total }})
+        <UIcon
+          name="i-lucide-table"
+          class="w-4 h-4"
+        />
+        Lihat Daftar ({{ pagination.total }})
       </button>
 
       <button
@@ -87,8 +96,11 @@ onMounted(async () => {
         :class="activeTab === 'bulk' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'"
         @click="activeTab = 'bulk'"
       >
-        <UIcon name="i-lucide-users-round" class="w-4 h-4" />
-        Bulk Assign Kelas
+        <UIcon
+          name="i-lucide-users-round"
+          class="w-4 h-4"
+        />
+        Daftarkan Banyak Siswa
       </button>
 
       <button
@@ -97,8 +109,11 @@ onMounted(async () => {
         :class="activeTab === 'clone' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'"
         @click="activeTab = 'clone'"
       >
-        <UIcon name="i-lucide-copy" class="w-4 h-4" />
-        Clone Semester (Auto Naik Kelas)
+        <UIcon
+          name="i-lucide-copy"
+          class="w-4 h-4"
+        />
+        Naik Kelas Otomatis
       </button>
     </div>
 
@@ -116,7 +131,10 @@ onMounted(async () => {
     </div>
 
     <!-- TAB 4: CLONE SEMESTER -->
-    <div v-else-if="activeTab === 'clone'" class="max-w-2xl mx-auto">
+    <div
+      v-else-if="activeTab === 'clone'"
+      class="max-w-2xl mx-auto"
+    >
       <StudentClassesFormsStudentClassCloneForm @success="refreshSC" />
     </div>
 

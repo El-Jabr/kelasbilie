@@ -54,12 +54,12 @@ describe('AI Analysis API Unit Tests', () => {
       vi.mocked(prisma.aiAnalysisCache.findFirst).mockResolvedValue(null)
 
       const mockAiOutput = JSON.stringify({
-        statusUmum: "baik",
-        narasi: "Performa santri sangat istiqamah dalam pembelajaran.",
-        kekuatan: ["Kemampuan pemahaman PH tinggi"],
+        statusUmum: 'baik',
+        narasi: 'Performa santri sangat istiqamah dalam pembelajaran.',
+        kekuatan: ['Kemampuan pemahaman PH tinggi'],
         kelemahan: [],
-        tren: "meningkat",
-        rekomendasi: [{ tipe: "motivasi", mapel: "IPA", tindakan: "Pertahankan" }]
+        tren: 'meningkat',
+        rekomendasi: [{ tipe: 'motivasi', mapel: 'IPA', tindakan: 'Pertahankan' }]
       })
 
       vi.mocked(callGeminiApi).mockResolvedValue(mockAiOutput)
@@ -98,10 +98,10 @@ describe('AI Analysis API Unit Tests', () => {
       vi.mocked(prisma.aiAnalysisCache.findFirst).mockResolvedValue(null)
 
       const mockAiOutput = JSON.stringify({
-        ringkasan: { rataRataKelas: 82.5, jumlahLulus: 10, jumlahRemidi: 0, mapelTerlemah: "IPA", mapelTerkuat: "IPA" },
-        narasi: "Kelas 8A SKT menunjukkan kedisiplinan dan hafalan yang unggul.",
+        ringkasan: { rataRataKelas: 82.5, jumlahLulus: 10, jumlahRemidi: 0, mapelTerlemah: 'IPA', mapelTerkuat: 'IPA' },
+        narasi: 'Kelas 8A SKT menunjukkan kedisiplinan dan hafalan yang unggul.',
         siswaPerhatianKhusus: [],
-        rekomendasiKelas: [{ prioritas: "tinggi", tindakan: "Pertahankan ritme muthala'ah", mapel: "IPA" }]
+        rekomendasiKelas: [{ prioritas: 'tinggi', tindakan: 'Pertahankan ritme muthala\'ah', mapel: 'IPA' }]
       })
 
       vi.mocked(callGeminiApi).mockResolvedValue(mockAiOutput)
@@ -134,10 +134,10 @@ describe('AI Analysis API Unit Tests', () => {
       vi.mocked(prisma.aiAnalysisCache.findFirst).mockResolvedValue(null)
 
       const mockAiOutput = JSON.stringify({
-        efektivitas: "tinggi",
-        narasi: "Metode pengajaran Ustadz Ali terbukti efektif.",
+        efektivitas: 'tinggi',
+        narasi: 'Metode pengajaran Ustadz Ali terbukti efektif.',
         itemBermasalah: [],
-        strategiPembelajaran: [{ prioritas: "sedang", saran: "Pengayaan materi" }]
+        strategiPembelajaran: [{ prioritas: 'sedang', saran: 'Pengayaan materi' }]
       })
 
       vi.mocked(callGeminiApi).mockResolvedValue(mockAiOutput)

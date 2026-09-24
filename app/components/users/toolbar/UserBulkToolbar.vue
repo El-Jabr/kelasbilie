@@ -1,7 +1,9 @@
 <script setup lang="ts">
-const props = withDefaults(
+import type { UserSchema } from '~~/shared/schemas/user'
+
+withDefaults(
   defineProps<{
-    users?: any[]
+    users?: UserSchema[]
   }>(),
   {
     users: () => []

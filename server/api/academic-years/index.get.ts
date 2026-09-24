@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const [total, academicYears] = await prisma.$transaction([
+  const [total, academicYears] = await Promise.all([
     prisma.academicYear.count({
       where
     }),

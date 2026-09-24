@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
 
         // Cari kelas target dengan level nextLevelNum dan suffix nama yang mirip (misal VII A -> VIII A)
         const currentSuffix = sc.classroom.name.replace(/^[IVX0-9\s-]+/i, '').trim()
-        const matched = allClassrooms.find(c => {
+        const matched = allClassrooms.find((c) => {
           const cLevel = parseInt(String(c.level).replace(/\D/g, ''), 10)
           const cSuffix = c.name.replace(/^[IVX0-9\s-]+/i, '').trim()
           return cLevel === nextLevelNum && (cSuffix === currentSuffix || c.name.includes(currentSuffix))

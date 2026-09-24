@@ -70,7 +70,7 @@ process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/testdb'
   return user
 }
 
-;(globalThis as any).createError = (opts: { statusCode?: number; statusMessage?: string; message?: string; data?: any }) => {
+;(globalThis as any).createError = (opts: { statusCode?: number, statusMessage?: string, message?: string, data?: any }) => {
   const err: any = new Error(opts.message || opts.statusMessage || 'H3 Error')
   err.statusCode = opts.statusCode || 500
   err.statusMessage = opts.statusMessage || opts.message

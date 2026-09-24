@@ -50,10 +50,10 @@ export default defineEventHandler((event) => {
      * - Melempar error jika tidak valid atau expired
      */
     const payload = jwt.verify(token, config.jwtSecret) as {
-      id: string       // UUID user dari database
-      role: string     // Role: SUPER_ADMIN | ADMIN | TEACHER | STUDENT
+      id: string // UUID user dari database
+      role: string // Role: SUPER_ADMIN | ADMIN | TEACHER | STUDENT
       fullname: string // Nama lengkap user
-      email: string    // Email user
+      username: string // Username unik user
     }
 
     /**
@@ -65,10 +65,9 @@ export default defineEventHandler((event) => {
       id: payload.id,
       role: payload.role,
       fullname: payload.fullname,
-      email: payload.email
+      username: payload.username
     }
-  }
-  catch (err: any) {
+  } catch {
     /**
      * JWT verification gagal bisa karena:
      * - Token expired (JsonWebTokenError: jwt expired)
@@ -84,4 +83,3 @@ export default defineEventHandler((event) => {
     })
   }
 })
-

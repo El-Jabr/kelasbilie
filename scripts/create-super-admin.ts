@@ -12,7 +12,7 @@ const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
-  const hashedPassword = await bcrypt.hash('admin123', 10)
+  const hashedPassword = await bcrypt.hash('#Admin123!#', 10)
 
   const username = 'superadmin'
   const email = 'superadmin@kelasbilie.id'
@@ -40,7 +40,7 @@ async function main() {
   console.log('✅ User Super Admin berhasil dibuat/diperbarui!')
   console.log('📧 Email    :', user.email)
   console.log('🔑 Username :', user.username)
-  console.log('🔒 Password : admin123')
+  console.log('🔒 Password : #Admin123!#')
   console.log('👤 Nama     :', user.fullname)
   console.log('----------------------------------------------------')
 }

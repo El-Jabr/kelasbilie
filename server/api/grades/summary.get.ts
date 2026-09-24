@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   try {
     const query = getQuery(event)
     const teachingId = query.teachingId as string
-    let semesterId = query.semesterId as string
+    const semesterId = query.semesterId as string
 
     if (!teachingId) {
       throw createError({
@@ -76,7 +76,7 @@ export default defineEventHandler(async (event) => {
       const sts = summarySTS?.score ?? null
       const sas = summarySAS?.score ?? null
 
-      const validScores = [ph, sts, sas].filter((val) => val !== null) as number[]
+      const validScores = [ph, sts, sas].filter(val => val !== null) as number[]
       const finalScore = validScores.length > 0
         ? Number((validScores.reduce((a, b) => a + b, 0) / validScores.length).toFixed(2))
         : null

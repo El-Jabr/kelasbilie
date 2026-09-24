@@ -17,7 +17,7 @@ watch(selectedAssignment, (val) => {
     form.subjectId = val.subjectId || ''
     form.classroomId = val.classroomId || ''
     form.semesterId = val.semesterId || ''
-    form.courseId = val.courseId
+    form.courseId = val.courseId ?? undefined
   }
 }, { immediate: true })
 

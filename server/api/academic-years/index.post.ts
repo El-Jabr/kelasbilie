@@ -9,7 +9,12 @@ export default defineEventHandler(async (event) => {
     )
 
     if (body.isActive) {
+      // Nonaktifkan semua tahun ajaran lain
       await prisma.academicYear.updateMany({
+        data: { isActive: false }
+      })
+      // Nonaktifkan semua semester di tahun ajaran lama
+      await prisma.semester.updateMany({
         data: { isActive: false }
       })
     }
@@ -18,7 +23,21 @@ export default defineEventHandler(async (event) => {
       data: {
         name: body.name.trim(),
         isActive: body.isActive,
-        isLocked: body.isLocked
+        isLocked: body.isLocked,
+        semesters: {
+          create: [
+            {
+              type: 'GANJIL',
+              isActive: body.isActive,
+              isLocked: false
+            },
+            {
+              type: 'GENAP',
+              isActive: false,
+              isLocked: false
+            }
+          ]
+        }
       },
 
       select: {
@@ -35,10 +54,12 @@ export default defineEventHandler(async (event) => {
       message: 'Tahun ajaran berhasil ditambahkan.',
       data: academicYear
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating academic year:', error)
 
-    if (error?.code === 'P2002') {
+    const err = error as { code?: string, statusCode?: number } | null
+
+    if (err?.code === 'P2002') {
       throw createError({
         statusCode: 409,
         statusMessage: 'Nama tahun ajaran sudah ada.'

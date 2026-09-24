@@ -91,7 +91,10 @@ const columns = [
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-          <UIcon name="i-lucide-activity" class="hidden sm:inline-block w-7 h-7 text-emerald-500" />
+          <UIcon
+            name="i-lucide-activity"
+            class="hidden sm:inline-block w-7 h-7 text-emerald-500"
+          />
           Activity & Audit Log
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -141,21 +144,35 @@ const columns = [
             />
           </div>
 
-          <UBadge color="neutral" variant="subtle" size="sm" class="font-bold self-end md:self-auto">
+          <UBadge
+            color="neutral"
+            variant="subtle"
+            size="sm"
+            class="font-bold self-end md:self-auto"
+          >
             Total: {{ totalLogs }} Log
           </UBadge>
         </div>
       </template>
 
-      <div v-if="pending" class="py-8 text-center text-sm text-gray-400">
+      <div
+        v-if="pending"
+        class="py-8 text-center text-sm text-gray-400"
+      >
         Memuat data log aktivitas...
       </div>
 
-      <div v-else-if="!logs || logs.length === 0" class="py-8 text-center text-sm text-gray-400">
+      <div
+        v-else-if="!logs || logs.length === 0"
+        class="py-8 text-center text-sm text-gray-400"
+      >
         Tidak ada catatan aktivitas yang sesuai.
       </div>
 
-      <div v-else class="overflow-x-auto">
+      <div
+        v-else
+        class="overflow-x-auto"
+      >
         <UTable
           :data="logs"
           :columns="columns"
@@ -172,14 +189,21 @@ const columns = [
               <span class="text-sm font-semibold text-gray-900 dark:text-white">
                 {{ (row as any)?.original?.userName || (row as any)?.original?.user?.fullname || 'Sistem / Anonim' }}
               </span>
-              <span v-if="(row as any)?.original?.user?.role" class="text-xs text-gray-400">
+              <span
+                v-if="(row as any)?.original?.user?.role"
+                class="text-xs text-gray-400"
+              >
                 {{ (row as any).original.user.role }}
               </span>
             </div>
           </template>
 
           <template #category-cell="{ row }">
-            <UBadge color="primary" variant="subtle" size="xs">
+            <UBadge
+              color="primary"
+              variant="subtle"
+              size="xs"
+            >
               {{ (row as any)?.original?.category || '-' }}
             </UBadge>
           </template>
@@ -195,7 +219,10 @@ const columns = [
               <p class="text-xs text-gray-700 dark:text-gray-300">
                 {{ (row as any)?.original?.description || '-' }}
               </p>
-              <p v-if="(row as any)?.original?.errorMessage" class="text-xs text-red-500 mt-0.5 font-mono">
+              <p
+                v-if="(row as any)?.original?.errorMessage"
+                class="text-xs text-red-500 mt-0.5 font-mono"
+              >
                 Error: {{ (row as any).original.errorMessage }}
               </p>
             </div>
@@ -213,10 +240,17 @@ const columns = [
         </UTable>
       </div>
 
-      <template v-if="totalLogs > 0" #footer>
+      <template
+        v-if="totalLogs > 0"
+        #footer
+      >
         <div class="flex justify-between items-center text-xs text-gray-500">
           <span>Menampilkan {{ logs.length }} dari {{ totalLogs }} item</span>
-          <UPagination v-model:page="page" :total="totalLogs" :items-per-page="limit" />
+          <UPagination
+            v-model:page="page"
+            :total="totalLogs"
+            :items-per-page="limit"
+          />
         </div>
       </template>
     </UCard>

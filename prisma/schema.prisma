@@ -154,6 +154,8 @@ model StudentClass {
   semester    Semester  @relation(fields: [semesterId], references: [id])
 
   @@unique([studentId, semesterId])
+  @@index([classroomId, semesterId])
+  @@index([semesterId])
 }
 
 model TeachingAssignment {
@@ -175,6 +177,9 @@ model TeachingAssignment {
   gradeSummaries GradeSummary[]
 
   @@unique([teacherId, subjectId, classroomId, semesterId])
+  @@index([teacherId, semesterId])
+  @@index([classroomId, semesterId])
+  @@index([subjectId])
 }
 
 model HomeroomAssignment {
@@ -226,6 +231,9 @@ model GradeItem {
   category        GradeCategory?
   course          Course           @relation(fields: [courseId], references: [id])
   gradeComponents GradeComponent[]
+
+  @@index([courseId])
+  @@index([category])
 }
 
 model GradeComponent {
@@ -243,6 +251,7 @@ model GradeComponent {
   gradeItem GradeItem @relation(fields: [gradeItemId], references: [id])
 
   @@unique([studentId, gradeItemId])
+  @@index([gradeItemId])
 }
 
 model GradeSummary {
@@ -260,6 +269,7 @@ model GradeSummary {
   updatedAt DateTime @updatedAt
 
   @@unique([studentId, teachingId, semesterId, category])
+  @@index([teachingId, semesterId])
 }
 
 model Enrollment {
@@ -346,3 +356,12 @@ model ActivityLog {
   @@index([createdAt])
 }
 
+model WebhookConfig {
+  id          String   @id @default(uuid())
+  name        String
+  url         String
+  events      String[]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

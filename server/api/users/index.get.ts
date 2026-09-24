@@ -78,7 +78,7 @@ export default defineEventHandler(async (event) => {
     where.isActive = false
   }
 
-  const [total, users] = await prisma.$transaction([
+  const [total, users] = await Promise.all([
     prisma.user.count({
       where
     }),

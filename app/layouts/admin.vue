@@ -17,9 +17,9 @@ watch(() => route.path, () => {
 onMounted(async () => {
   if (!authStore.user) {
     try {
-      const u = await $fetch('/api/auth/me', { credentials: 'include' })
+      const u = await $fetch<{ id: string, role: string, fullname: string, username: string }>('/api/auth/me', { credentials: 'include' })
       if (u) {
-        authStore.setUser(u as any)
+        authStore.setUser(u)
       }
     } catch {
       // User is not authenticated
@@ -34,12 +34,10 @@ const pageTitle = computed(() => {
   if (path.includes('/master/users')) return 'Kelola User'
   if (path.includes('/master/guru')) return 'Kelola Data Guru'
   if (path.includes('/master/siswa')) return 'Kelola Data Siswa'
-  if (path.includes('/akademik/tahun-ajaran')) return 'Kelola Tahun Ajaran'
-  if (path.includes('/akademik/semester')) return 'Kelola Semester'
+  if (path.includes('/akademik/kalender')) return 'Kalender Akademik'
   if (path.includes('/akademik/kelas')) return 'Kelola Kelas'
   if (path.includes('/akademik/mata-pelajaran')) return 'Kelola Mata Pelajaran'
-  if (path.includes('/akademik/teaching-assignments')) return 'Penugasan Mengajar'
-  if (path.includes('/akademik/homerooms')) return 'Wali Kelas'
+  if (path.includes('/akademik/penugasan')) return 'Penugasan Kelas'
   if (path.includes('/akademik/pembagian-kelas')) return 'Pembagian Kelas Siswa'
   if (path.includes('/moodle/sinkronisasi')) return 'Sinkronisasi Moodle'
   if (path.includes('/moodle/course')) return 'Course Moodle'
@@ -170,8 +168,6 @@ async function handleLogout() {
       <main class="flex-1 p-4 sm:p-6 w-full mx-auto">
         <slot />
       </main>
-
-
     </div>
   </div>
 </template>

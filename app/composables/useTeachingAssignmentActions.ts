@@ -1,3 +1,8 @@
+import type {
+  CreateTeachingAssignmentSchema,
+  UpdateTeachingAssignmentSchema
+} from '~~/shared/schemas/teaching-assignment'
+
 function getErrorMessage(error: unknown) {
   if (
     error
@@ -37,11 +42,11 @@ export function useTeachingAssignmentActions() {
   const updating = useState('teaching-assignments:updating', () => false)
   const deleting = useState('teaching-assignments:deleting', () => false)
 
-  async function createTeachingAssignment(payload: any) {
+  async function createTeachingAssignment(payload: CreateTeachingAssignmentSchema) {
     creating.value = true
 
     try {
-      const res: any = await $fetch('/api/teaching-assignments', {
+      const res = await $fetch<{ message?: string }>('/api/teaching-assignments', {
         method: 'POST',
         body: payload
       })
@@ -65,7 +70,7 @@ export function useTeachingAssignmentActions() {
     }
   }
 
-  async function updateTeachingAssignment(payload: any) {
+  async function updateTeachingAssignment(payload: UpdateTeachingAssignmentSchema) {
     if (!selectedAssignment.value) {
       return
     }
