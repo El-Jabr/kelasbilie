@@ -151,7 +151,7 @@ export const useAssignmentStore = defineStore('assignment', () => {
           credentials: 'include'
         })
         const map: Record<string, any> = {}
-        res.forEach(item => {
+        res.forEach((item) => {
           map[item.teachingId] = item
         })
         progressCache.value[semesterId] = map

@@ -2,6 +2,37 @@
 import { storeToRefs } from 'pinia'
 import { useStudentClassStore } from '~~/app/stores/studentClass'
 
+interface SemesterItem {
+  id: string
+  type: string
+  isActive?: boolean
+  academicYear?: { name: string } | null
+}
+
+interface ClassroomItem {
+  id: string
+  name: string
+  level: number | string
+}
+
+interface UnassignedStudentItem {
+  id: string
+  nis?: string
+  user?: {
+    fullname?: string
+  }
+}
+
+interface ClassMemberItem {
+  id: string
+  student?: {
+    nis?: string
+    user?: {
+      fullname?: string
+    }
+  }
+}
+
 const toast = useToast()
 const store = useStudentClassStore()
 
@@ -30,22 +61,23 @@ const isAssigning = ref(false)
 const isRemoving = ref(false)
 
 // Options Dropdowns directly from Store
-const semesterOptions = computed(() => semesters.value.map((s: any) => ({
+const semesterOptions = computed(() => (semesters.value as SemesterItem[]).map(s => ({
   label: `${s.academicYear?.name || ''} - ${s.type} ${s.isActive ? '(AKTIF)' : ''}`.trim(),
   value: s.id
 })))
 
-const classOptions = computed(() => classes.value.map((c: any) => ({
+const classOptions = computed(() => (classes.value as ClassroomItem[]).map(c => ({
   label: `Kelas ${c.name} (Tingkat ${c.level})`,
   value: c.id
 })))
 
-function extractId(val: any): string {
+function extractId(val: unknown): string {
   if (!val) return ''
   if (typeof val === 'string') return val.trim()
   if (typeof val === 'object') {
-    if (val.value) return String(val.value).trim()
-    if (val.id) return String(val.id).trim()
+    const obj = val as Record<string, unknown>
+    if (obj.value) return String(obj.value).trim()
+    if (obj.id) return String(obj.id).trim()
   }
   return String(val).trim()
 }
@@ -54,13 +86,13 @@ const targetSemesterId = computed(() => extractId(selectedSemesterId.value))
 const targetClassroomId = computed(() => extractId(selectedClassroomId.value))
 
 // Filtered lists
-const filteredUnassigned = computed(() => unassignedStudents.value)
-const filteredMembers = computed(() => classMembers.value)
+const filteredUnassigned = computed<UnassignedStudentItem[]>(() => unassignedStudents.value as UnassignedStudentItem[])
+const filteredMembers = computed<ClassMemberItem[]>(() => classMembers.value as ClassMemberItem[])
 
 // Checkbox select all handlers
 function toggleSelectAllUnassigned() {
   if (selectAllUnassigned.value) {
-    selectedUnassignedIds.value = filteredUnassigned.value.map((s: any) => s.id)
+    selectedUnassignedIds.value = filteredUnassigned.value.map(s => s.id)
   } else {
     selectedUnassignedIds.value = []
   }
@@ -68,7 +100,7 @@ function toggleSelectAllUnassigned() {
 
 function toggleSelectAllMembers() {
   if (selectAllMembers.value) {
-    selectedMemberClassIds.value = filteredMembers.value.map((m: any) => m.id)
+    selectedMemberClassIds.value = filteredMembers.value.map(m => m.id)
   } else {
     selectedMemberClassIds.value = []
   }
@@ -116,13 +148,15 @@ onMounted(async () => {
 
   // Set default active semester if not selected
   if (!selectedSemesterId.value) {
-    const activeSem = semesters.value.find((s: any) => s.isActive) || semesters.value[0]
+    const sems = semesters.value as SemesterItem[]
+    const activeSem = sems.find(s => s.isActive) || sems[0]
     if (activeSem) selectedSemesterId.value = activeSem.id
   }
 
   // Set default class if not selected
   if (!selectedClassroomId.value && classes.value.length > 0) {
-    selectedClassroomId.value = classes.value[0].id
+    const cls = classes.value as ClassroomItem[]
+    if (cls[0]) selectedClassroomId.value = cls[0].id
   }
 })
 
@@ -139,8 +173,7 @@ async function assignSelectedStudents() {
 
   isAssigning.value = true
   try {
-    const doFetch: any = $fetch
-    const res: any = await doFetch('/api/student-classes/bulk', {
+    const res = await $fetch<{ message?: string }>('/api/student-classes/bulk', {
       method: 'POST',
       body: {
         studentIds: selectedUnassignedIds.value,
@@ -163,10 +196,13 @@ async function assignSelectedStudents() {
       store.fetchClassMembers(targetClassroomId.value, targetSemesterId.value, searchMembers.value, true),
       store.refreshSC(true)
     ])
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err && typeof err === 'object' && 'statusMessage' in err
+      ? String((err as { statusMessage?: unknown }).statusMessage)
+      : 'Gagal merubah rombel siswa.'
     toast.add({
       title: 'Gagal',
-      description: err.statusMessage || 'Gagal merubah rombel siswa.',
+      description: errorMsg,
       color: 'error'
     })
   } finally {
@@ -183,8 +219,7 @@ async function removeSelectedMembers() {
 
   isRemoving.value = true
   try {
-    const doFetch: any = $fetch
-    const res: any = await doFetch('/api/student-classes/batch-delete', {
+    const res = await $fetch<{ message?: string }>('/api/student-classes/batch-delete', {
       method: 'POST',
       body: { ids: selectedMemberClassIds.value }
     })
@@ -203,10 +238,13 @@ async function removeSelectedMembers() {
       store.fetchClassMembers(targetClassroomId.value, targetSemesterId.value, searchMembers.value, true),
       store.refreshSC(true)
     ])
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err && typeof err === 'object' && 'statusMessage' in err
+      ? String((err as { statusMessage?: unknown }).statusMessage)
+      : 'Gagal mengeluarkan siswa.'
     toast.add({
       title: 'Gagal',
-      description: err.statusMessage || 'Gagal mengeluarkan siswa.',
+      description: errorMsg,
       color: 'error'
     })
   } finally {
@@ -264,13 +302,25 @@ async function removeSelectedMembers() {
           <template #header>
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <UIcon name="i-lucide-user-x" class="w-5 h-5 text-amber-500" />
+                <UIcon
+                  name="i-lucide-user-x"
+                  class="w-5 h-5 text-amber-500"
+                />
                 <h3 class="font-bold text-sm text-gray-900 dark:text-white">
                   Siswa Belum Punya Kelas
                 </h3>
               </div>
-              <UBadge color="warning" variant="subtle" size="sm" class="font-bold font-mono flex items-center gap-1.5">
-                <UIcon v-if="pendingUnassigned" name="i-lucide-loader-2" class="w-3.5 h-3.5 animate-spin text-amber-600" />
+              <UBadge
+                color="warning"
+                variant="subtle"
+                size="sm"
+                class="font-bold font-mono flex items-center gap-1.5"
+              >
+                <UIcon
+                  v-if="pendingUnassigned"
+                  name="i-lucide-loader-2"
+                  class="w-3.5 h-3.5 animate-spin text-amber-600"
+                />
                 {{ filteredUnassigned.length }} Siswa
               </UBadge>
             </div>
@@ -288,11 +338,11 @@ async function removeSelectedMembers() {
             <div class="flex items-center justify-between text-xs px-1">
               <label class="flex items-center gap-2 cursor-pointer font-medium text-gray-600 dark:text-gray-400">
                 <input
-                  type="checkbox"
                   v-model="selectAllUnassigned"
-                  @change="toggleSelectAllUnassigned"
+                  type="checkbox"
                   class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-                />
+                  @change="toggleSelectAllUnassigned"
+                >
                 Pilih Semua ({{ filteredUnassigned.length }})
               </label>
 
@@ -308,9 +358,15 @@ async function removeSelectedMembers() {
             :class="pendingUnassigned ? 'opacity-75' : ''"
           >
             <!-- Empty state when list has 0 items -->
-            <div v-if="filteredUnassigned.length === 0" class="p-8 text-center text-xs text-gray-400">
+            <div
+              v-if="filteredUnassigned.length === 0"
+              class="p-8 text-center text-xs text-gray-400"
+            >
               <template v-if="pendingUnassigned">
-                <UIcon name="i-lucide-loader-2" class="w-6 h-6 animate-spin text-amber-500 mx-auto mb-2" />
+                <UIcon
+                  name="i-lucide-loader-2"
+                  class="w-6 h-6 animate-spin text-amber-500 mx-auto mb-2"
+                />
                 Memuat daftar siswa belum ada kelas...
               </template>
               <template v-else>
@@ -331,19 +387,27 @@ async function removeSelectedMembers() {
             >
               <div class="flex items-center gap-3">
                 <input
+                  v-model="selectedUnassignedIds"
                   type="checkbox"
                   :value="s.id"
-                  v-model="selectedUnassignedIds"
                   class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
                   @click.stop
-                />
+                >
                 <div>
-                  <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ s.user?.fullname || '-' }}</p>
-                  <p class="text-xs font-mono text-gray-400">NIS: {{ s.nis || '-' }}</p>
+                  <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                    {{ s.user?.fullname || '-' }}
+                  </p>
+                  <p class="text-xs font-mono text-gray-400">
+                    NIS: {{ s.nis || '-' }}
+                  </p>
                 </div>
               </div>
 
-              <UBadge color="warning" variant="subtle" size="xs">
+              <UBadge
+                color="warning"
+                variant="subtle"
+                size="xs"
+              >
                 Unassigned
               </UBadge>
             </div>
@@ -397,13 +461,25 @@ async function removeSelectedMembers() {
           <template #header>
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <UIcon name="i-lucide-users" class="w-5 h-5 text-emerald-500" />
+                <UIcon
+                  name="i-lucide-users"
+                  class="w-5 h-5 text-emerald-500"
+                />
                 <h3 class="font-bold text-sm text-gray-900 dark:text-white">
                   Anggota Kelas Terpilih
                 </h3>
               </div>
-              <UBadge color="success" variant="subtle" size="sm" class="font-bold font-mono flex items-center gap-1.5">
-                <UIcon v-if="pendingMembers" name="i-lucide-loader-2" class="w-3.5 h-3.5 animate-spin text-emerald-600" />
+              <UBadge
+                color="success"
+                variant="subtle"
+                size="sm"
+                class="font-bold font-mono flex items-center gap-1.5"
+              >
+                <UIcon
+                  v-if="pendingMembers"
+                  name="i-lucide-loader-2"
+                  class="w-3.5 h-3.5 animate-spin text-emerald-600"
+                />
                 {{ filteredMembers.length }} Siswa
               </UBadge>
             </div>
@@ -421,11 +497,11 @@ async function removeSelectedMembers() {
             <div class="flex items-center justify-between text-xs px-1">
               <label class="flex items-center gap-2 cursor-pointer font-medium text-gray-600 dark:text-gray-400">
                 <input
-                  type="checkbox"
                   v-model="selectAllMembers"
-                  @change="toggleSelectAllMembers"
+                  type="checkbox"
                   class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-                />
+                  @change="toggleSelectAllMembers"
+                >
                 Pilih Semua ({{ filteredMembers.length }})
               </label>
 
@@ -441,9 +517,15 @@ async function removeSelectedMembers() {
             :class="pendingMembers ? 'opacity-75' : ''"
           >
             <!-- Empty state when list has 0 items -->
-            <div v-if="filteredMembers.length === 0" class="p-8 text-center text-xs text-gray-400">
+            <div
+              v-if="filteredMembers.length === 0"
+              class="p-8 text-center text-xs text-gray-400"
+            >
               <template v-if="pendingMembers">
-                <UIcon name="i-lucide-loader-2" class="w-6 h-6 animate-spin text-emerald-500 mx-auto mb-2" />
+                <UIcon
+                  name="i-lucide-loader-2"
+                  class="w-6 h-6 animate-spin text-emerald-500 mx-auto mb-2"
+                />
                 Memuat anggota kelas...
               </template>
               <template v-else>
@@ -464,19 +546,27 @@ async function removeSelectedMembers() {
             >
               <div class="flex items-center gap-3">
                 <input
+                  v-model="selectedMemberClassIds"
                   type="checkbox"
                   :value="m.id"
-                  v-model="selectedMemberClassIds"
                   class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
                   @click.stop
-                />
+                >
                 <div>
-                  <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ m.student?.user?.fullname || '-' }}</p>
-                  <p class="text-xs font-mono text-gray-400">NIS: {{ m.student?.nis || '-' }}</p>
+                  <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                    {{ m.student?.user?.fullname || '-' }}
+                  </p>
+                  <p class="text-xs font-mono text-gray-400">
+                    NIS: {{ m.student?.nis || '-' }}
+                  </p>
                 </div>
               </div>
 
-              <UBadge color="success" variant="subtle" size="xs">
+              <UBadge
+                color="success"
+                variant="subtle"
+                size="xs"
+              >
                 Aktif
               </UBadge>
             </div>

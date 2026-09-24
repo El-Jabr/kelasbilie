@@ -100,7 +100,7 @@ function getActionItems(row: Record<string, unknown>): Record<string, unknown>[]
   mainGroup.push({
     label: 'Edit Penugasan',
     icon: 'i-lucide-pencil',
-    onSelect: () => openEditDialog(row)
+    onSelect: () => openEditDialog(row as unknown as AssignmentRecord)
   })
 
   const dangerGroup: Record<string, unknown>[] = [

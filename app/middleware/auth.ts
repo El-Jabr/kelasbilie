@@ -44,8 +44,7 @@ export default defineNuxtRouteMiddleware(async () => {
     // Simpan data user yang valid ke Pinia store
     // Setelah ini, navigasi berikutnya tidak akan fetch lagi (isAuthenticated = true)
     authStore.setUser(user as any)
-  }
-  catch {
+  } catch {
     /**
      * Fetch gagal = token tidak ada, expired, atau tidak valid.
      * Bersihkan state yang mungkin masih tersisa dan paksa redirect ke login.
@@ -56,4 +55,3 @@ export default defineNuxtRouteMiddleware(async () => {
     return navigateTo('/login')
   }
 })
-

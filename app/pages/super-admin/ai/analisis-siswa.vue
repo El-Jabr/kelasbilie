@@ -1,18 +1,8 @@
 <script setup lang="ts">
 import { LazyModalConfirm } from '#components'
 
-interface Student {
-  id: string
-  nis: string
-  user: { fullname: string }
-}
-
-interface Semester {
-  id: string
-  type: string
-  isActive: boolean
-  academicYear: { name: string }
-}
+import { storeToRefs } from 'pinia'
+import { useAiAnalysisStore } from '~/stores/aiAnalysis'
 
 interface AIRecommendation {
   tipe: string
@@ -27,6 +17,15 @@ interface AIAnalysisData {
   kekuatan: string[]
   kelemahan: string[]
   rekomendasi: AIRecommendation[]
+  komparasiHistoris?: {
+    adaData?: boolean
+    semesterSebelumnya?: string | null
+    rataRataSebelumnya?: number
+    rataRataSekarang?: number
+    selisih?: number
+    statusPerubahan?: string
+    catatanTren?: string
+  }
 }
 
 definePageMeta({
@@ -36,9 +35,6 @@ definePageMeta({
 useSeoMeta({
   title: 'AI Analisis Siswa'
 })
-
-import { storeToRefs } from 'pinia'
-import { useAiAnalysisStore } from '~/stores/aiAnalysis'
 
 const toast = useToast()
 const aiStore = useAiAnalysisStore()
@@ -54,7 +50,7 @@ const {
 
 const forceRefresh = ref(false)
 
-const analysisData = computed(() => currentStudentAnalysis.value?.data || null)
+const analysisData = computed<AIAnalysisData | null>(() => currentStudentAnalysis.value?.data || null)
 const isCached = computed(() => currentStudentAnalysis.value?.cached || false)
 const generatedAt = computed(() => currentStudentAnalysis.value?.generatedAt || '')
 
@@ -281,6 +277,70 @@ function getTrenColor(tren: string) {
           </div>
         </UCard>
       </div>
+
+      <!-- Komparasi Historis Semester Sebelumnya -->
+      <UCard
+        v-if="analysisData.komparasiHistoris?.adaData"
+        class="border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-50/40 to-sky-50/40 dark:from-indigo-950/20 dark:to-sky-950/20 shadow-sm"
+      >
+        <template #header>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <UIcon
+                name="i-lucide-history"
+                class="w-5 h-5 text-indigo-500"
+              />
+              <h3 class="text-base font-bold text-gray-900 dark:text-white">
+                Komparasi Semester Sebelumnya ({{ analysisData.komparasiHistoris.semesterSebelumnya }})
+              </h3>
+            </div>
+            <UBadge
+              :color="analysisData.komparasiHistoris.statusPerubahan === 'meningkat' ? 'success' : (analysisData.komparasiHistoris.statusPerubahan === 'menurun' ? 'error' : 'neutral')"
+              variant="subtle"
+            >
+              <UIcon
+                :name="analysisData.komparasiHistoris.statusPerubahan === 'meningkat' ? 'i-lucide-trending-up' : (analysisData.komparasiHistoris.statusPerubahan === 'menurun' ? 'i-lucide-trending-down' : 'i-lucide-minus')"
+                class="w-3.5 h-3.5 mr-1"
+              />
+              {{ analysisData.komparasiHistoris.statusPerubahan === 'meningkat' ? 'Performa Meningkat' : (analysisData.komparasiHistoris.statusPerubahan === 'menurun' ? 'Performa Menurun' : 'Performa Stabil') }}
+            </UBadge>
+          </div>
+        </template>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 font-medium">
+              Rata-rata Semester Lalu
+            </div>
+            <div class="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1 font-mono">
+              {{ analysisData.komparasiHistoris.rataRataSebelumnya }}
+            </div>
+          </div>
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 font-medium">
+              Rata-rata Semester Ini
+            </div>
+            <div class="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1 font-mono">
+              {{ analysisData.komparasiHistoris.rataRataSekarang }}
+            </div>
+          </div>
+          <div class="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 font-medium">
+              Selisih Perkembangan
+            </div>
+            <div
+              class="text-xl font-bold mt-1 font-mono"
+              :class="(analysisData.komparasiHistoris.selisih ?? 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' : ((analysisData.komparasiHistoris.selisih ?? 0) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-600 dark:text-gray-300')"
+            >
+              {{ (analysisData.komparasiHistoris.selisih ?? 0) > 0 ? '+' : '' }}{{ analysisData.komparasiHistoris.selisih }}
+            </div>
+          </div>
+        </div>
+
+        <p class="text-xs text-gray-600 dark:text-gray-300 italic">
+          💡 {{ analysisData.komparasiHistoris.catatanTren }}
+        </p>
+      </UCard>
 
       <!-- Evaluasi Siswa / Narasi AI -->
       <UCard class="border border-primary-200/70 dark:border-primary-900/60 bg-white dark:bg-gray-800 shadow-sm">

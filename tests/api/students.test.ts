@@ -54,7 +54,7 @@ describe('Students & Student-Classes API Unit Tests', () => {
     it('POST /api/students - create student', async () => {
       const newUser = { id: 'u-1', fullname: 'Santri Bilal' }
       const newStudent = { id: 'st-2', nis: '1002', userId: 'u-1', user: newUser }
-      
+
       vi.mocked(prisma.user.create).mockResolvedValue(newUser as any)
       vi.mocked(prisma.student.create).mockResolvedValue(newStudent as any)
 

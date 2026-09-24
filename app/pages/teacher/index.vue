@@ -17,6 +17,7 @@ const user = computed(() => authStore.user)
 
 const teacherStore = useTeacherStore()
 const { teacherProfile, activeSemester, progressData, isLoading: pending } = storeToRefs(teacherStore)
+const { sasLabel } = useAssessmentTerm(computed(() => activeSemester.value?.type))
 
 onMounted(() => {
   teacherStore.fetchTeacherData()
@@ -96,7 +97,7 @@ function resetSearch() {
           Selamat Datang, {{ user?.fullname || 'Bapak/Ibu Guru' }}! 👋
         </h1>
         <p class="text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
-          Kelola penugasan mengajar, input nilai harian, STS, SAS, serta pantau progres penilaian kelas Anda dengan mudah.
+          Kelola penugasan mengajar, input nilai harian, STS, {{ sasLabel }}, serta pantau progres penilaian kelas Anda dengan mudah.
         </p>
       </div>
 

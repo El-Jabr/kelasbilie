@@ -32,6 +32,7 @@ const {
 } = storeToRefs(moodleStore)
 
 const isExportingCsv = ref(false)
+const { examModeLabel, sasLabel } = useAssessmentTerm()
 
 const roleOptions = [
   { value: 'ALL', label: 'Semua User (Guru & Siswa)' },
@@ -179,7 +180,7 @@ watch(searchLog, () => {
         Sinkronisasi & Integrasi Moodle
       </h1>
       <p class="text-sm text-gray-500 dark:text-gray-400">
-        Kelola sinkronisasi dua arah antara aplikasi dan Moodle (Impor user app ke Moodle, mode password harian vs STS/SAS, dan sync nilai).
+        Kelola sinkronisasi dua arah antara aplikasi dan Moodle (Impor user app ke Moodle, mode password harian vs STS/{{ sasLabel }}, dan sync nilai).
       </p>
     </div>
 
@@ -334,7 +335,7 @@ watch(searchLog, () => {
                 Mode Password Moodle Siswa & Ekspor CSV
               </h2>
               <p class="text-xs text-gray-500 dark:text-gray-400">
-                Atur mode password Moodle (Mode Harian vs Mode Ujian STS/SAS 6-angka random), lalu unduh daftar kredensial CSV siswa.
+                Atur mode password Moodle (Mode Harian vs {{ examModeLabel }} 6-angka random), lalu unduh daftar kredensial CSV siswa.
               </p>
             </div>
           </div>
@@ -391,7 +392,7 @@ watch(searchLog, () => {
                 >
                 <div>
                   <div class="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
-                    <span>Mode Ujian STS/SAS</span>
+                    <span>{{ examModeLabel }}</span>
                   </div>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     Password: <code class="font-bold text-amber-600 dark:text-amber-400">bilie + 6 Angka Acak</code> (Misal: <code class="font-mono">bilie892301</code>)
@@ -458,7 +459,7 @@ watch(searchLog, () => {
       <template #footer>
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
           <p class="text-xs text-gray-500 dark:text-gray-400">
-            *Gunakan mode Ujian STS/SAS sebelum ujian dimulai dan cetak file CSV untuk dibagikan ke siswa.
+            *Gunakan mode {{ examModeLabel }} sebelum ujian dimulai dan cetak file CSV untuk dibagikan ke siswa.
           </p>
 
           <div class="flex items-center gap-2 w-full sm:w-auto justify-end">

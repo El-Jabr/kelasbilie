@@ -25,7 +25,7 @@ onMounted(async () => {
         label: `${t.user?.fullname || 'Guru'} (NIP: ${t.nip || '-'})`
       }))
     }
-    
+
     if (cRes?.data) {
       classOptions.value = cRes.data.map((c: any) => ({
         value: c.id,
@@ -49,7 +49,11 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-4">
-    <UFormField label="Semester" name="semesterId" required>
+    <UFormField
+      label="Semester"
+      name="semesterId"
+      required
+    >
       <USelect
         v-model="model.semesterId"
         :items="semesterOptions"
@@ -62,7 +66,11 @@ onMounted(async () => {
       />
     </UFormField>
 
-    <UFormField label="Kelas" name="classroomId" required>
+    <UFormField
+      label="Kelas"
+      name="classroomId"
+      required
+    >
       <USelect
         v-model="model.classroomId"
         :items="classOptions"
@@ -75,7 +83,11 @@ onMounted(async () => {
       />
     </UFormField>
 
-    <UFormField label="Guru Wali Kelas" name="teacherId" required>
+    <UFormField
+      label="Guru Wali Kelas"
+      name="teacherId"
+      required
+    >
       <USelect
         v-model="model.teacherId"
         :items="teacherOptions"

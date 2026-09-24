@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
   ])
 
   const existingMap = new Map<string, number>()
-  existingComponents.forEach(c => {
+  existingComponents.forEach((c) => {
     existingMap.set(`${c.studentId}_${c.gradeItemId}`, c.score)
   })
 
@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
   })
 
   const gradeItemMap = new Map<number, string>()
-  gradeItems.forEach(g => {
+  gradeItems.forEach((g) => {
     gradeItemMap.set(g.id, g.name)
   })
 
@@ -133,13 +133,13 @@ export default defineEventHandler(async (event) => {
     const oldStr = c.oldScore !== null ? c.oldScore : '-'
     logDescription = `Edit nilai ${subjectName}${classLabel} - ${c.studentName}: ${c.itemName} (${oldStr} ➔ ${c.newScore})`
   } else if (changes.length <= 3) {
-    const detailList = changes.map(c => {
+    const detailList = changes.map((c) => {
       const oldStr = c.oldScore !== null ? c.oldScore : '-'
       return `${c.studentName} [${c.itemName}: ${oldStr} ➔ ${c.newScore}]`
     }).join(', ')
     logDescription = `Edit nilai ${subjectName}${classLabel} - ${detailList}`
   } else {
-    const detailList = changes.slice(0, 3).map(c => {
+    const detailList = changes.slice(0, 3).map((c) => {
       const oldStr = c.oldScore !== null ? c.oldScore : '-'
       return `${c.studentName} (${c.itemName}: ${oldStr} ➔ ${c.newScore})`
     }).join(', ')

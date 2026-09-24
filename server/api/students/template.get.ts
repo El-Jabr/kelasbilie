@@ -7,4 +7,3 @@ export default defineEventHandler((event) => {
     'Budi Santoso,budi.santoso,20260002,budi@sekolah.sch.id,Pass5678!,102'
   ].join('\n')
 })
-

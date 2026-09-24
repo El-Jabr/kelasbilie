@@ -1,5 +1,18 @@
-export function useTeachingAssignmentDialogs() {
-  const selectedAssignment = useState<any | null>(
+export interface AssignmentRecord {
+  id: string
+  teacherId?: string
+  subjectId?: string
+  classroomId?: string
+  semesterId?: string
+  courseId?: number | null
+  teacher?: { user?: { fullname?: string } } | null
+  subject?: { name?: string } | null
+  classroom?: { name?: string } | null
+  semester?: { type?: string, academicYear?: { name?: string } | null } | null
+}
+
+export function useTeachingAssignmentDialogs<T extends AssignmentRecord = AssignmentRecord>() {
+  const selectedAssignment = useState<T | null>(
     'teaching-assignments:selected',
     () => null
   )
@@ -27,7 +40,7 @@ export function useTeachingAssignmentDialogs() {
     createDialogOpen.value = false
   }
 
-  function openEditDialog(assignment: any) {
+  function openEditDialog(assignment: T) {
     selectedAssignment.value = assignment
     editDialogOpen.value = true
   }
@@ -37,7 +50,7 @@ export function useTeachingAssignmentDialogs() {
     selectedAssignment.value = null
   }
 
-  function openDeleteDialog(assignment: any) {
+  function openDeleteDialog(assignment: T) {
     selectedAssignment.value = assignment
     deleteDialogOpen.value = true
   }

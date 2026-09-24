@@ -16,6 +16,7 @@ export function useHomerooms() {
   const filterTeacherId = useState('homerooms:filterTeacherId', () => '')
 
   async function fetchHomerooms(page = pagination.value.page, force = false) {
+    pagination.value.page = page
     await store.fetchHomerooms(force, {
       semesterId: filterSemesterId.value,
       classroomId: filterClassroomId.value,

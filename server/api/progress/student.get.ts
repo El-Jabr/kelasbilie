@@ -12,22 +12,43 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Data siswa tidak ditemukan' })
   }
 
-  const activeSemester = await db.semester.findFirst({
-    where: { isActive: true }
-  })
+  const query = getQuery(event)
+  let targetSemesterId = query.semesterId as string | undefined
 
-  if (!activeSemester) {
-    return { percent: 0, totalExpected: 0, totalFilled: 0, items: [] }
+  if (!targetSemesterId) {
+    const activeSemester = await db.semester.findFirst({
+      where: { isActive: true }
+    })
+    if (activeSemester) {
+      targetSemesterId = activeSemester.id
+    }
+  }
+
+  // Jika belum ada semesterId atau student tidak terdaftar di semester aktif,
+  // cari semester terbaru dari pendaftaran kelas siswa
+  if (!targetSemesterId) {
+    const latestClass = await db.studentClass.findFirst({
+      where: { studentId: student.id },
+      orderBy: { semester: { academicYear: { name: 'desc' } } },
+      select: { semesterId: true }
+    })
+    if (latestClass) {
+      targetSemesterId = latestClass.semesterId
+    }
+  }
+
+  if (!targetSemesterId) {
+    return { overallPercent: 0, percent: 0, totalExpected: 0, totalFilled: 0, items: [] }
   }
 
   // Find the student's class for this semester
-  const studentClass = await db.studentClass.findFirst({
-    where: { studentId: student.id, semesterId: activeSemester.id },
+  let studentClass = await db.studentClass.findFirst({
+    where: { studentId: student.id, semesterId: targetSemesterId },
     include: {
       classroom: {
         include: {
           teachings: {
-            where: { semesterId: activeSemester.id },
+            where: { semesterId: targetSemesterId },
             include: {
               subject: true,
               course: {
@@ -42,15 +63,39 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // Fallback: jika siswa tidak ditemukan di targetSemesterId, coba ambil kelas terbarunya
   if (!studentClass) {
-    return { percent: 0, totalExpected: 0, totalFilled: 0, items: [] }
+    studentClass = await db.studentClass.findFirst({
+      where: { studentId: student.id },
+      orderBy: { semester: { academicYear: { name: 'desc' } } },
+      include: {
+        classroom: {
+          include: {
+            teachings: {
+              include: {
+                subject: true,
+                course: {
+                  include: {
+                    gradeItems: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+  }
+
+  if (!studentClass || !studentClass.classroom?.teachings?.length) {
+    return { overallPercent: 0, percent: 0, totalExpected: 0, totalFilled: 0, items: [] }
   }
 
   // 1. Collect all necessary gradeItemIds to avoid N+1 queries
   const allGradeItemIds = new Set<number>()
 
   for (const teaching of studentClass.classroom.teachings) {
-    teaching.course?.gradeItems?.forEach((g: any) => allGradeItemIds.add(g.id))
+    teaching.course?.gradeItems?.forEach((g: { id: number }) => allGradeItemIds.add(g.id))
   }
 
   // 2. Fetch all matching grade components in a single query
@@ -84,7 +129,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const percent = expected === 0 ? 100 : Math.round((filled / expected) * 100)
+    const percent = expected === 0 ? 0 : Math.round((filled / expected) * 100)
 
     totalExpected += expected
     totalFilled += filled
@@ -97,10 +142,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const overallPercent = totalExpected === 0 ? 100 : Math.round((totalFilled / totalExpected) * 100)
+  const overallPercent = totalExpected === 0 ? 0 : Math.round((totalFilled / totalExpected) * 100)
 
   return {
     overallPercent,
+    percent: overallPercent,
     totalExpected,
     totalFilled,
     items

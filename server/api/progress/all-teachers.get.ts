@@ -2,7 +2,7 @@ import { prisma as db } from '~~/server/utils/db'
 import { requireRole } from '~~/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
-  const user = requireRole(event, ['SUPER_ADMIN', 'ADMIN'])
+  requireRole(event, ['SUPER_ADMIN', 'ADMIN'])
 
   const activeSemester = await db.semester.findFirst({
     where: { isActive: true }
@@ -43,8 +43,8 @@ export default defineEventHandler(async (event) => {
 
   for (const t of teachers) {
     for (const teaching of t.teachings) {
-      teaching.classroom.students.forEach((s: any) => allStudentIds.add(s.studentId))
-      teaching.course?.gradeItems?.forEach((g: any) => allGradeItemIds.add(g.id))
+      teaching.classroom.students.forEach((s: { studentId: string }) => allStudentIds.add(s.studentId))
+      teaching.course?.gradeItems?.forEach((g: { id: number }) => allGradeItemIds.add(g.id))
     }
   }
 

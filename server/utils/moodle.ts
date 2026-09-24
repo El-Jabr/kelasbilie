@@ -57,7 +57,7 @@ export interface MoodleEnrolParam {
   courseid: number // Moodle Course ID
 }
 
-function makeError(opts: { statusCode: number; statusMessage: string }) {
+function makeError(opts: { statusCode: number, statusMessage: string }) {
   if (typeof createError === 'function') {
     return createError(opts)
   }
@@ -237,14 +237,14 @@ export class MoodleService {
   /**
    * Mendaftarkan/membuat user baru di Moodle secara massal (core_user_create_users)
    */
-  public static async createUsers(users: MoodleCreateUserParam[]): Promise<{ id: number; username: string }[]> {
-    return await this.post<{ id: number; username: string }[]>('core_user_create_users', { users })
+  public static async createUsers(users: MoodleCreateUserParam[]): Promise<{ id: number, username: string }[]> {
+    return await this.post<{ id: number, username: string }[]>('core_user_create_users', { users })
   }
 
   /**
    * Memperbarui user Moodle (core_user_update_users)
    */
-  public static async updateUsers(users: { id: number; username?: string; idnumber?: string; password?: string; firstname?: string; lastname?: string; email?: string }[]): Promise<any> {
+  public static async updateUsers(users: { id: number, username?: string, idnumber?: string, password?: string, firstname?: string, lastname?: string, email?: string }[]): Promise<any> {
     return await this.post<any>('core_user_update_users', { users })
   }
 

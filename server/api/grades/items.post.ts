@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<{
     courseId: number
     name: string
-    category?: 'PH' | 'STS' | 'SAS'
+    category?: 'PH' | 'STS' | 'SAS' | 'SAT'
   }>(event)
 
   if (!body?.courseId || !body?.name?.trim()) {
@@ -36,7 +36,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const category = body.category || 'PH'
+  const rawCat = body.category
+  const category: 'PH' | 'STS' | 'SAS' = rawCat === 'SAT' ? 'SAS' : (rawCat || 'PH')
   const cleanName = body.name.trim()
 
   // Find min negative ID to avoid collisions for manual grade items

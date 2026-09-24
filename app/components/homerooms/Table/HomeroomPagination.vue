@@ -26,6 +26,5 @@ const { pagination, changePage, changeLimit } = useHomerooms()
         @update:page="changePage"
       />
     </div>
-
   </div>
 </template>

@@ -12,9 +12,9 @@ const singleForm = reactive({
 watch(isSingleModalOpen, (open) => {
   if (open) {
     if (selectedStudentClass.value) {
-      singleForm.studentId = selectedStudentClass.value.studentId
-      singleForm.classroomId = selectedStudentClass.value.classroomId
-      singleForm.semesterId = selectedStudentClass.value.semesterId
+      singleForm.studentId = selectedStudentClass.value.studentId || ''
+      singleForm.classroomId = selectedStudentClass.value.classroomId || ''
+      singleForm.semesterId = selectedStudentClass.value.semesterId || ''
     } else {
       singleForm.studentId = ''
       singleForm.classroomId = ''

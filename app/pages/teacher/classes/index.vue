@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DropdownMenuItem } from '@nuxt/ui'
+import type { DropdownMenuItem, TableColumn } from '@nuxt/ui'
 import { storeToRefs } from 'pinia'
 import { useTeacherClassStore } from '~~/app/stores/teacherClass'
 
@@ -12,23 +12,27 @@ definePageMeta({
 const router = useRouter()
 const store = useTeacherClassStore()
 const {
-  teacher,
   assignments,
   pagination,
   search,
   page,
-  pendingAssignments: pending
+  pendingAssignments: pending,
+  selectedSemesterId,
+  semesterOptions
 } = storeToRefs(store)
 
 onMounted(async () => {
-  await store.fetchAssignments()
+  await Promise.all([
+    store.fetchSemesters(),
+    store.fetchAssignments()
+  ])
 })
 
-watch([search, page], () => {
+watch([search, page, selectedSemesterId], () => {
   store.fetchAssignments(true)
 })
 
-const columns: any[] = [
+const columns: TableColumn<Record<string, unknown>>[] = [
   { accessorKey: 'subject', header: 'Mata Pelajaran' },
   { accessorKey: 'classroom', header: 'Kelas' },
   { accessorKey: 'semester', header: 'Semester' },
@@ -76,10 +80,11 @@ async function handleRefresh() {
       description: 'Daftar penugasan kelas berhasil dimuat ulang.',
       color: 'success'
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat ulang data.'
     toast.add({
       title: 'Gagal Memperbarui',
-      description: err?.message || 'Terjadi kesalahan saat memuat ulang data.',
+      description: message,
       color: 'error'
     })
   } finally {
@@ -92,12 +97,21 @@ async function handleRefresh() {
   <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Daftar Kelas Mengajar</h1>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+          Daftar Kelas Mengajar
+        </h1>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
           Daftar seluruh penugasan mengajar Anda di berbagai semester.
         </p>
       </div>
-      <div class="flex items-center gap-2 w-full sm:w-auto">
+      <div class="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+        <USelect
+          v-model="selectedSemesterId"
+          :items="semesterOptions"
+          label-key="label"
+          value-key="value"
+          class="w-full sm:w-56"
+        />
         <UInput
           v-model="search"
           icon="i-lucide-search"
@@ -126,13 +140,20 @@ async function handleRefresh() {
       >
         <template #subject-cell="{ row }">
           <div>
-            <div class="font-medium text-gray-900 dark:text-white">{{ (row as any).original.subject?.name }}</div>
-            <div class="text-xs text-gray-500 font-mono">{{ (row as any).original.subject?.code }}</div>
+            <div class="font-medium text-gray-900 dark:text-white">
+              {{ (row as any).original.subject?.name }}
+            </div>
+            <div class="text-xs text-gray-500 font-mono">
+              {{ (row as any).original.subject?.code }}
+            </div>
           </div>
         </template>
 
         <template #classroom-cell="{ row }">
-          <UBadge color="success" variant="subtle">
+          <UBadge
+            color="success"
+            variant="subtle"
+          >
             {{ (row as any).original.classroom?.name }} (Lt {{ (row as any).original.classroom?.floor }})
           </UBadge>
         </template>
@@ -140,17 +161,26 @@ async function handleRefresh() {
         <template #semester-cell="{ row }">
           <div class="text-xs">
             <div>{{ (row as any).original.semester?.academicYear?.name }}</div>
-            <UBadge :color="(row as any).original.semester?.isActive ? 'success' : 'neutral'" size="sm">
+            <UBadge
+              :color="(row as any).original.semester?.isActive ? 'success' : 'neutral'"
+              size="sm"
+            >
               {{ (row as any).original.semester?.type }} {{ (row as any).original.semester?.isActive ? '(Aktif)' : '' }}
             </UBadge>
           </div>
         </template>
 
         <template #course-cell="{ row }">
-          <span v-if="(row as any).original.course" class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+          <span
+            v-if="(row as any).original.course"
+            class="text-xs text-emerald-600 dark:text-emerald-400 font-medium"
+          >
             {{ (row as any).original.course?.shortname }}
           </span>
-          <span v-else class="text-xs text-gray-400">Tidak ada</span>
+          <span
+            v-else
+            class="text-xs text-gray-400"
+          >Tidak ada</span>
         </template>
 
         <template #actions-cell="{ row }">
@@ -166,7 +196,10 @@ async function handleRefresh() {
         </template>
       </UTable>
 
-      <template v-if="pagination.pages > 1" #footer>
+      <template
+        v-if="pagination.pages > 1"
+        #footer
+      >
         <div class="flex justify-between items-center px-4 py-2">
           <span class="text-xs text-gray-500">
             Halaman {{ pagination.page }} dari {{ pagination.pages }} (Total {{ pagination.total }} data)

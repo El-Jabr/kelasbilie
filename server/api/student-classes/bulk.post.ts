@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<any>(event)
 
-  const itemsToProcess: { studentId: string; classroomId: string; semesterId: string }[] = []
+  const itemsToProcess: { studentId: string, classroomId: string, semesterId: string }[] = []
 
   if (Array.isArray(body?.items) && body.items.length > 0) {
     for (const item of body.items) {

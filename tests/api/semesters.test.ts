@@ -59,7 +59,7 @@ describe('Semesters API Unit Tests', () => {
     it('should create new semester', async () => {
       const validAyId = '123e4567-e89b-12d3-a456-426614174000'
       const newSem = { id: '123e4567-e89b-12d3-a456-426614174001', type: 'GENAP', academicYearId: validAyId, isActive: false }
-      
+
       vi.mocked(prisma.academicYear.findUnique).mockResolvedValue({ id: validAyId } as any)
       vi.mocked(prisma.semester.findUnique).mockResolvedValue(null)
       vi.mocked(prisma.semester.create).mockResolvedValue(newSem as any)

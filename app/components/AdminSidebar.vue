@@ -77,7 +77,7 @@ const navGroups = computed(() => {
         active: route.path.startsWith('/super-admin/moodle/sinkronisasi')
       })
     }
-    
+
     const aiChildren = [
       {
         label: 'Analisis Kelas',
@@ -246,7 +246,10 @@ async function handleLogout() {
   <aside class="flex flex-col h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 w-64 select-none">
     <!-- Sidebar Header / Logo -->
     <div class="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
-      <NuxtLink to="/super-admin" class="flex items-center gap-3">
+      <NuxtLink
+        to="/super-admin"
+        class="flex items-center gap-3"
+      >
         <div class="flex flex-col">
           <span class="font-bold text-base leading-none text-gray-900 dark:text-white">Kelas Bilie</span>
           <span class="text-[10px] font-semibold tracking-wider uppercase text-emerald-600 dark:text-emerald-400 mt-0.5">
@@ -267,8 +270,15 @@ async function handleLogout() {
 
     <!-- Navigation List -->
     <div class="flex-1 overflow-y-auto p-3 space-y-4">
-      <div v-for="(group, idx) in navGroups" :key="idx" class="space-y-1">
-        <p v-if="group.title" class="px-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+      <div
+        v-for="(group, idx) in navGroups"
+        :key="idx"
+        class="space-y-1"
+      >
+        <p
+          v-if="group.title"
+          class="px-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2"
+        >
           {{ group.title }}
         </p>
         <UNavigationMenu

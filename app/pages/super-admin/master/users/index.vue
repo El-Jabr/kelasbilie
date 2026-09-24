@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import type { UserSchema } from '~~/shared/schemas/user'
 import { useUsers } from '~/composables/useUsers'
 
 definePageMeta({
@@ -12,7 +13,7 @@ useSeoMeta({
 
 const bulkDialogOpen = ref(false)
 const bulkAction = ref<'activate' | 'deactivate'>('activate')
-const selectedUsers = ref<any[]>([])
+const selectedUsers = ref<UserSchema[]>([])
 
 const userTable = useTemplateRef('userTable')
 
@@ -36,7 +37,7 @@ function bulkDeactivate() {
 
 async function confirmBulkStatus() {
   await bulkUpdateStatus(
-    selectedUsers.value.map((user: any) => user.id),
+    selectedUsers.value.map(user => user.id),
     bulkAction.value === 'activate'
   )
 

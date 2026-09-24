@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import { useGradesStore } from '~/stores/grades'
+
 definePageMeta({
   layout: 'teacher',
   middleware: ['auth', 'role'],
   role: ['TEACHER', 'ADMIN']
 })
-
-import { useGradesStore } from '~/stores/grades'
 
 const route = useRoute()
 const toast = useToast()
@@ -25,6 +25,8 @@ const teaching = computed(() => teachingRes.value?.data)
 
 const fullInspectionRes = ref<any>(null)
 const pendingData = ref(true)
+
+const { sasLabel } = useAssessmentTerm(computed(() => teaching.value?.semester?.type || fullInspectionRes.value?.semester?.type))
 
 async function fetchTeaching() {
   try {
@@ -289,7 +291,7 @@ function updateScore(key: string, val: any) {
           <div class="flex items-center gap-2">
             <UIcon name="i-lucide-table" class="hidden sm:inline-block w-5 h-5 text-emerald-500" />
             <h2 class="text-base font-bold text-gray-900 dark:text-white">
-              Tabel Input Nilai (Formula: 50% Rata PH + 25% STS + 25% SAS)
+              Tabel Input Nilai (Formula: 50% Rata PH + 25% STS + 25% {{ sasLabel }})
             </h2>
           </div>
           <UBadge color="success" variant="subtle" size="sm">
@@ -331,9 +333,9 @@ function updateScore(key: string, val: any) {
                 STS (25%)
               </th>
 
-              <!-- SAS Column -->
+              <!-- SAS/SAT Column -->
               <th class="py-2 px-3 text-center bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-r border-gray-200 dark:border-gray-700" rowspan="2">
-                SAS (25%)
+                {{ sasLabel }} (25%)
               </th>
 
               <!-- Final Grade Column -->
@@ -490,7 +492,7 @@ function updateScore(key: string, val: any) {
       <template #footer>
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <div>
-            💡 <span class="font-semibold">Catatan Guru:</span> Masukkan/edit nilai pada kolom PH, STS, atau SAS, lalu klik <span class="font-bold text-emerald-600">Simpan Nilai</span>. Nilai Moodle ditampilkan sebagai referensi.
+            💡 <span class="font-semibold">Catatan Guru:</span> Masukkan/edit nilai pada kolom PH, STS, atau {{ sasLabel }}, lalu klik <span class="font-bold text-emerald-600">Simpan Nilai</span>. Nilai Moodle ditampilkan sebagai referensi.
           </div>
           <UButton
             color="success"

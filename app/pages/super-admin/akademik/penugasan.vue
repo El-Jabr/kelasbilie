@@ -139,7 +139,6 @@ async function syncGrades(courseId: number, subjectName?: string, className?: st
 // ── Progress Fetching (Cached in Store) ────────────────────────────────────
 const assignmentStore = useAssignmentStore()
 const progressMap = computed(() => assignmentStore.progressCache[selectedSemesterId.value] || {})
-const loadingProgress = computed(() => assignmentStore.loadingProgress)
 
 watch(selectedSemesterId, (newId) => {
   if (activeTab.value === 'teaching' && newId && newId !== 'all') {
@@ -175,7 +174,7 @@ const isRefreshing = ref(false)
 async function handleRefresh() {
   isRefreshing.value = true
   try {
-    const promises: Promise<any>[] = [refreshTA(), refreshHR()]
+    const promises: Promise<unknown>[] = [refreshTA(), refreshHR()]
     if (selectedSemesterId.value && selectedSemesterId.value !== 'all') {
       promises.push(assignmentStore.fetchProgress(selectedSemesterId.value, true))
     }
@@ -185,10 +184,10 @@ async function handleRefresh() {
       description: 'Data penugasan kelas dan progres berhasil dimuat ulang.',
       color: 'success'
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     toast.add({
       title: 'Gagal Memperbarui',
-      description: err?.message || 'Terjadi kesalahan saat memuat ulang data.',
+      description: (err as Error)?.message || 'Terjadi kesalahan saat memuat ulang data.',
       color: 'error'
     })
   } finally {
@@ -409,15 +408,25 @@ async function handleRefresh() {
               <!-- Right: Course badge + Progress + Actions -->
               <div class="flex items-center gap-4 shrink-0">
                 <!-- Progress Bar -->
-                <div v-if="ta.courseId && progressMap[ta.id]" class="hidden sm:block w-32 px-2">
+                <div
+                  v-if="ta.courseId && progressMap[ta.id]"
+                  class="hidden sm:block w-32 px-2"
+                >
                   <div class="flex justify-between text-[10px] mb-1">
                     <span class="text-gray-500 dark:text-gray-400 font-medium">Progres Nilai</span>
-                    <span class="font-bold" :class="progressMap[ta.id]?.percent === 100 ? 'text-success-600 dark:text-success-400' : 'text-primary-600 dark:text-primary-400'">
+                    <span
+                      class="font-bold"
+                      :class="progressMap[ta.id]?.percent === 100 ? 'text-success-600 dark:text-success-400' : 'text-primary-600 dark:text-primary-400'"
+                    >
                       {{ progressMap[ta.id]?.percent ?? 0 }}%
                     </span>
                   </div>
                   <div class="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700 overflow-hidden">
-                    <div class="h-1.5 rounded-full transition-all duration-500" :class="progressMap[ta.id]?.percent === 100 ? 'bg-success-500' : 'bg-primary-500'" :style="`width: ${progressMap[ta.id]?.percent ?? 0}%`"></div>
+                    <div
+                      class="h-1.5 rounded-full transition-all duration-500"
+                      :class="progressMap[ta.id]?.percent === 100 ? 'bg-success-500' : 'bg-primary-500'"
+                      :style="`width: ${progressMap[ta.id]?.percent ?? 0}%`"
+                    />
                   </div>
                 </div>
 

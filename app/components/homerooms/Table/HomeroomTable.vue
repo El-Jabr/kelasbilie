@@ -23,10 +23,10 @@ const filteredHomerooms = computed(() => {
   if (!search.value) return homerooms.value
   const kw = search.value.toLowerCase()
   return homerooms.value.filter((h: any) =>
-    (h.classroom?.name || '').toLowerCase().includes(kw) ||
-    (h.teacher?.user?.fullname || '').toLowerCase().includes(kw) ||
-    (h.teacher?.nip || '').toLowerCase().includes(kw) ||
-    (h.semester?.type || '').toLowerCase().includes(kw)
+    (h.classroom?.name || '').toLowerCase().includes(kw)
+    || (h.teacher?.user?.fullname || '').toLowerCase().includes(kw)
+    || (h.teacher?.nip || '').toLowerCase().includes(kw)
+    || (h.semester?.type || '').toLowerCase().includes(kw)
   )
 })
 
@@ -60,7 +60,11 @@ function getActionItems(row: any): DropdownMenuItem[][] {
       :empty-state="{ icon: 'i-lucide-users', label: 'Belum ada data wali kelas.' }"
     >
       <template #classroom-cell="{ row }">
-        <UBadge color="neutral" variant="soft" size="xs">
+        <UBadge
+          color="neutral"
+          variant="soft"
+          size="xs"
+        >
           {{ row.original.classroom?.name || row.original.classroomId }}
         </UBadge>
       </template>

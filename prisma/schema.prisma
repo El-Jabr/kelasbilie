@@ -356,3 +356,12 @@ model ActivityLog {
   @@index([createdAt])
 }
 
+model WebhookConfig {
+  id          String   @id @default(uuid())
+  name        String
+  url         String
+  events      String[]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

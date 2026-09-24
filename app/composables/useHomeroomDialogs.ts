@@ -1,5 +1,15 @@
-export function useHomeroomDialogs() {
-  const selectedHomeroom = useState<any | null>(
+export interface HomeroomRecord {
+  id: string
+  classroomId?: string
+  teacherId?: string
+  semesterId?: string
+  classroom?: { name?: string, level?: string | number } | null
+  teacher?: { user?: { fullname?: string } } | null
+  semester?: { type?: string, academicYear?: { name?: string } | null } | null
+}
+
+export function useHomeroomDialogs<T extends HomeroomRecord = HomeroomRecord>() {
+  const selectedHomeroom = useState<T | null>(
     'homerooms:selected',
     () => null
   )
@@ -27,7 +37,7 @@ export function useHomeroomDialogs() {
     createDialogOpen.value = false
   }
 
-  function openEditDialog(homeroom: any) {
+  function openEditDialog(homeroom: T) {
     selectedHomeroom.value = homeroom
     editDialogOpen.value = true
   }
@@ -37,7 +47,7 @@ export function useHomeroomDialogs() {
     selectedHomeroom.value = null
   }
 
-  function openDeleteDialog(homeroom: any) {
+  function openDeleteDialog(homeroom: T) {
     selectedHomeroom.value = homeroom
     deleteDialogOpen.value = true
   }

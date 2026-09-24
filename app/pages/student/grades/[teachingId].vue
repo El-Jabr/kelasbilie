@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useStudentStore, type GradeComponentRow } from '~/stores/student'
+
 definePageMeta({
   layout: 'student',
   middleware: ['auth', 'role'],
@@ -8,8 +10,8 @@ definePageMeta({
 const route = useRoute()
 const teachingId = route.params.teachingId as string
 
-const studentRes = ref<{ data?: { id?: string } } | null>(null)
-const studentId = computed(() => studentRes.value?.data?.id)
+const studentStore = useStudentStore()
+const { sasLabel } = useAssessmentTerm()
 
 interface TeachingRecord {
   subject?: { code?: string, name?: string }
@@ -18,71 +20,31 @@ interface TeachingRecord {
   [key: string]: unknown
 }
 
-const teachingRes = ref<{ data?: TeachingRecord } | null>(null)
-const teachingStatus = ref('pending')
-const teaching = computed(() => teachingRes.value?.data ?? null)
-
-interface GradeRow {
-  id: string
-  gradeItem?: {
-    name?: string
-    category?: string
-    itemType?: string
-  }
-  grade?: number
-  score?: number | null
-  lastUpdated?: string
-  lastSync?: string | Date | null
-  [key: string]: unknown
-}
-
-const componentsRes = ref<{ data?: GradeRow[] } | null>(null)
-const componentsStatus = ref('pending')
-
-async function fetchTeaching() {
-  teachingStatus.value = 'pending'
-  try {
-    teachingRes.value = await $fetch<{ data?: TeachingRecord }>(`/api/teaching-assignments/${teachingId}`)
-    teachingStatus.value = 'success'
-  } catch (error) {
-    console.error(error)
-    teachingStatus.value = 'error'
-  }
-}
-
-async function refresh() {
-  componentsStatus.value = 'pending'
-  try {
-    let sId = studentId.value
-    if (!sId) {
-      const meRes = await $fetch<{ data?: { id?: string } }>('/api/students/me')
-      sId = meRes?.data?.id
-      studentRes.value = meRes
-    }
-    if (!sId || !teachingId) return
-    componentsRes.value = await $fetch<{ data?: GradeRow[] }>('/api/grades/components', {
-      query: {
-        studentId: sId,
-        teachingId
-      }
-    })
-    componentsStatus.value = 'success'
-  } catch (error) {
-    console.error(error)
-    componentsStatus.value = 'error'
-  }
-}
-
-watch(studentId, (newId) => {
-  if (newId) refresh()
+const teaching = computed<TeachingRecord | null>(() => {
+  return (studentStore.teachingsCache[teachingId] as TeachingRecord) || null
 })
+
+const studentId = computed(() => studentStore.studentId)
+const cacheKey = computed(() => `${studentId.value}__${teachingId}`)
+const components = computed<GradeComponentRow[]>(() => {
+  return studentStore.componentsCache[cacheKey.value] || []
+})
+const isComponentsLoaded = computed(() => !!studentStore.componentsCache[cacheKey.value])
+
+async function fetchTeaching(force = false) {
+  await studentStore.fetchTeaching(teachingId, force)
+}
+
+async function refresh(force = false) {
+  await studentStore.fetchComponents(teachingId, force)
+}
 
 onMounted(async () => {
-  await fetchTeaching()
-  await refresh()
+  await Promise.all([
+    fetchTeaching(),
+    refresh()
+  ])
 })
-
-const components = computed(() => componentsRes.value?.data ?? [])
 
 function getCategoryBadgeColor(cat: string) {
   if (cat === 'PH') return 'info'
@@ -110,7 +72,7 @@ const filteredComponents = computed(() => {
   let list = components.value
   if (search.value) {
     const kw = search.value.toLowerCase()
-    list = list.filter((r: GradeRow) => {
+    list = list.filter((r: GradeComponentRow) => {
       const gi = r.gradeItem
       return (gi?.name || '').toLowerCase().includes(kw)
         || (gi?.category || '').toLowerCase().includes(kw)
@@ -181,9 +143,9 @@ watch(search, () => {
             color="neutral"
             variant="solid"
             label="Refresh Nilai"
-            :loading="componentsStatus === 'pending'"
+            :loading="studentStore.pendingComponents"
             class="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur cursor-pointer"
-            @click="() => refresh()"
+            @click="() => refresh(true)"
           />
         </div>
       </div>
@@ -191,7 +153,7 @@ watch(search, () => {
 
     <!-- Loading State -->
     <div
-      v-if="teachingStatus === 'pending' || componentsStatus === 'pending'"
+      v-if="(!teaching || !isComponentsLoaded) && (studentStore.pendingTeaching || studentStore.pendingComponents)"
       class="flex items-center justify-center py-16"
     >
       <UIcon
@@ -289,7 +251,7 @@ watch(search, () => {
                     size="sm"
                     class="font-bold"
                   >
-                    {{ comp.gradeItem?.category || 'PH' }}
+                    {{ comp.gradeItem?.category === 'SAS' ? sasLabel : (comp.gradeItem?.category || 'PH') }}
                   </UBadge>
                 </td>
                 <td class="py-3 px-4 text-center">

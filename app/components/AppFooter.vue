@@ -21,7 +21,7 @@ const footerData = {
               src="/logo.png"
               alt="SMP BILIE Logo"
               class="h-10 w-auto shrink-0 bg-white/10 p-1 rounded-lg"
-            />
+            >
             <h3 class="text-lg font-bold text-white leading-tight">
               {{ footerData.schoolName }}
             </h3>
@@ -33,23 +33,41 @@ const footerData = {
 
         <!-- Kolom 2: Informasi & Kontak -->
         <div>
-          <h4 class="text-base font-semibold text-white mb-4">Informasi Kontak</h4>
+          <h4 class="text-base font-semibold text-white mb-4">
+            Informasi Kontak
+          </h4>
           <ul class="space-y-2.5 text-sm">
             <li class="flex items-start gap-2.5">
-              <UIcon name="i-lucide-map-pin" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <UIcon
+                name="i-lucide-map-pin"
+                class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"
+              />
               <span class="text-gray-300">{{ footerData.address }}</span>
             </li>
             <li class="flex items-center gap-2.5">
-              <UIcon name="i-lucide-phone" class="w-4 h-4 text-emerald-500 shrink-0" />
+              <UIcon
+                name="i-lucide-phone"
+                class="w-4 h-4 text-emerald-500 shrink-0"
+              />
               <span class="text-gray-300">Telp/WA: {{ footerData.contact }}</span>
             </li>
             <li class="flex items-center gap-2.5">
-              <UIcon name="i-lucide-mail" class="w-4 h-4 text-emerald-500 shrink-0" />
+              <UIcon
+                name="i-lucide-mail"
+                class="w-4 h-4 text-emerald-500 shrink-0"
+              />
               <span class="text-gray-300">{{ footerData.email }}</span>
             </li>
             <li class="flex items-center gap-2.5">
-              <UIcon name="i-lucide-globe" class="w-4 h-4 text-emerald-500 shrink-0" />
-              <a :href="`https://${footerData.website}`" target="_blank" class="hover:underline text-emerald-400">
+              <UIcon
+                name="i-lucide-globe"
+                class="w-4 h-4 text-emerald-500 shrink-0"
+              />
+              <a
+                :href="`https://${footerData.website}`"
+                target="_blank"
+                class="hover:underline text-emerald-400"
+              >
                 {{ footerData.website }}
               </a>
             </li>
@@ -58,12 +76,20 @@ const footerData = {
 
         <!-- Kolom 3: Portal & Sosial Media -->
         <div>
-          <h4 class="text-base font-semibold text-white mb-4">Akses Sistem & Medsos</h4>
+          <h4 class="text-base font-semibold text-white mb-4">
+            Akses Sistem & Medsos
+          </h4>
           <p class="text-sm text-gray-400 mb-4">
             Portal Sistem Informasi Manajemen Akademik dan Pembelajaran Kelas Bilie.
           </p>
           <div class="flex flex-wrap gap-2 mb-4">
-            <UButton to="/login" color="primary" size="sm">Login Sistem</UButton>
+            <UButton
+              to="/login"
+              color="primary"
+              size="sm"
+            >
+              Login Sistem
+            </UButton>
           </div>
           <div class="flex items-center gap-2">
             <UButton

@@ -17,7 +17,7 @@ vi.mock('~/server/utils/db', () => ({
     teacher: { findMany: vi.fn() },
     student: { findMany: vi.fn() },
     semester: { findFirst: vi.fn() },
-    $transaction: vi.fn((promises) => Promise.all(promises))
+    $transaction: vi.fn(promises => Promise.all(promises))
   }
 }))
 

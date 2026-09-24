@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
   const classroomId = String(query.classroomId || '').trim()
   const teachingId = String(query.teachingId || '').trim()
   const search = String(query.search || '').trim()
+  const requestedSemesterId = String(query.semesterId || '').trim()
 
   if (!classroomId || classroomId === 'ALL') {
     return {
@@ -16,13 +17,24 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // 1. Fetch activeSemester, then students and teachings in parallel
-  const activeSemester = await prisma.semester.findFirst({
-    where: { isActive: true },
-    include: { academicYear: true }
-  })
+  // 1. Fetch requested semester or fallback to activeSemester
+  let activeSemester = null
+  if (requestedSemesterId && requestedSemesterId !== 'ALL' && requestedSemesterId !== 'ACTIVE') {
+    activeSemester = await prisma.semester.findUnique({
+      where: { id: requestedSemesterId },
+      include: { academicYear: true }
+    })
+  }
+
   if (!activeSemester) {
-    throw createError({ statusCode: 404, statusMessage: 'Semester aktif tidak ditemukan.' })
+    activeSemester = await prisma.semester.findFirst({
+      where: { isActive: true },
+      include: { academicYear: true }
+    })
+  }
+
+  if (!activeSemester) {
+    throw createError({ statusCode: 404, statusMessage: 'Semester tidak ditemukan.' })
   }
 
   const [studentClasses, teachings] = await Promise.all([
@@ -118,7 +130,7 @@ export default defineEventHandler(async (event) => {
     const stsItemIds = new Set(stsGradeItems.map(s => s.id))
     const sasItemIds = new Set(sasGradeItems.map(s => s.id))
 
-    const studentsResult = studentClasses.map(sc => {
+    const studentsResult = studentClasses.map((sc) => {
       const studentId = sc.studentId
 
       const itemScores: Record<number, number | null> = {}
@@ -258,7 +270,7 @@ export default defineEventHandler(async (event) => {
     summaryLookup.set(`${s.studentId}_${s.teachingId}_${s.category}`, s.score)
   }
 
-  const studentsResult = studentClasses.map(sc => {
+  const studentsResult = studentClasses.map((sc) => {
     const subjectGrades: Record<string, { ph: number | null, sts: number | null, sas: number | null, final: number | null }> = {}
 
     for (const t of teachings) {

@@ -52,4 +52,3 @@ export const updateUserSchema = userSchema.partial().omit({
 })
 
 export type UpdateUserSchema = z.infer<typeof updateUserSchema>
-

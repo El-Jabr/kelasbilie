@@ -3,17 +3,20 @@ import type {
   UpdateHomeroomAssignmentSchema
 } from '~~/shared/schemas/homeroom-assignment'
 
-function getErrorMessage(error: unknown) {
+function getErrorMessage(error: unknown, fallback = 'Terjadi kesalahan.') {
   if (
     error
     && typeof error === 'object'
-    && 'statusMessage' in error
-    && typeof error.statusMessage === 'string'
   ) {
-    return error.statusMessage
+    const err = error as Record<string, unknown>
+    const data = err.data as Record<string, unknown> | undefined
+    if (typeof data?.statusMessage === 'string') return data.statusMessage
+    if (typeof data?.message === 'string') return data.message
+    if (typeof err.statusMessage === 'string') return err.statusMessage
+    if (typeof err.message === 'string') return err.message
   }
 
-  return 'Terjadi kesalahan.'
+  return fallback
 }
 
 export function useHomeroomActions() {
@@ -35,7 +38,7 @@ export function useHomeroomActions() {
     creating.value = true
 
     try {
-      const res: any = await $fetch('/api/homerooms', {
+      const res = await $fetch<{ message?: string }>('/api/homerooms', {
         method: 'POST',
         body: data
       })
@@ -48,8 +51,8 @@ export function useHomeroomActions() {
 
       closeCreateDialog()
       await refresh()
-    } catch (error: any) {
-      const errorMsg = error.data?.statusMessage || error.data?.message || error.statusMessage || error.message || 'Gagal menetapkan wali kelas.'
+    } catch (error: unknown) {
+      const errorMsg = getErrorMessage(error, 'Gagal menetapkan wali kelas.')
       toast.add({
         title: 'Gagal',
         description: errorMsg,
@@ -81,8 +84,8 @@ export function useHomeroomActions() {
 
       closeEditDialog()
       await refresh()
-    } catch (error: any) {
-      const errorMsg = error.data?.statusMessage || error.data?.message || error.statusMessage || error.message || 'Gagal memperbarui wali kelas.'
+    } catch (error: unknown) {
+      const errorMsg = getErrorMessage(error, 'Gagal memperbarui wali kelas.')
       toast.add({
         title: 'Gagal',
         description: errorMsg,
@@ -113,8 +116,8 @@ export function useHomeroomActions() {
 
       closeDeleteDialog()
       await refresh()
-    } catch (error: any) {
-      const errorMsg = error.data?.statusMessage || error.data?.message || error.statusMessage || error.message || 'Gagal menghapus penugasan.'
+    } catch (error: unknown) {
+      const errorMsg = getErrorMessage(error, 'Gagal menghapus penugasan.')
       toast.add({
         title: 'Gagal Menghapus',
         description: errorMsg,

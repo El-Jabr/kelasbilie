@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/* eslint-disable @stylistic/max-statements-per-line */
 import type { TableColumn } from '@nuxt/ui'
 import type { TeacherTableSchema } from '~~/shared/schemas/teacher'
 
@@ -210,14 +209,27 @@ async function save() {
         <form @submit.prevent="save">
           <div class="space-y-4">
             <!-- Mode Switcher (Create Only) -->
-            <div v-if="!dialogs.editDialogOpen.value" class="flex items-center gap-4 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs font-medium">
+            <div
+              v-if="!dialogs.editDialogOpen.value"
+              class="flex items-center gap-4 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs font-medium"
+            >
               <label class="flex items-center gap-2 cursor-pointer">
-                <input type="radio" v-model="createMode" value="new" class="text-emerald-600 focus:ring-emerald-500" />
+                <input
+                  v-model="createMode"
+                  type="radio"
+                  value="new"
+                  class="text-emerald-600 focus:ring-emerald-500"
+                >
                 <span>Buat Akun & Profile Guru Baru</span>
               </label>
 
               <label class="flex items-center gap-2 cursor-pointer">
-                <input type="radio" v-model="createMode" value="existing" class="text-emerald-600 focus:ring-emerald-500" />
+                <input
+                  v-model="createMode"
+                  type="radio"
+                  value="existing"
+                  class="text-emerald-600 focus:ring-emerald-500"
+                >
                 <span>Pilih dari User System Unassigned ({{ users.length }})</span>
               </label>
             </div>
@@ -225,16 +237,28 @@ async function save() {
             <!-- Mode Edit: Display Name & Username -->
             <template v-if="dialogs.editDialogOpen.value">
               <UFormField label="Nama Lengkap Guru">
-                <UInput v-model="form.fullname" disabled class="w-full bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-80" />
+                <UInput
+                  v-model="form.fullname"
+                  disabled
+                  class="w-full bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-80"
+                />
               </UFormField>
 
               <UFormField label="Username System">
-                <UInput v-model="form.username" disabled class="w-full bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-80" />
+                <UInput
+                  v-model="form.username"
+                  disabled
+                  class="w-full bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-80"
+                />
               </UFormField>
             </template>
 
             <!-- Mode Create Existing: Dropdown Unassigned Users -->
-            <UFormField v-else-if="createMode === 'existing'" label="Akun Pengguna System" required>
+            <UFormField
+              v-else-if="createMode === 'existing'"
+              label="Akun Pengguna System"
+              required
+            >
               <USelect
                 v-model="form.userId"
                 :items="users"
@@ -247,22 +271,45 @@ async function save() {
 
             <!-- Mode New: Full Fields -->
             <template v-if="createMode === 'new' && !dialogs.editDialogOpen.value">
-              <UFormField label="Nama Lengkap Guru" required>
-                <UInput v-model="form.fullname" placeholder="Contoh: Drs. Bambang" class="w-full" />
+              <UFormField
+                label="Nama Lengkap Guru"
+                required
+              >
+                <UInput
+                  v-model="form.fullname"
+                  placeholder="Contoh: Drs. Bambang"
+                  class="w-full"
+                />
               </UFormField>
 
               <UFormField label="Username (Opsional, Default NIP)">
-                <UInput v-model="form.username" placeholder="Kosongkan jika samakan dengan NIP" class="w-full" />
+                <UInput
+                  v-model="form.username"
+                  placeholder="Kosongkan jika samakan dengan NIP"
+                  class="w-full"
+                />
               </UFormField>
 
               <UFormField label="Password Login (Opsional)">
-                <UInput v-model="form.password" type="password" placeholder="Default: Bilie#[NIP]" class="w-full" />
+                <UInput
+                  v-model="form.password"
+                  type="password"
+                  placeholder="Default: Bilie#[NIP]"
+                  class="w-full"
+                />
               </UFormField>
             </template>
 
             <!-- Common Field: NIP -->
-            <UFormField label="NIP (Nomor Induk Pegawai)" required>
-              <UInput v-model="form.nip" placeholder="Contoh: 198001012005011001" class="w-full" />
+            <UFormField
+              label="NIP (Nomor Induk Pegawai)"
+              required
+            >
+              <UInput
+                v-model="form.nip"
+                placeholder="Contoh: 198001012005011001"
+                class="w-full"
+              />
             </UFormField>
           </div>
         </form>

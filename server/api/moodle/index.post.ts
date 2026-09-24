@@ -13,7 +13,7 @@ function mapGradeCategory(itemName: string | null): 'PH' | 'STS' | 'SAS' | null 
   if (nameUpper.includes('STS') || nameUpper.includes('TENGAH SEMESTER') || nameUpper.includes('MID')) {
     return 'STS'
   }
-  if (nameUpper.includes('SAS') || nameUpper.includes('PAS') || nameUpper.includes('AKHIR SEMESTER') || nameUpper.includes('FINAL')) {
+  if (nameUpper.includes('SAS') || nameUpper.includes('SAT') || nameUpper.includes('PAS') || nameUpper.includes('PAT') || nameUpper.includes('AKHIR SEMESTER') || nameUpper.includes('AKHIR TAHUN') || nameUpper.includes('FINAL')) {
     return 'SAS'
   }
   if (nameUpper.includes('PH') || nameUpper.includes('HARIAN') || nameUpper.includes('ULANGAN') || nameUpper.includes('QUIZ')) {
@@ -29,7 +29,16 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const resource = (query.resource as string || 'ALL').toUpperCase()
 
-  const syncResults: Record<string, any> = {}
+  interface SyncResultItem {
+    status: 'SUCCESS' | 'FAILED'
+    count?: number
+    deletedCount?: number
+    itemCount?: number
+    componentCount?: number
+    error?: string
+  }
+
+  const syncResults: Record<string, SyncResultItem> = {}
 
   // 1. Sync Course Categories
   if (resource === 'ALL' || resource === 'CATEGORY') {
@@ -63,16 +72,17 @@ export default defineEventHandler(async (event) => {
         }
       })
       syncResults.category = { status: 'SUCCESS', count }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMsg = (err as Error)?.message || 'Gagal menyingkronkan kategori.'
       console.error('Sync Category Error:', err)
       await prisma.syncLog.create({
         data: {
           resource: 'CATEGORY',
           status: 'FAILED',
-          message: err.message || 'Gagal menyingkronkan kategori.'
+          message: errorMsg
         }
       })
-      syncResults.category = { status: 'FAILED', error: err.message }
+      syncResults.category = { status: 'FAILED', error: errorMsg }
     }
   }
 
@@ -191,16 +201,17 @@ export default defineEventHandler(async (event) => {
         }
       })
       syncResults.course = { status: 'SUCCESS', count, deletedCount }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMsg = (err as Error)?.message || 'Gagal menyingkronkan course.'
       console.error('Sync Course Error:', err)
       await prisma.syncLog.create({
         data: {
           resource: 'COURSE',
           status: 'FAILED',
-          message: err.message || 'Gagal menyingkronkan course.'
+          message: errorMsg
         }
       })
-      syncResults.course = { status: 'FAILED', error: err.message }
+      syncResults.course = { status: 'FAILED', error: errorMsg }
     }
   }
 
@@ -277,8 +288,8 @@ export default defineEventHandler(async (event) => {
               count++
             }
           }
-        } catch (e: any) {
-          console.warn(`Gagal fetch enrollment course ID ${course.id}:`, e.message)
+        } catch (e: unknown) {
+          console.warn(`Gagal fetch enrollment course ID ${course.id}:`, (e as Error)?.message)
         }
       }
 
@@ -290,16 +301,17 @@ export default defineEventHandler(async (event) => {
         }
       })
       syncResults.enrollment = { status: 'SUCCESS', count }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMsg = (err as Error)?.message || 'Gagal menyingkronkan enrollment.'
       console.error('Sync Enrollment Error:', err)
       await prisma.syncLog.create({
         data: {
           resource: 'USER',
           status: 'FAILED',
-          message: err.message || 'Gagal menyingkronkan enrollment.'
+          message: errorMsg
         }
       })
-      syncResults.enrollment = { status: 'FAILED', error: err.message }
+      syncResults.enrollment = { status: 'FAILED', error: errorMsg }
     }
   }
 
@@ -318,7 +330,7 @@ export default defineEventHandler(async (event) => {
           if (gradeReport && gradeReport.usergrades) {
             for (const uGrade of gradeReport.usergrades) {
               // PREVENT CROSS-CONTAMINATION: Moodle sometimes returns grades for other enrolled courses
-              if (uGrade.courseid !== course.id) continue;
+              if (uGrade.courseid !== course.id) continue
 
               // Cari siswa lokal berdasarkan moodleUserId (yang sudah ter-autolink pada tahap Enrollment)
               const localUser = await findOrLinkLocalUser({ id: uGrade.userid })
@@ -419,8 +431,8 @@ export default defineEventHandler(async (event) => {
               where: { id: { in: orphanItemIds } }
             })
           }
-        } catch (e: any) {
-          console.warn(`Gagal fetch grade report course ID ${course.id}:`, e.message)
+        } catch (e: unknown) {
+          console.warn(`Gagal fetch grade report course ID ${course.id}:`, (e as Error)?.message)
         }
       }
 
@@ -443,21 +455,22 @@ export default defineEventHandler(async (event) => {
             await calculateGradeSummary(teaching.id, activeSemester.id)
           }
         }
-      } catch (autoCalcErr: any) {
-        console.warn('Auto-calculate GradeSummary warning:', autoCalcErr.message)
+      } catch (autoCalcErr: unknown) {
+        console.warn('Auto-calculate GradeSummary warning:', (autoCalcErr as Error)?.message)
       }
 
       syncResults.grade = { status: 'SUCCESS', itemCount, componentCount }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMsg = (err as Error)?.message || 'Gagal menyingkronkan data nilai.'
       console.error('Sync Grade Error:', err)
       await prisma.syncLog.create({
         data: {
           resource: 'GRADE',
           status: 'FAILED',
-          message: err.message || 'Gagal menyingkronkan data nilai.'
+          message: errorMsg
         }
       })
-      syncResults.grade = { status: 'FAILED', error: err.message }
+      syncResults.grade = { status: 'FAILED', error: errorMsg }
     }
   }
 

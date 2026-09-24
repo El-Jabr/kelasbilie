@@ -138,15 +138,25 @@ async function handleTestConnection() {
     </div>
 
     <UCard>
-      <div v-if="pending" class="py-8 text-center text-sm text-gray-400">
+      <div
+        v-if="pending"
+        class="py-8 text-center text-sm text-gray-400"
+      >
         Memuat pengaturan...
       </div>
 
-      <form v-else class="space-y-6" @submit.prevent="handleSave">
+      <form
+        v-else
+        class="space-y-6"
+        @submit.prevent="handleSave"
+      >
         <!-- Identitas Sekolah Section -->
         <div class="space-y-4">
           <h3 class="text-base font-semibold border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
-            <UIcon name="i-lucide-building-2" class="hidden sm:inline-block w-5 h-5 text-primary-500" />
+            <UIcon
+              name="i-lucide-building-2"
+              class="hidden sm:inline-block w-5 h-5 text-primary-500"
+            />
             Identitas Sekolah
           </h3>
 
@@ -167,7 +177,10 @@ async function handleTestConnection() {
         <!-- Moodle Integration Section -->
         <div class="space-y-4 pt-4">
           <h3 class="text-base font-semibold border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
-            <UIcon name="i-lucide-server" class="hidden sm:inline-block w-5 h-5 text-primary-500" />
+            <UIcon
+              name="i-lucide-server"
+              class="hidden sm:inline-block w-5 h-5 text-primary-500"
+            />
             Integrasi Server Moodle
           </h3>
 
@@ -225,7 +238,10 @@ async function handleTestConnection() {
         <!-- AI Integration Section -->
         <div class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <h3 class="text-base font-semibold border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center gap-2">
-            <UIcon name="i-lucide-brain-circuit" class="hidden sm:inline-block w-5 h-5 text-primary-500" />
+            <UIcon
+              name="i-lucide-brain-circuit"
+              class="hidden sm:inline-block w-5 h-5 text-primary-500"
+            />
             Integrasi AI (Gemini)
           </h3>
 
@@ -238,7 +254,10 @@ async function handleTestConnection() {
               <USwitch v-model="formState.aiEnabled" />
             </div>
 
-            <div v-if="formState.aiEnabled" class="animate-in fade-in slide-in-from-top-2 duration-300">
+            <div
+              v-if="formState.aiEnabled"
+              class="animate-in fade-in slide-in-from-top-2 duration-300"
+            >
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Gemini API Key
               </label>
@@ -250,11 +269,18 @@ async function handleTestConnection() {
                 class="w-full sm:max-w-md"
               />
               <p class="mt-1 text-xs text-gray-500">
-                Dapatkan API Key di <a href="https://aistudio.google.com/" target="_blank" class="text-primary-600 hover:underline">Google AI Studio</a>.
+                Dapatkan API Key di <a
+                  href="https://aistudio.google.com/"
+                  target="_blank"
+                  class="text-primary-600 hover:underline"
+                >Google AI Studio</a>.
               </p>
             </div>
 
-            <div v-if="formState.aiEnabled" class="animate-in fade-in slide-in-from-top-2 duration-300">
+            <div
+              v-if="formState.aiEnabled"
+              class="animate-in fade-in slide-in-from-top-2 duration-300"
+            >
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Konteks Tambahan Sekolah (System Prompt)
               </label>

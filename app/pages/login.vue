@@ -83,8 +83,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     } else {
       await navigateTo('/')
     }
-  }
-  catch (error: any) {
+  } catch (error: any) {
     // Tampilkan pesan error dari server, atau fallback ke pesan default
     toast.add({
       title: 'Login gagal',

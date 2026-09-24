@@ -52,7 +52,10 @@ const semesterOptions = [
       label="Tipe Semester"
       required
     >
-      <div class="flex gap-3 mt-1" :class="{ 'opacity-60 pointer-events-none': mode === 'edit' }">
+      <div
+        class="flex gap-3 mt-1"
+        :class="{ 'opacity-60 pointer-events-none': mode === 'edit' }"
+      >
         <button
           type="button"
           class="flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all cursor-pointer"
@@ -74,9 +77,13 @@ const semesterOptions = [
           Genap
         </button>
       </div>
-      <p v-if="mode === 'edit'" class="text-xs text-gray-400 mt-1">Tipe semester tidak dapat diubah setelah dibuat.</p>
+      <p
+        v-if="mode === 'edit'"
+        class="text-xs text-gray-400 mt-1"
+      >
+        Tipe semester tidak dapat diubah setelah dibuat.
+      </p>
     </UFormField>
-
 
     <UFormField label="Status">
       <div class="space-y-3">

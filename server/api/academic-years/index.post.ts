@@ -54,10 +54,12 @@ export default defineEventHandler(async (event) => {
       message: 'Tahun ajaran berhasil ditambahkan.',
       data: academicYear
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating academic year:', error)
 
-    if (error?.code === 'P2002') {
+    const err = error as { code?: string, statusCode?: number } | null
+
+    if (err?.code === 'P2002') {
       throw createError({
         statusCode: 409,
         statusMessage: 'Nama tahun ajaran sudah ada.'

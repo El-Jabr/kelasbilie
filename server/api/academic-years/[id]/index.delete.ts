@@ -46,8 +46,7 @@ export default defineEventHandler(async (event) => {
       message: 'Tahun ajaran berhasil dihapus.',
       data: deleted
     }
-  }
-  catch (error: any) {
+  } catch (error: any) {
     if (error.code === 'P2025') {
       throw createError({
         statusCode: 404,

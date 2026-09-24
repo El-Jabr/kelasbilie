@@ -34,7 +34,10 @@ const {
           <p class="text-sm">
             Apakah Anda yakin ingin menghapus penugasan wali kelas ini?
           </p>
-          <div v-if="selectedHomeroom" class="text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded-md">
+          <div
+            v-if="selectedHomeroom"
+            class="text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded-md"
+          >
             <p><strong>Kelas:</strong> {{ selectedHomeroom.classroom?.name || selectedHomeroom.classroomId }}</p>
             <p><strong>Guru:</strong> {{ selectedHomeroom.teacher?.user?.fullname || selectedHomeroom.teacherId }}</p>
             <p><strong>Semester:</strong> {{ selectedHomeroom.semester?.type }} ({{ selectedHomeroom.semester?.academicYear?.name || '-' }})</p>

@@ -1,5 +1,17 @@
 import { LazyModalConfirm } from '#components'
 
+function getErrorMessage(error: unknown, fallback = 'Terjadi kesalahan.') {
+  if (error && typeof error === 'object') {
+    const err = error as Record<string, unknown>
+    const data = err.data as Record<string, unknown> | undefined
+    if (typeof data?.statusMessage === 'string') return data.statusMessage
+    if (typeof data?.message === 'string') return data.message
+    if (typeof err.statusMessage === 'string') return err.statusMessage
+    if (typeof err.message === 'string') return err.message
+  }
+  return fallback
+}
+
 export function useStudentClassActions() {
   const toast = useToast()
   const overlay = useOverlay()
@@ -23,7 +35,7 @@ export function useStudentClassActions() {
 
     isBulkSubmitting.value = true
     try {
-      const res: any = await $fetch('/api/student-classes/bulk', {
+      const res = await $fetch<{ message?: string }>('/api/student-classes/bulk', {
         method: 'POST',
         body: {
           classroomId: bulkForm.classroomId,
@@ -38,8 +50,8 @@ export function useStudentClassActions() {
       })
       await refreshSC()
       if (onSuccess) onSuccess()
-    } catch (err: any) {
-      const errorMsg = err.data?.statusMessage || err.data?.message || err.message || 'Terjadi kesalahan.'
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err, 'Terjadi kesalahan.')
       toast.add({
         title: 'Gagal Bulk Assign',
         description: errorMsg,
@@ -62,7 +74,7 @@ export function useStudentClassActions() {
 
     isCloneSubmitting.value = true
     try {
-      const res: any = await $fetch('/api/student-classes/clone', {
+      const res = await $fetch<{ message?: string }>('/api/student-classes/clone', {
         method: 'POST',
         body: cloneForm
       })
@@ -73,8 +85,8 @@ export function useStudentClassActions() {
       })
       await refreshSC()
       if (onSuccess) onSuccess()
-    } catch (err: any) {
-      const errorMsg = err.data?.statusMessage || err.data?.message || err.message || 'Terjadi kesalahan.'
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err, 'Terjadi kesalahan.')
       toast.add({
         title: 'Gagal Clone Semester',
         description: errorMsg,
@@ -108,7 +120,7 @@ export function useStudentClassActions() {
           color: 'success'
         })
       } else {
-        const res: any = await $fetch('/api/student-classes', {
+        const res = await $fetch<{ message?: string }>('/api/student-classes', {
           method: 'POST',
           body: singleForm
         })
@@ -120,8 +132,8 @@ export function useStudentClassActions() {
       }
       closeSingleModal()
       await refreshSC()
-    } catch (error: any) {
-      const errorMsg = error.data?.statusMessage || error.data?.message || error.message || 'Gagal menyimpan.'
+    } catch (error: unknown) {
+      const errorMsg = getErrorMessage(error, 'Gagal menyimpan.')
       toast.add({
         title: 'Gagal',
         description: errorMsg,
@@ -149,8 +161,8 @@ export function useStudentClassActions() {
         color: 'success'
       })
       await refreshSC()
-    } catch (error: any) {
-      const errorMsg = error.data?.statusMessage || error.data?.message || error.message || 'Gagal menghapus data.'
+    } catch (error: unknown) {
+      const errorMsg = getErrorMessage(error, 'Gagal menghapus data.')
       toast.add({
         title: 'Gagal Menghapus',
         description: errorMsg,

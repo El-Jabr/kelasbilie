@@ -1,4 +1,32 @@
 <script setup lang="ts">
+import { LazyModalConfirm } from '#components'
+import type { TableColumn } from '@nuxt/ui'
+
+export interface StudentClassItem {
+  id: string
+  studentId: string
+  classroomId: string
+  semesterId: string
+  student?: {
+    id?: string
+    nis?: string
+    user?: {
+      fullname?: string
+      username?: string
+    }
+  }
+  classroom?: {
+    id?: string
+    name?: string
+  }
+  semester?: {
+    id?: string
+    academicYear?: {
+      name?: string
+    }
+  }
+}
+
 const toast = useToast()
 
 const {
@@ -22,13 +50,13 @@ const { openSingleEditModal } = useStudentClassDialogs()
 const { handleDelete } = useStudentClassActions()
 
 // Multi-select state
-const selectedItems = ref<any[]>([])
-const selectedIds = computed(() => selectedItems.value.map((i: any) => i.id))
+const selectedItems = ref<StudentClassItem[]>([])
+const selectedIds = computed(() => selectedItems.value.map(i => i.id))
 const targetMoveClassroomId = ref('')
 const isBatchMoving = ref(false)
 const isBatchDeleting = ref(false)
 
-const columns: any[] = [
+const columns: TableColumn<StudentClassItem>[] = [
   { accessorKey: 'student', header: 'Siswa' },
   { accessorKey: 'nis', header: 'NIS' },
   { accessorKey: 'classroom', header: 'Kelas Target' },
@@ -55,15 +83,15 @@ async function batchMoveSelected() {
     return
   }
 
-  const selectedStudentItems = studentClasses.value.filter((sc: any) => selectedIds.value.includes(sc.id))
-  const studentIds = selectedStudentItems.map((sc: any) => sc.studentId)
+  const selectedStudentItems = (studentClasses.value as StudentClassItem[]).filter(sc => selectedIds.value.includes(sc.id))
+  const studentIds = selectedStudentItems.map(sc => sc.studentId)
   const activeSemesterId = selectedItems.value[0]?.semesterId || filterSemesterId.value
 
   if (studentIds.length === 0) return
 
   isBatchMoving.value = true
   try {
-    const res: any = await $fetch('/api/student-classes/bulk', {
+    const res = await $fetch<{ message?: string }>('/api/student-classes/bulk', {
       method: 'POST',
       body: {
         classroomId: targetMoveClassroomId.value,
@@ -82,18 +110,17 @@ async function batchMoveSelected() {
     selectedItems.value = []
     targetMoveClassroomId.value = ''
     await refreshSC()
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorObj = err as { statusMessage?: string, message?: string }
     toast.add({
       title: 'Gagal',
-      description: err.statusMessage || 'Gagal memindahkan siswa.',
+      description: errorObj.statusMessage || errorObj.message || 'Gagal memindahkan siswa.',
       color: 'error'
     })
   } finally {
     isBatchMoving.value = false
   }
 }
-
-import { LazyModalConfirm } from '#components'
 
 const overlay = useOverlay()
 const confirmModal = overlay.create(LazyModalConfirm)
@@ -112,7 +139,7 @@ async function batchDeleteSelected() {
 
   isBatchDeleting.value = true
   try {
-    const res: any = await $fetch('/api/student-classes/batch-delete', {
+    const res = await $fetch<{ message?: string }>('/api/student-classes/batch-delete', {
       method: 'POST',
       body: { ids: selectedIds.value },
       credentials: 'include'
@@ -126,10 +153,11 @@ async function batchDeleteSelected() {
 
     selectedItems.value = []
     await refreshSC()
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorObj = err as { statusMessage?: string, message?: string }
     toast.add({
       title: 'Gagal',
-      description: err.statusMessage || 'Gagal menghapus pembagian kelas.',
+      description: errorObj.statusMessage || errorObj.message || 'Gagal menghapus pembagian kelas.',
       color: 'error'
     })
   } finally {
@@ -203,7 +231,10 @@ async function batchDeleteSelected() {
       class="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded-xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md animate-in fade-in slide-in-from-top-2"
     >
       <div class="flex items-center gap-2 text-sm font-bold text-emerald-900 dark:text-emerald-200">
-        <UIcon name="i-lucide-check-square" class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+        <UIcon
+          name="i-lucide-check-square"
+          class="w-5 h-5 text-emerald-600 dark:text-emerald-400"
+        />
         <span>{{ selectedIds.length }} Siswa Terpilih</span>
       </div>
 
@@ -246,11 +277,17 @@ async function batchDeleteSelected() {
 
     <!-- Data Table Card -->
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
-      <div v-if="pendingSC" class="py-8 text-center text-sm text-gray-400">
+      <div
+        v-if="pendingSC"
+        class="py-8 text-center text-sm text-gray-400"
+      >
         Memuat data pembagian kelas...
       </div>
 
-      <div v-else-if="studentClasses.length === 0" class="py-8 text-center text-sm text-gray-400">
+      <div
+        v-else-if="studentClasses.length === 0"
+        class="py-8 text-center text-sm text-gray-400"
+      >
         Belum ada data pembagian kelas yang sesuai dengan filter.
       </div>
 
@@ -273,7 +310,12 @@ async function batchDeleteSelected() {
           </template>
 
           <template #classroom-cell="{ row }">
-            <UBadge color="success" variant="subtle" size="xs" class="font-bold">
+            <UBadge
+              color="success"
+              variant="subtle"
+              size="xs"
+              class="font-bold"
+            >
               {{ (row as any).original.classroom?.name || (row as any).original.classroomId }}
             </UBadge>
           </template>
@@ -311,7 +353,10 @@ async function batchDeleteSelected() {
     </UCard>
 
     <!-- Pagination -->
-    <div v-if="pagination.pages > 1" class="flex items-center justify-between pt-2">
+    <div
+      v-if="pagination.pages > 1"
+      class="flex items-center justify-between pt-2"
+    >
       <span class="text-xs text-gray-500">
         Menampilkan {{ studentClasses.length }} dari {{ pagination.total }} data (Halaman {{ pagination.page }} dari {{ pagination.pages }})
       </span>

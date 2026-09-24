@@ -8,15 +8,14 @@ const {
   loading
 } = useUsers()
 
-const rowSelection = ref ({})
+const rowSelection = ref({})
 const table = useTemplateRef('table')
 const selectedRows = computed<UserSchema[]>(() => {
   return (
     table.value?.tableApi
       ?.getSelectedRowModel()
       .rows
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((row: { original: any }) => row.original) ?? []
+      .map((row: { original: UserSchema }) => row.original) ?? []
   )
 })
 
@@ -85,10 +84,10 @@ defineExpose({
       :loading="loading"
       class="flex-1"
     >
-      <template #select-header="{ table }">
+      <template #select-header="{ table: tableApi }">
         <UCheckbox
-          :model-value="table.getIsAllPageRowsSelected()"
-          @update:model-value="val => table.toggleAllPageRowsSelected(val === 'indeterminate' ? false : val)"
+          :model-value="tableApi.getIsAllPageRowsSelected()"
+          @update:model-value="val => tableApi.toggleAllPageRowsSelected(val === 'indeterminate' ? false : val)"
         />
       </template>
 

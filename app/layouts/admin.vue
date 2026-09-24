@@ -17,9 +17,9 @@ watch(() => route.path, () => {
 onMounted(async () => {
   if (!authStore.user) {
     try {
-      const u = await $fetch('/api/auth/me', { credentials: 'include' })
+      const u = await $fetch<{ id: string, role: string, fullname: string, username: string }>('/api/auth/me', { credentials: 'include' })
       if (u) {
-        authStore.setUser(u as any)
+        authStore.setUser(u)
       }
     } catch {
       // User is not authenticated
@@ -168,8 +168,6 @@ async function handleLogout() {
       <main class="flex-1 p-4 sm:p-6 w-full mx-auto">
         <slot />
       </main>
-
-
     </div>
   </div>
 </template>

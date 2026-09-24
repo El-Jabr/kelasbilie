@@ -54,8 +54,8 @@ export async function calculateGradeSummary(teachingId: string, semesterId: stri
   // Gabungkan ID siswa tanpa duplikasi
   const studentIds = Array.from(
     new Set([
-      ...studentClasses.map((sc) => sc.studentId),
-      ...enrollments.map((e) => e.studentId)
+      ...studentClasses.map(sc => sc.studentId),
+      ...enrollments.map(e => e.studentId)
     ])
   )
 
@@ -72,11 +72,11 @@ export async function calculateGradeSummary(teachingId: string, semesterId: stri
   // 4. Looping per siswa dan per kategori
   for (const studentId of studentIds) {
     for (const cat of categories) {
-      const categoryItems = gradeItems.filter((item) => item.category === cat)
+      const categoryItems = gradeItems.filter(item => item.category === cat)
 
       if (categoryItems.length === 0) continue
 
-      const itemIds = categoryItems.map((item) => item.id)
+      const itemIds = categoryItems.map(item => item.id)
 
       // Ambil skor GradeComponent siswa untuk item dalam kategori ini
       const components = await prisma.gradeComponent.findMany({

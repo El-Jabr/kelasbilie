@@ -28,7 +28,10 @@ const {
         Konteks Pengajaran
       </p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <UFormField label="Semester" required>
+        <UFormField
+          label="Semester"
+          required
+        >
           <USelect
             v-model="model.semesterId"
             :items="semesterOptions"
@@ -39,7 +42,10 @@ const {
           />
         </UFormField>
 
-        <UFormField label="Kelas" required>
+        <UFormField
+          label="Kelas"
+          required
+        >
           <USelect
             v-model="model.classroomId"
             :items="classOptions"
@@ -60,7 +66,10 @@ const {
         Guru & Mata Pelajaran
       </p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <UFormField label="Guru Pengampu" required>
+        <UFormField
+          label="Guru Pengampu"
+          required
+        >
           <USelect
             v-model="model.teacherId"
             :items="teacherOptions"
@@ -71,7 +80,10 @@ const {
           />
         </UFormField>
 
-        <UFormField label="Mata Pelajaran" required>
+        <UFormField
+          label="Mata Pelajaran"
+          required
+        >
           <USelect
             v-model="model.subjectId"
             :items="subjectOptions"
@@ -91,8 +103,13 @@ const {
       <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
         Integrasi Moodle
       </p>
-      <p class="text-xs text-gray-400 mb-3">Hubungkan penugasan ini dengan course di Moodle untuk sinkronisasi nilai.</p>
-      <UFormField label="Course Moodle" required>
+      <p class="text-xs text-gray-400 mb-3">
+        Hubungkan penugasan ini dengan course di Moodle untuk sinkronisasi nilai.
+      </p>
+      <UFormField
+        label="Course Moodle"
+        required
+      >
         <USelect
           v-model="model.courseId"
           :items="courseOptions"
@@ -105,4 +122,3 @@ const {
     </div>
   </div>
 </template>
-

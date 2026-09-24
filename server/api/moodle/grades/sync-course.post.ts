@@ -13,7 +13,7 @@ function mapGradeCategory(itemName: string | null): 'PH' | 'STS' | 'SAS' | null 
   if (nameUpper.includes('STS') || nameUpper.includes('TENGAH SEMESTER') || nameUpper.includes('MID')) {
     return 'STS'
   }
-  if (nameUpper.includes('SAS') || nameUpper.includes('PAS') || nameUpper.includes('AKHIR SEMESTER') || nameUpper.includes('FINAL')) {
+  if (nameUpper.includes('SAS') || nameUpper.includes('SAT') || nameUpper.includes('PAS') || nameUpper.includes('PAT') || nameUpper.includes('AKHIR SEMESTER') || nameUpper.includes('AKHIR TAHUN') || nameUpper.includes('FINAL')) {
     return 'SAS'
   }
   if (nameUpper.includes('PH') || nameUpper.includes('HARIAN') || nameUpper.includes('ULANGAN') || nameUpper.includes('QUIZ')) {
@@ -195,7 +195,7 @@ export default defineEventHandler(async (event) => {
     })
     for (const teaching of teachings) {
       await calculateGradeSummary(teaching.id, teaching.semesterId)
-      
+
       // Invalidate AI Analysis Cache
       await prisma.aiAnalysisCache.deleteMany({
         where: {
@@ -207,7 +207,7 @@ export default defineEventHandler(async (event) => {
         }
       })
     }
-    
+
     // Invalidate AI student caches for all students in this course
     if (gradeReport && gradeReport.usergrades) {
       for (const uGrade of gradeReport.usergrades) {
@@ -244,19 +244,20 @@ export default defineEventHandler(async (event) => {
         durationMs
       }
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err)
     console.error(`Sync Grade Per-Course Error (Course ${courseId}):`, err)
     await prisma.syncLog.create({
       data: {
         resource: 'GRADE',
         status: 'FAILED',
-        message: err.message || `Gagal menyingkronkan data nilai untuk course ID ${courseId}.`
+        message: errorMsg || `Gagal menyingkronkan data nilai untuk course ID ${courseId}.`
       }
     })
 
     throw createError({
       statusCode: 500,
-      statusMessage: err.message || 'Gagal menyingkronkan nilai dari Moodle untuk course ini.'
+      statusMessage: errorMsg || 'Gagal menyingkronkan nilai dari Moodle untuk course ini.'
     })
   }
 })

@@ -26,7 +26,10 @@ async function confirm() {
     description="Tindakan ini tidak dapat dibatalkan."
   >
     <template #body>
-      <div v-if="selectedSubject" class="space-y-3">
+      <div
+        v-if="selectedSubject"
+        class="space-y-3"
+      >
         <p class="text-sm text-gray-500">
           Apakah Anda yakin ingin menghapus mata pelajaran berikut?
         </p>

@@ -108,7 +108,7 @@ export default defineEventHandler(async (event: any) => {
 
   // 2c. Lookup missing users by email
   const missingEmails = students
-    .filter(s => {
+    .filter((s) => {
       const u = sanitizeUsername(s.nis || s.user?.username, s.user?.email)
       const em = s.user?.email || `${s.nis}@siswa.sekolah.id`
       return !moodleUserMap[u.toLowerCase()] && !moodleUserMap[em.toLowerCase()]
@@ -134,8 +134,8 @@ export default defineEventHandler(async (event: any) => {
   }
 
   // 3. Generate Passwords & Prepare Update Payloads
-  const moodleUpdates: { id: number; username?: string; idnumber?: string; password: string }[] = []
-  const dbUpdates: { studentId: string; userId?: string; moodleUserId?: number; password: string }[] = []
+  const moodleUpdates: { id: number, username?: string, idnumber?: string, password: string }[] = []
+  const dbUpdates: { studentId: string, userId?: string, moodleUserId?: number, password: string }[] = []
 
   for (const s of students) {
     const username = sanitizeUsername(s.nis || s.user?.username, s.user?.email)

@@ -4,13 +4,13 @@ import { PrismaClient } from '~~/prisma/generated/client'
 
 // Suppress known pg driver adapter concurrency warning (pg v8.13+ deprecation notice)
 if (typeof process !== 'undefined' && process.emitWarning) {
-  const originalEmitWarning = process.emitWarning
-  process.emitWarning = (warning: any, ...args: any[]) => {
+  const originalEmitWarning = process.emitWarning.bind(process)
+  process.emitWarning = (warning: string | Error, ...args: unknown[]) => {
     const msg = typeof warning === 'string' ? warning : warning?.message
     if (msg && msg.includes('Calling client.query() when the client is already executing a query')) {
       return
     }
-    return (originalEmitWarning as any)(warning, ...args)
+    Reflect.apply(originalEmitWarning, process, [warning, ...args])
   }
 }
 
@@ -19,7 +19,7 @@ const prismaClientSingleton = () => {
     connectionString: process.env.DATABASE_URL!,
     max: process.env.NODE_ENV === 'production' ? 25 : 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    connectionTimeoutMillis: 10000
   })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })

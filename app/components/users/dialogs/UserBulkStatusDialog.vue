@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import type { UserSchema } from '~~/shared/schemas/user'
+
 const props = withDefaults(
   defineProps<{
     open?: boolean
-    users?: any[]
+    users?: UserSchema[]
     action?: 'activate' | 'deactivate'
   }>(),
   {

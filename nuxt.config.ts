@@ -22,17 +22,6 @@ export default defineNuxtConfig({
     enabled: true
   },
 
-  vite: {
-    optimizeDeps: {
-      include: [
-        '@vue/devtools-core',
-        '@vue/devtools-kit',
-        'maska/vue',
-        'zod'
-      ]
-    }
-  },
-
   app: {
     baseURL: '/'
   },
@@ -62,6 +51,17 @@ export default defineNuxtConfig({
     },
     replace: {
       'file:///_entry.js': 'file:///C:/_entry.js'
+    }
+  },
+
+  vite: {
+    optimizeDeps: {
+      include: [
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+        'maska/vue',
+        'zod'
+      ]
     }
   },
 

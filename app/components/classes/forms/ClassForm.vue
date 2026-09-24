@@ -73,7 +73,10 @@ const levelOptions = [
           />
         </UFormField>
 
-        <UFormField label="Gedung" class="col-span-2">
+        <UFormField
+          label="Gedung"
+          class="col-span-2"
+        >
           <UInput
             v-model="model.building"
             class="w-full"
@@ -84,4 +87,3 @@ const levelOptions = [
     </div>
   </div>
 </template>
-

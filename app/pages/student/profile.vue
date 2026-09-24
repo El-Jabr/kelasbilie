@@ -1,60 +1,66 @@
 <script setup lang="ts">
+import { useStudentStore } from '~/stores/student'
+
 definePageMeta({
   layout: 'student',
   middleware: ['auth', 'role'],
   role: 'STUDENT'
 })
 
-const studentRes = ref<any>(null)
-const status = ref('pending')
-const student = computed(() => studentRes.value?.data ?? null)
+const studentStore = useStudentStore()
+
+const student = computed(() => studentStore.student)
+const status = computed(() => {
+  if (!studentStore.isLoadedProfile && studentStore.pendingProfile) return 'pending'
+  if (studentStore.student) return 'success'
+  return 'error'
+})
+
+const classroom = computed(() => studentStore.classroom)
+const semester = computed(() => studentStore.currentSemester)
+const homeroom = computed(() => studentStore.homeroom)
 
 async function refresh() {
-  status.value = 'pending'
-  try {
-    studentRes.value = await $fetch('/api/students/me')
-    status.value = 'success'
-  } catch (error) {
-    console.error(error)
-    status.value = 'error'
-  }
+  await studentStore.fetchProfile(true)
 }
 
 onMounted(async () => {
-  await refresh()
-})
-
-const studentClassesList = computed<any[]>(() => student.value?.classes ?? [])
-
-const currentClass = computed(() => {
-  if (!studentClassesList.value.length) return null
-  return studentClassesList.value.find((sc: any) => sc.semester?.isActive) || studentClassesList.value[0] || null
-})
-
-const classroom = computed(() => currentClass.value?.classroom ?? null)
-const semester = computed(() => currentClass.value?.semester ?? null)
-
-const homeroom = computed(() => {
-  const homerooms = classroom.value?.homerooms
-  if (!homerooms || !homerooms.length) return null
-  const activeSemId = semester.value?.id
-  const matched = homerooms.find((h: any) => h.semesterId === activeSemId || h.semester?.isActive)
-  return (matched || homerooms[0])?.teacher ?? null
+  await studentStore.fetchProfile()
 })
 </script>
 
 <template>
   <div class="space-y-6 max-w-4xl mx-auto">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Profil Saya</h1>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-        Informasi biodata dan status keanggotaan akademik siswa.
-      </p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+          Profil Saya
+        </h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Informasi biodata dan status keanggotaan akademik siswa.
+        </p>
+      </div>
+      <UButton
+        icon="i-lucide-refresh-cw"
+        color="neutral"
+        variant="outline"
+        size="sm"
+        :loading="studentStore.pendingProfile"
+        @click="refresh"
+      >
+        Muat Ulang
+      </UButton>
     </div>
 
     <!-- Loading State -->
-    <div v-if="status === 'pending'" class="flex items-center justify-center py-16">
-      <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-primary-500" />
+    <div
+      v-if="status === 'pending'"
+      class="flex items-center justify-center py-16"
+    >
+      <UIcon
+        name="i-lucide-loader-2"
+        class="w-8 h-8 animate-spin text-primary-500"
+      />
       <span class="ml-2 text-gray-500">Memuat profil siswa...</span>
     </div>
 
@@ -73,10 +79,20 @@ const homeroom = computed(() => {
               <h2 class="text-xl font-bold text-gray-900 dark:text-white">
                 {{ student.user?.fullname }}
               </h2>
-              <UBadge color="info" variant="subtle" size="xs">SISWA</UBadge>
+              <UBadge
+                color="info"
+                variant="subtle"
+                size="xs"
+              >
+                SISWA
+              </UBadge>
             </div>
-            <p class="text-sm text-gray-500 font-mono">NIS: {{ student.nis || '-' }}</p>
-            <p class="text-xs text-gray-400">{{ student.user?.email }}</p>
+            <p class="text-sm text-gray-500 font-mono">
+              NIS: {{ student.nis || '-' }}
+            </p>
+            <p class="text-xs text-gray-400">
+              {{ student.user?.email }}
+            </p>
           </div>
         </div>
       </UCard>
@@ -87,32 +103,59 @@ const homeroom = computed(() => {
         <UCard>
           <template #header>
             <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-user-check" class="hidden sm:inline-block w-5 h-5 text-primary-500" />
-              <h3 class="font-semibold text-gray-900 dark:text-white">Informasi Akun</h3>
+              <UIcon
+                name="i-lucide-user-check"
+                class="hidden sm:inline-block w-5 h-5 text-primary-500"
+              />
+              <h3 class="font-semibold text-gray-900 dark:text-white">
+                Informasi Akun
+              </h3>
             </div>
           </template>
 
           <dl class="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
             <div class="py-3 flex justify-between">
-              <dt class="text-gray-500">Nama Lengkap</dt>
-              <dd class="font-medium text-gray-900 dark:text-white">{{ student.user?.fullname }}</dd>
+              <dt class="text-gray-500">
+                Nama Lengkap
+              </dt>
+              <dd class="font-medium text-gray-900 dark:text-white">
+                {{ student.user?.fullname }}
+              </dd>
             </div>
             <div class="py-3 flex justify-between">
-              <dt class="text-gray-500">Email</dt>
-              <dd class="font-medium text-gray-900 dark:text-white font-mono">{{ student.user?.email }}</dd>
+              <dt class="text-gray-500">
+                Email
+              </dt>
+              <dd class="font-medium text-gray-900 dark:text-white font-mono">
+                {{ student.user?.email }}
+              </dd>
             </div>
             <div class="py-3 flex justify-between">
-              <dt class="text-gray-500">Username</dt>
-              <dd class="font-medium text-gray-900 dark:text-white font-mono">{{ student.user?.username }}</dd>
+              <dt class="text-gray-500">
+                Username
+              </dt>
+              <dd class="font-medium text-gray-900 dark:text-white font-mono">
+                {{ student.user?.username }}
+              </dd>
             </div>
             <div class="py-3 flex justify-between">
-              <dt class="text-gray-500">Nomor Induk Siswa (NIS)</dt>
-              <dd class="font-bold text-primary-600 dark:text-primary-400 font-mono">{{ student.nis }}</dd>
+              <dt class="text-gray-500">
+                Nomor Induk Siswa (NIS)
+              </dt>
+              <dd class="font-bold text-primary-600 dark:text-primary-400 font-mono">
+                {{ student.nis }}
+              </dd>
             </div>
             <div class="py-3 flex justify-between">
-              <dt class="text-gray-500">Status Akun</dt>
+              <dt class="text-gray-500">
+                Status Akun
+              </dt>
               <dd>
-                <UBadge :color="student.user?.isActive ? 'success' : 'neutral'" variant="subtle" size="xs">
+                <UBadge
+                  :color="student.user?.isActive ? 'success' : 'neutral'"
+                  variant="subtle"
+                  size="xs"
+                >
                   {{ student.user?.isActive ? 'Aktif' : 'Non-Aktif' }}
                 </UBadge>
               </dd>
@@ -124,32 +167,53 @@ const homeroom = computed(() => {
         <UCard>
           <template #header>
             <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-school" class="hidden sm:inline-block w-5 h-5 text-primary-500" />
-              <h3 class="font-semibold text-gray-900 dark:text-white">Rombel & Wali Kelas</h3>
+              <UIcon
+                name="i-lucide-school"
+                class="hidden sm:inline-block w-5 h-5 text-primary-500"
+              />
+              <h3 class="font-semibold text-gray-900 dark:text-white">
+                Rombel & Wali Kelas
+              </h3>
             </div>
           </template>
 
           <dl class="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
             <div class="py-3 flex justify-between">
-              <dt class="text-gray-500">Kelas Aktif</dt>
-              <dd class="font-bold text-gray-900 dark:text-white">{{ classroom?.name || '-' }}</dd>
+              <dt class="text-gray-500">
+                Kelas Aktif
+              </dt>
+              <dd class="font-bold text-gray-900 dark:text-white">
+                {{ classroom?.name || '-' }}
+              </dd>
             </div>
             <div class="py-3 flex justify-between">
-              <dt class="text-gray-500">Ruang & Gedung</dt>
+              <dt class="text-gray-500">
+                Ruang & Gedung
+              </dt>
               <dd class="font-medium text-gray-900 dark:text-white">
                 {{ classroom ? `${classroom.room} (${classroom.building})` : '-' }}
               </dd>
             </div>
             <div class="py-3 flex justify-between">
-              <dt class="text-gray-500">Wali Kelas</dt>
-              <dd class="font-medium text-gray-900 dark:text-white">{{ homeroom?.user?.fullname || '-' }}</dd>
+              <dt class="text-gray-500">
+                Wali Kelas
+              </dt>
+              <dd class="font-medium text-gray-900 dark:text-white">
+                {{ homeroom?.user?.fullname || '-' }}
+              </dd>
             </div>
             <div class="py-3 flex justify-between">
-              <dt class="text-gray-500">NIP Wali Kelas</dt>
-              <dd class="font-mono text-gray-700 dark:text-gray-300">{{ homeroom?.nip || '-' }}</dd>
+              <dt class="text-gray-500">
+                NIP Wali Kelas
+              </dt>
+              <dd class="font-mono text-gray-700 dark:text-gray-300">
+                {{ homeroom?.nip || '-' }}
+              </dd>
             </div>
             <div class="py-3 flex justify-between">
-              <dt class="text-gray-500">Tahun Ajaran / Semester</dt>
+              <dt class="text-gray-500">
+                Tahun Ajaran / Semester
+              </dt>
               <dd class="font-medium text-gray-900 dark:text-white">
                 {{ semester ? `${semester.academicYear?.name} (${semester.type})` : '-' }}
               </dd>

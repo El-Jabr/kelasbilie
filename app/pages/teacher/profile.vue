@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
+import { useTeacherStore } from '~~/app/stores/teacher'
+
 definePageMeta({
   layout: 'teacher',
   middleware: ['auth', 'role'],
   role: ['TEACHER', 'ADMIN', 'SUPER_ADMIN']
 })
-
-import { storeToRefs } from 'pinia'
-import { useTeacherStore } from '~~/app/stores/teacher'
 
 const toast = useToast()
 const teacherStore = useTeacherStore()
@@ -54,7 +54,9 @@ async function onSubmit() {
 <template>
   <div class="max-w-2xl mx-auto space-y-6">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Profil Saya</h1>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        Profil Saya
+      </h1>
       <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
         Kelola dan perbarui data profil guru Anda.
       </p>
@@ -75,14 +77,21 @@ async function onSubmit() {
             <h2 class="text-base font-bold text-gray-900 dark:text-white">
               {{ teacher.user?.fullname }}
             </h2>
-            <UBadge color="success" variant="subtle" size="xs">
+            <UBadge
+              color="success"
+              variant="subtle"
+              size="xs"
+            >
               Role: {{ teacher.user?.role }}
             </UBadge>
           </div>
         </div>
       </template>
 
-      <form class="space-y-4" @submit.prevent="onSubmit">
+      <form
+        class="space-y-4"
+        @submit.prevent="onSubmit"
+      >
         <div>
           <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
             Nama Lengkap

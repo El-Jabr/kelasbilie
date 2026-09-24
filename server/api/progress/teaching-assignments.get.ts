@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
   requireRole(event, ['SUPER_ADMIN', 'ADMIN'])
   const query = getQuery(event)
   const semesterId = query.semesterId ? String(query.semesterId) : undefined
-  
+
   if (!semesterId) {
     return []
   }
@@ -38,8 +38,8 @@ export default defineEventHandler(async (event) => {
   const allGradeItemIds = new Set<number>()
 
   for (const teaching of teachings) {
-    teaching.classroom?.students?.forEach((s: any) => allStudentIds.add(s.studentId))
-    teaching.course?.gradeItems?.forEach((g: any) => allGradeItemIds.add(g.id))
+    teaching.classroom?.students?.forEach((s: { studentId: string }) => allStudentIds.add(s.studentId))
+    teaching.course?.gradeItems?.forEach((g: { id: number }) => allGradeItemIds.add(g.id))
   }
 
   // 2. Fetch all matching grade components in a single query
