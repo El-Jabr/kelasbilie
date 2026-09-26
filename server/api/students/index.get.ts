@@ -7,6 +7,9 @@ export default defineEventHandler(async (event) => {
   const search = String(query.search ?? '').trim()
 
   const where = {
+    user: {
+      isActive: true
+    },
     ...(search && {
       OR: [
         { nis: { contains: search, mode: 'insensitive' as const } },

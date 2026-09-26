@@ -7,10 +7,35 @@ useSeoMeta({
   title: 'Pembagian Kelas Siswa'
 })
 
+const store = useStudentClassStore()
+const toast = useToast()
 const { pagination, refreshSC, loadSupportingData } = useStudentClasses()
 const { openSingleCreateModal } = useStudentClassDialogs()
 
 const activeTab = ref('plotting') // Default to 'plotting' for easy bulk allocation
+const isRefreshing = ref(false)
+const plottingFormRef = ref<{ refreshData: () => Promise<void> } | null>(null)
+
+async function handleRefresh() {
+  isRefreshing.value = true
+  try {
+    store.clearPlottingCache()
+    await Promise.all([
+      refreshSC(true),
+      loadSupportingData(true),
+      plottingFormRef.value?.refreshData?.()
+    ])
+    toast.add({
+      title: 'Berhasil Refresh',
+      description: 'Data pembagian kelas dan siswa berhasil dimuat ulang.',
+      color: 'success'
+    })
+  } catch (err) {
+    console.error('Gagal refresh pembagian kelas:', err)
+  } finally {
+    isRefreshing.value = false
+  }
+}
 
 onMounted(async () => {
   await Promise.all([
@@ -38,6 +63,18 @@ onMounted(async () => {
       </div>
 
       <div class="flex items-center gap-2">
+        <UButton
+          type="button"
+          icon="i-lucide-refresh-cw"
+          color="neutral"
+          variant="subtle"
+          :loading="isRefreshing"
+          class="cursor-pointer font-semibold shadow-sm"
+          @click="handleRefresh"
+        >
+          Refresh
+        </UButton>
+
         <UButton
           type="button"
           icon="i-lucide-layers"
@@ -119,7 +156,10 @@ onMounted(async () => {
 
     <!-- TAB 1: PLOTTING ROMBEL (TRANSFER LIST) -->
     <div v-if="activeTab === 'plotting'">
-      <StudentClassesFormsStudentClassPlottingForm @success="refreshSC" />
+      <StudentClassesFormsStudentClassPlottingForm
+        ref="plottingFormRef"
+        @success="refreshSC"
+      />
     </div>
 
     <!-- TAB 2: DATA TABLE -->

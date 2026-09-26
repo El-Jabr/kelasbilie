@@ -14,14 +14,17 @@ export default defineEventHandler(async (event) => {
 
   if (semesterId) where.semesterId = semesterId
   if (classroomId) where.classroomId = classroomId
-  if (search) {
-    where.student = {
+  where.student = {
+    user: {
+      isActive: true
+    },
+    ...(search ? {
       OR: [
         { nis: { contains: search, mode: 'insensitive' } },
         { user: { fullname: { contains: search, mode: 'insensitive' } } },
         { user: { username: { contains: search, mode: 'insensitive' } } }
       ]
-    }
+    } : {})
   }
 
   const [total, studentClasses] = await Promise.all([

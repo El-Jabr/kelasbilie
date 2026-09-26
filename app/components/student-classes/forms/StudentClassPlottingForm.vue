@@ -251,6 +251,22 @@ async function removeSelectedMembers() {
     isRemoving.value = false
   }
 }
+
+async function refreshData() {
+  store.clearPlottingCache()
+  const promises: Promise<unknown>[] = []
+  if (targetSemesterId.value) {
+    promises.push(store.fetchUnassigned(targetSemesterId.value, searchUnassigned.value, true))
+  }
+  if (targetClassroomId.value && targetSemesterId.value) {
+    promises.push(store.fetchClassMembers(targetClassroomId.value, targetSemesterId.value, searchMembers.value, true))
+  }
+  await Promise.all(promises)
+}
+
+defineExpose({
+  refreshData
+})
 </script>
 
 <template>

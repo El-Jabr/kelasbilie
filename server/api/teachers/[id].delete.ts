@@ -7,18 +7,31 @@ export default defineEventHandler(async (event) => {
 
     const teacher = await prisma.teacher.findUnique({
       where: { id },
-      select: { id: true, _count: { select: { teachings: true, homerooms: true } } }
+      select: {
+        id: true,
+        userId: true,
+        _count: { select: { teachings: true, homerooms: true } }
+      }
     })
 
     if (!teacher) throw createError({ statusCode: 404, statusMessage: 'Guru tidak ditemukan.' })
     if (teacher._count.teachings + teacher._count.homerooms > 0) {
-      throw createError({ statusCode: 409, statusMessage: 'Guru masih digunakan dan tidak dapat dihapus.' })
+      throw createError({ statusCode: 409, statusMessage: 'Guru masih memiliki penugasan mengajar/wali kelas dan tidak dapat dihapus.' })
     }
 
-    await prisma.teacher.delete({ where: { id } })
+    await prisma.$transaction(async (tx) => {
+      await tx.teacher.delete({ where: { id } })
+      if (teacher.userId) {
+        const studentProfile = await tx.student.findUnique({ where: { userId: teacher.userId } })
+        if (!studentProfile) {
+          await tx.user.delete({ where: { id: teacher.userId } }).catch(() => {})
+        }
+      }
+    })
+
     return { success: true, message: 'Guru berhasil dihapus.' }
   } catch (error) {
     if (error && typeof error === 'object' && 'statusCode' in error) throw error
-    throw createError({ statusCode: 500, statusMessage: 'Failed to delete teacher.' })
+    throw createError({ statusCode: 500, statusMessage: 'Gagal menghapus guru.' })
   }
 })
